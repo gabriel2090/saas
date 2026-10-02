@@ -16,7 +16,17 @@ import globals from 'globals';
  * de `docs/ESPECIFICACION.md`.
  */
 export default tseslint.config(
-  { ignores: ['node_modules/', 'out/', 'dist/', 'release/', 'coverage/', 'docs/', 'eslint.config.mjs'] },
+  {
+    ignores: [
+      'node_modules/',
+      'out/',
+      'dist/',
+      'release/',
+      'coverage/',
+      'docs/',
+      'eslint.config.mjs',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   {
