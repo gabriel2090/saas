@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { aIsoLocal, formatearFecha, formatearFechaHora, formatearHora, leerFecha } from './fechas';
+import {
+  aIsoLocal,
+  formatearFecha,
+  formatearFechaHora,
+  formatearFechaHoraTirilla,
+  formatearHora,
+  leerFecha,
+} from './fechas';
 
 describe('leerFecha', () => {
   it('convierte dd/mm/aaaa al formato de la base de datos', () => {
@@ -50,5 +57,15 @@ describe('formatearHora', () => {
 describe('formatearFechaHora', () => {
   it('combina fecha y hora', () => {
     expect(formatearFechaHora('2026-10-01T23:30:00.000-05:00')).toBe('01/10/2026 11:30 p. m.');
+  });
+});
+
+describe('formatearFechaHoraTirilla', () => {
+  it('imprime segundos y AM/PM como la tirilla actual', () => {
+    expect(formatearFechaHoraTirilla('2026-09-30T17:26:36.120-05:00')).toBe(
+      '30/09/2026 05:26:36 PM',
+    );
+    expect(formatearFechaHoraTirilla('2026-09-30T00:05:09-05:00')).toBe('30/09/2026 12:05:09 AM');
+    expect(formatearFechaHoraTirilla('2026-09-30T12:00:00-05:00')).toBe('30/09/2026 12:00:00 PM');
   });
 });

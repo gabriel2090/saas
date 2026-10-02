@@ -67,11 +67,12 @@ function documentoCarta(titulo: string, cuerpo: string): string {
 
 /**
  * Encabezado con los datos del negocio (F-01), igual en todos los documentos.
+ * Cada plantilla define el estilo de `.encabezado` y `.encabezado__nombre`.
  *
  * @param negocio - Datos del negocio.
  * @returns HTML del encabezado.
  */
-function encabezadoNegocio(negocio: DatosNegocio): string {
+export function encabezadoNegocio(negocio: DatosNegocio): string {
   const lineas = [
     `<div class="encabezado__nombre">${escaparHtml(negocio.nombre || 'NOMBRE DEL NEGOCIO SIN CONFIGURAR')}</div>`,
     negocio.nit ? `<div>NIT: ${escaparHtml(negocio.nit)}</div>` : '',

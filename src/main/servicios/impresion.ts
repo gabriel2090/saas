@@ -1,8 +1,16 @@
 import { aIsoLocal } from '../../shared/formato/fechas';
 import type { DocumentoImprimible } from '../../shared/impresion';
 import { reciboAbonoProveedor } from '../impresion/plantillas';
+import { tirillaFactura } from '../impresion/tirilla';
 import type { ServicioAbonos } from './abonos';
 import type { ServicioNegocio } from './negocio';
+import type { ServicioVentas } from './ventas';
+
+/**
+ * Formato de papel de un documento: hoja carta con diálogo de Windows, o
+ * tirilla de 80 mm en la impresora térmica (D-88).
+ */
+export type FormatoImpresion = 'carta' | 'tirilla';
 
 /**
  * Servicio que arma el HTML de los documentos imprimibles a partir de lo
@@ -25,6 +33,13 @@ export interface ServicioImpresion {
    * @throws {ErrorDeNegocio} Si el documento no existe.
    */
   nombreArchivo(documento: DocumentoImprimible): string;
+  /**
+   * Formato de papel en que se imprime el documento.
+   *
+   * @param documento - Tipo de documento.
+   * @returns `carta` o `tirilla`.
+   */
+  formato(documento: DocumentoImprimible): FormatoImpresion;
 }
 
 /**
@@ -35,6 +50,8 @@ export interface DependenciasImpresion {
   negocio: ServicioNegocio;
   /** Abonos a proveedor. */
   abonos: ServicioAbonos;
+  /** Facturas de venta. */
+  ventas: ServicioVentas;
   /** Reloj (inyectable en pruebas). */
   reloj?: () => string;
 }
@@ -48,14 +65,32 @@ export interface DependenciasImpresion {
 export function crearServicioImpresion(dependencias: DependenciasImpresion): ServicioImpresion {
   const reloj = dependencias.reloj ?? aIsoLocal;
   return {
-    html: (documento) =>
-      reciboAbonoProveedor({
-        negocio: dependencias.negocio.obtener(),
-        abono: dependencias.abonos.obtener(documento.id),
-        reimpresion: documento.reimpresion,
-        impresoEn: reloj(),
-      }),
-    nombreArchivo: (documento) =>
-      `Recibo de abono ${dependencias.abonos.obtener(documento.id).numero}.pdf`,
+    html: (documento) => {
+      const negocio = dependencias.negocio.obtener();
+      switch (documento.tipo) {
+        case 'abono-proveedor':
+          return reciboAbonoProveedor({
+            negocio,
+            abono: dependencias.abonos.obtener(documento.id),
+            reimpresion: documento.reimpresion,
+            impresoEn: reloj(),
+          });
+        case 'factura-cliente':
+          return tirillaFactura({
+            negocio,
+            factura: dependencias.ventas.obtener(documento.id),
+            reimpresion: documento.reimpresion,
+          });
+      }
+    },
+    nombreArchivo: (documento) => {
+      switch (documento.tipo) {
+        case 'abono-proveedor':
+          return `Recibo de abono ${dependencias.abonos.obtener(documento.id).numero}.pdf`;
+        case 'factura-cliente':
+          return `Factura ${dependencias.ventas.obtener(documento.id).numero}.pdf`;
+      }
+    },
+    formato: (documento) => (documento.tipo === 'factura-cliente' ? 'tirilla' : 'carta'),
   };
 }

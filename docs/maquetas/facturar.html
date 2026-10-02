@@ -126,6 +126,28 @@
       .facturar--contado .solo-credito {
         display: none;
       }
+      /* Venta a crédito bloqueada (S-03): solo se ve en esa variante. */
+      .solo-bloqueada {
+        display: none;
+      }
+      .facturar--bloqueada .solo-bloqueada {
+        display: flex;
+      }
+      .facturar--bloqueada .solo-libre {
+        display: none;
+      }
+      .credito--bloqueado {
+        border-color: var(--color-error);
+        background: #fdecea;
+      }
+      .aviso ul {
+        margin: 4px 0 6px;
+        padding-left: 18px;
+      }
+      .aviso__acciones {
+        display: flex;
+        gap: 8px;
+      }
     </style>
   </head>
   <body>
@@ -173,7 +195,7 @@
                 </label>
                 <div class="credito">
                   <span>Tope de crédito</span><span>Deuda actual</span><span>Vencido</span><span>Disponible</span>
-                  <strong>$ 500,000</strong><strong>$ 120,000</strong><strong>$ 0</strong><strong class="texto-exito">$ 380,000</strong>
+                  <strong>$ 500,000</strong><strong class="credito-deuda">$ 120,000</strong><strong class="credito-vencido">$ 0</strong><strong class="texto-exito credito-disponible">$ 380,000</strong>
                 </div>
                 <div class="campo">
                   <span>Condición de pago</span>
@@ -214,7 +236,21 @@
               <div class="documento__pie">
                 <div class="documento__avisos">
                   <p class="en-letras"><strong>Son:</strong> SETENTA Y NUEVE MIL DOSCIENTOS CINCUENTA PESOS M/L</p>
-                  <p class="aviso aviso--alerta"><svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2zM12 10v5M12 18v.01" /></svg><span>Línea 3 · 102 CAJA PIZZA 40*40 FD: en Principal quedan 2 UND; el stock quedará en −3. Se puede vender igual (§5.1).</span></p>
+                  <div class="aviso aviso--error solo-bloqueada">
+                    <svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M5.6 5.6l12.8 12.8" /></svg>
+                    <div>
+                      <strong>No se puede vender a crédito a 10065 - JUAN JJ FERTILIA:</strong>
+                      <ul>
+                        <li>Tiene facturas vencidas por $ 120,000 (la más antigua, la 84650, venció hace 13 días).</li>
+                        <li>La venta ($ 79,250) supera el crédito disponible ($ 50,000) en $ 29,250.</li>
+                      </ul>
+                      <div class="aviso__acciones">
+                        <button class="boton">Cambiar a contado</button>
+                        <span class="texto-tenue">o registre primero un abono del cliente (Abono de cliente).</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p class="aviso aviso--alerta solo-libre"><svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2zM12 10v5M12 18v.01" /></svg><span>Línea 3 · 102 CAJA PIZZA 40*40 FD: en Principal quedan 2 UND; el stock quedará en −3. Se puede vender igual (§5.1).</span></p>
                   <div class="facturar__cajas"><span>No. cajas de empaque</span><input value="" placeholder="Opcional" /></div>
                 </div>
 
@@ -224,7 +260,7 @@
                     <tr><th>Su ahorro fue de</th><td class="num">12,000</td></tr>
                     <tr class="totales__total"><th>Total</th><td class="num">$ 79,250</td></tr>
                     <tr class="solo-credito"><th>Saldo crédito</th><td class="num">79,250</td></tr>
-                    <tr class="solo-credito"><th class="texto-tenue">Disponible después de esta venta</th><td class="num texto-tenue">$ 300,750</td></tr>
+                    <tr class="solo-credito"><th class="texto-tenue">Disponible después de esta venta</th><td class="num texto-tenue disponible-despues">$ 300,750</td></tr>
                     <tr class="solo-contado"><th>Forma de pago</th><td><select style="width: 160px"><option>Efectivo</option></select></td></tr>
                     <tr class="solo-contado"><th>Recibido</th><td><input value="100,000" /></td></tr>
                     <tr class="solo-contado"><th>Cambio</th><td class="num"><strong>20,750</strong></td></tr>
@@ -251,6 +287,21 @@
         document.querySelector('.campo-plazo').disabled = true;
         document.querySelector('.campo-plazo').value = '';
         document.querySelector('.campo-vence').value = '';
+      }
+      // Variante «bloqueada»: crédito con facturas vencidas y sin cupo (S-03).
+      if (location.hash === '#bloqueada') {
+        document.getElementById('facturar').classList.add('facturar--bloqueada');
+        document.querySelector('.credito').classList.add('credito--bloqueado');
+        document.querySelector('.credito-deuda').textContent = '$ 450,000';
+        const vencido = document.querySelector('.credito-vencido');
+        vencido.textContent = '$ 120,000';
+        vencido.classList.add('texto-error');
+        const disponible = document.querySelector('.credito-disponible');
+        disponible.textContent = '$ 50,000';
+        disponible.classList.replace('texto-exito', 'texto-error');
+        document.querySelector('.disponible-despues').textContent = '− $ 29,250';
+        document.querySelector('.disponible-despues').classList.add('texto-error');
+        document.querySelector('.boton--primario').disabled = true;
       }
     </script>
   </body>

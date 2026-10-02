@@ -48,13 +48,14 @@ function partesIso(iso: string): {
   dia: string;
   hora: number;
   minuto: string;
+  segundo: string;
 } {
   const m = PATRON_ISO.exec(iso);
   if (!m) {
     throw new RangeError(`Fecha inválida: «${iso}».`);
   }
-  const [, anio = '', mes = '', dia = '', hora = '00', minuto = '00'] = m;
-  return { anio, mes, dia, hora: Number(hora), minuto };
+  const [, anio = '', mes = '', dia = '', hora = '00', minuto = '00', segundo = '00'] = m;
+  return { anio, mes, dia, hora: Number(hora), minuto, segundo };
 }
 
 /**
@@ -96,6 +97,24 @@ export function formatearHora(iso: string): string {
  */
 export function formatearFechaHora(iso: string): string {
   return `${formatearFecha(iso)} ${formatearHora(iso)}`;
+}
+
+/**
+ * Formatea una fecha ISO como la imprime la tirilla actual del negocio (F-03):
+ * `dd/mm/aaaa hh:mm:ss AM/PM`, con la hora en dos dígitos.
+ *
+ * @param iso - Fecha ISO 8601 con hora.
+ * @returns Texto como `30/09/2026 05:26:36 PM`.
+ * @throws {RangeError} Si el texto no es una fecha ISO válida.
+ *
+ * @example
+ * formatearFechaHoraTirilla('2026-09-30T17:26:36-05:00'); // '30/09/2026 05:26:36 PM'
+ */
+export function formatearFechaHoraTirilla(iso: string): string {
+  const { hora, minuto, segundo } = partesIso(iso);
+  const hora12 = hora % 12 === 0 ? 12 : hora % 12;
+  const sufijo = hora < 12 ? 'AM' : 'PM';
+  return `${formatearFecha(iso)} ${rellenar(hora12)}:${minuto}:${segundo} ${sufijo}`;
 }
 
 /**

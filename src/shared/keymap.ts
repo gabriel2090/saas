@@ -149,6 +149,13 @@ export const ATAJOS = {
   },
 
   // --- Facturar (Fase 3) ---
+  // Desde el campo de código actúa sobre la última línea agregada (D-81).
+  cambiarEscala: {
+    combinacion: 'F6',
+    descripcion: 'Cambiar la escala de la línea (Menor → Mínimo → Mayor)',
+    ambito: 'facturar',
+    permitirEnCampoTexto: true,
+  },
   alterarPrecio: {
     combinacion: 'F7',
     descripcion: 'Alterar el precio de la línea',

@@ -178,7 +178,9 @@ Hay **dos ventanas separadas:** corrección de factura de proveedor y correcció
 0. **Base:** estructura del proyecto, migraciones, contraseña, gestor de ventanas internas, barra de iconos, buscador de procesos, `keymap`, historial de cambios (infraestructura).
 1. **Maestros e importador:** productos, clientes, proveedores, bodegas, formas de pago; pantalla **«Datos del negocio»** (nombre, NIT, régimen, dirección, teléfono) para el encabezado de la factura; importador CSV/XLSX.
 2. **Compras y cuentas por pagar:** factura de proveedor, flete, abonos a proveedores.
-3. **Ventas y cuentas por cobrar:** factura de cliente con 6 borradores, escalas, F7, impresión térmica, tope de crédito, abonos de clientes.
+3. **Ventas y cuentas por cobrar** (dividida en dos, D-80):
+   - **3a:** factura de cliente con 6 borradores, escalas, F7, tope de crédito e impresión térmica. Se detiene para probar con la impresora real.
+   - **3b:** abonos de clientes e importador de saldos iniciales de cartera.
 4. **Correcciones:** corrección de facturas, anulaciones, devoluciones, ajustes, ventana de reimpresiones.
 5. **Reportes y extras:** inventario, cuentas por cobrar y por pagar, kardex, visor del historial, cierre de caja, estados de cuenta.
 6. **Cierre:** respaldos, instalador de Windows, pulido, documentación y pruebas finales.

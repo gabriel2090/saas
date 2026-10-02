@@ -15,6 +15,7 @@ import {
   ESTADO_INICIAL_VENTANAS,
   reducirVentanas,
   ventanasConCambios,
+  type AvisoConservados,
   type EstadoVentanas,
   type TamanoVentana,
 } from './gestor';
@@ -61,6 +62,13 @@ export interface ApiVentanas {
    * @param conCambios - Si tiene cambios.
    */
   marcarCambios: (id: IdProceso, conCambios: boolean) => void;
+  /**
+   * Marca el trabajo pendiente que se conserva al cerrar la ventana.
+   *
+   * @param id - Ventana.
+   * @param aviso - Resumen y mensaje de cierre, o `null` si no hay.
+   */
+  marcarConservados: (id: IdProceso, aviso: AvisoConservados | null) => void;
   /**
    * Pide confirmación y cierra la ventana.
    *
@@ -134,7 +142,12 @@ export function ProveedorVentanas({ children }: PropiedadesProveedorVentanas): R
               mensaje: `La ventana «${titulo}» tiene cambios sin guardar. ¿Desea cerrarla y descartar los cambios?`,
               peligroso: true,
             }
-          : { titulo: 'Cerrar ventana', mensaje: `¿Desea cerrar la ventana «${titulo}»?` },
+          : {
+              titulo: 'Cerrar ventana',
+              mensaje: ventana.conservados
+                ? `${ventana.conservados.mensaje} ¿Desea cerrar la ventana «${titulo}»?`
+                : `¿Desea cerrar la ventana «${titulo}»?`,
+            },
       );
       if (aceptado) {
         despachar({ tipo: 'cerrar', id });
@@ -150,16 +163,19 @@ export function ProveedorVentanas({ children }: PropiedadesProveedorVentanas): R
       return true;
     }
     const pendientes = ventanasConCambios(actual).map((v) => `«${obtenerProceso(v.id).titulo}»`);
+    const conservados = actual.ventanas
+      .flatMap((v) => (v.conservados ? [v.conservados.mensaje] : []))
+      .join(' ');
     const aceptado = await confirmar(
       pendientes.length > 0
         ? {
             titulo: 'Cambios sin guardar',
-            mensaje: `Hay cambios sin guardar en ${pendientes.join(', ')}. ¿Desea cerrar todas las ventanas y descartarlos?`,
+            mensaje: `Hay cambios sin guardar en ${pendientes.join(', ')}. ¿Desea cerrar todas las ventanas y descartarlos?${conservados ? ` ${conservados}` : ''}`,
             peligroso: true,
           }
         : {
             titulo: 'Cerrar todas las ventanas',
-            mensaje: `¿Desea cerrar las ${actual.ventanas.length} ventanas abiertas?`,
+            mensaje: `${conservados ? `${conservados} ` : ''}¿Desea cerrar las ${actual.ventanas.length} ventanas abiertas?`,
           },
     );
     if (aceptado) {
@@ -177,6 +193,7 @@ export function ProveedorVentanas({ children }: PropiedadesProveedorVentanas): R
       mover: (id, x, y) => despachar({ tipo: 'mover', id, x, y }),
       redimensionar: (id, tamano) => despachar({ tipo: 'redimensionar', id, tamano }),
       marcarCambios: (id, conCambios) => despachar({ tipo: 'marcarCambios', id, conCambios }),
+      marcarConservados: (id, aviso) => despachar({ tipo: 'marcarConservados', id, aviso }),
       solicitarCerrar,
       solicitarCerrarTodas,
     }),

@@ -2,7 +2,7 @@
 
 Aplicación de escritorio para Windows (100 % offline) de inventario, facturación, cuentas por cobrar y cuentas por pagar. La especificación completa está en [`docs/ESPECIFICACION.md`](docs/ESPECIFICACION.md), las decisiones tomadas en [`docs/DECISIONES.md`](docs/DECISIONES.md) y la arquitectura en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
 
-**Estado:** Fase 2 (compras y cuentas por pagar) en revisión. Incluye:
+**Estado:** Fase 3a (facturar con impresión térmica) en revisión; la 3b (abonos de cliente e importador de saldos iniciales) empieza tras probar con la impresora real. Guía de uso: [`docs/MANUAL_USUARIO.md`](docs/MANUAL_USUARIO.md). Incluye:
 
 - **Fase 0:** estructura, migraciones, contraseña, ventanas internas, barra de iconos, buscador de procesos, `keymap`, historial de cambios y respaldos automáticos.
 - **Fase 1:**
@@ -15,6 +15,10 @@ Aplicación de escritorio para Windows (100 % offline) de inventario, facturaci�
   - Factura de proveedor: flete y descuento repartidos en el costo, costo nuevo por línea, avisos («revisar precios», variación de costo mayor a 25 %), stock por bodega, último plazo del proveedor y «Pagada de contado».
   - Abono a proveedor: reparto automático a las compras más antiguas, abonos anteriores, anulación con su efecto en el saldo y recibo en hoja carta (imprimir o PDF).
   - Ajustes de inventario: merma, daño y conteo físico.
+- **Fase 3a:**
+  - Facturar con 6 borradores autoguardados (sobreviven a cerrar la ventana o a un apagón), escala por línea, precio alterado (F7), revisión de crédito con bloqueo y «Cambiar a contado», contado con cambio y «Su ahorro fue de».
+  - Tirilla «FACTURA DE VENTA» de 80 mm impresa en silencio en la impresora elegida, con «Reintentar impresión» si falla.
+  - En «Datos del negocio»: el consecutivo inicial de la factura y la impresora térmica.
 
 ## Requisitos
 
@@ -80,14 +84,14 @@ El stock inicial se puede volver a importar (reemplaza al anterior) mientras el 
 ```text
 src/
   main/      proceso principal: arranque, ventana segura, IPC, servicios (contraseña, respaldos,
-             maestros, importador, compras, abonos, ajustes), impresión, log
+             maestros, importador, compras, abonos, ajustes, ventas), impresión (carta y tirilla), log
   preload/   puente seguro (contextBridge) con lista blanca de canales
   domain/    reglas de negocio puras (dinero, auditoría, contraseña, respaldos, maestros, ganancia,
-             stock, importación, compras, abonos, ajustes, fechas de documentos)
+             stock, importación, compras, abonos, ajustes, ventas, fechas de documentos)
   data/      conexión SQLite, migrador, migraciones SQL, transacciones, repositorios
   shared/    contrato IPC, keymap, catálogo de procesos, formatos (moneda, cantidades, fechas, %)
   renderer/  interfaz React: acceso, escritorio MDI, barra de iconos, buscador, diálogos, atajos,
-             maestros (lista + ficha), importador y documentos (compra, abono, ajuste)
+             maestros (lista + ficha), importador y documentos (compra, abono, ajuste, facturar)
 tests/integracion/  pruebas con SQLite en memoria
 ```
 
@@ -122,3 +126,15 @@ En la factura de proveedor, el abono y el ajuste de inventario:
 | Supr      | Quitar la línea de la compra (si no se está escribiendo).             |
 | Ctrl+Supr | Quitar la línea de la compra siempre.                                 |
 | ↑ / ↓     | En las sugerencias de productos o proveedores, elegir; Enter la toma. |
+
+En Facturar:
+
+| Atajo         | Acción                                                                     |
+| ------------- | -------------------------------------------------------------------------- |
+| Enter         | Cliente → código → cantidad → código (agrega la línea con cantidad 1).     |
+| F6            | Cambiar la escala de la línea (Menor → Mínimo → Mayor).                    |
+| F7            | Alterar el precio de la línea; otra vez sobre el precio, lo devuelve.      |
+| Av. Pág       | Guardar e imprimir (o, si el crédito está bloqueado, «Cambiar a contado»). |
+| Alt+1 … Alt+6 | Ir al borrador 1 a 6.                                                      |
+| Ctrl+Tab      | Pasar al siguiente borrador.                                               |
+| Supr          | Quitar la línea (si no se está escribiendo).                               |

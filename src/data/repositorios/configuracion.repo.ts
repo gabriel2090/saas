@@ -15,6 +15,8 @@ export interface EsquemaConfiguracion {
   'respaldos.carpeta': string;
   /** Datos del negocio para el encabezado de la factura (D-12). */
   'negocio.datos': DatosNegocio;
+  /** Impresora térmica de Windows para las facturas, o `null` para el diálogo de impresión (D-88). */
+  'facturacion.impresora': string | null;
 }
 
 /**

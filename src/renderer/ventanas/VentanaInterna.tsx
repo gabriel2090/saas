@@ -34,7 +34,8 @@ export function VentanaInterna({
   activa,
   children,
 }: PropiedadesVentanaInterna): ReactNode {
-  const { enfocar, mover, redimensionar, marcarCambios, solicitarCerrar } = useVentanas();
+  const { enfocar, mover, redimensionar, marcarCambios, marcarConservados, solicitarCerrar } =
+    useVentanas();
   const marco = useRef<HTMLElement>(null);
   const contenido = useRef<HTMLDivElement>(null);
   const arrastre = useRef<{ dx: number; dy: number } | null>(null);
@@ -61,9 +62,10 @@ export function VentanaInterna({
       id: ventana.id,
       activa,
       marcarCambios: (conCambios) => marcarCambios(ventana.id, conCambios),
+      marcarConservados: (aviso) => marcarConservados(ventana.id, aviso),
       cerrar: () => void solicitarCerrar(ventana.id),
     }),
-    [ventana.id, activa, marcarCambios, solicitarCerrar],
+    [ventana.id, activa, marcarCambios, marcarConservados, solicitarCerrar],
   );
 
   const iniciarArrastre = (evento: PointerEvent<HTMLDivElement>): void => {
@@ -144,6 +146,9 @@ export function VentanaInterna({
         <span>
           {titulo}
           {ventana.conCambios && <span className="ventana__cambios"> • sin guardar</span>}
+          {!ventana.conCambios && ventana.conservados && (
+            <span className="ventana__cambios"> • {ventana.conservados.resumen}</span>
+          )}
         </span>
         <button
           type="button"

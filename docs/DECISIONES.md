@@ -8,7 +8,7 @@ Cada entrada indica su estado: **Confirmado** (aprobado por el cliente/desarroll
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
 | S-01 | Los códigos de clientes y proveedores son autoincrementales, arrancan en **10001** y el inicio es configurable.                       | Supuesto           |
 | S-02 | Los datos obligatorios del cliente aplican al **registrarlo**; el «Consumidor final» no exige datos.                                  | Supuesto           |
-| S-03 | El bloqueo por crédito aplica solo a clientes con tope asignado: se bloquea si la venta superaría el tope o si hay facturas vencidas. | Supuesto           |
+| S-03 | El bloqueo por crédito aplica solo a clientes con tope asignado: se bloquea si la venta superaría el tope o si hay facturas vencidas. | Confirmado         |
 | S-04 | El flete se reparte proporcionalmente al valor de cada línea de la compra.                                                            | Supuesto           |
 | S-05 | El nombre impreso del documento es «FACTURA DE VENTA».                                                                                | Supuesto           |
 | S-06 | El formato del archivo del sistema actual es desconocido; el importador usa mapeo de columnas.                                        | Pendiente (Fase 1) |
@@ -50,8 +50,8 @@ Lo que muestra la tirilla del sistema actual y cómo se usará. Regla general (c
 | F-04 | En la tirilla, la cantidad lleva **tres decimales** también en unidades (`4.000`). En pantalla sigue D-13.                                                                       | Confirmado         |
 | F-05 | En la tirilla, la columna «Valor» lleva **separador de miles con coma** (`58,000`), igual que el total.                                                                          | Confirmado         |
 | F-06 | «SU AHORRO FUE DE» se imprime **sin decimales** (`12,000`).                                                                                                                      | Confirmado         |
-| F-07 | Debajo de la fecha aparece una línea «NDEF» de significado desconocido. Dan lo consulta con el cliente.                                                                          | Pendiente (Fase 3) |
-| F-08 | El nombre del producto se imprime con la unidad al final («… x UNIDAD»), como en la factura actual.                                                                              | Supuesto (Fase 3)  |
+| F-07 | Debajo de la fecha aparece una línea «NDEF» de significado desconocido. **No se imprime** hasta que el cliente lo aclare (D-92).                                                  | Confirmado         |
+| F-08 | El nombre del producto se imprime con la unidad al final, como en la factura actual: «… x UNIDAD» en UND y «… x KILO» en KG (el texto de KG es supuesto: la foto solo trae UND). | Supuesto           |
 | F-09 | Del cliente se imprime: código-nombre, «NIT:» (cualquier tipo de identificación), DIR, BARRIO, CIUDAD y TEL. Por eso el cliente tiene **barrio y ciudad** (opcionales).          | Supuesto (Fase 1)  |
 
 ## Decisiones de la Fase 1
@@ -134,3 +134,28 @@ La foto se usa solo como referencia de campos y flujo, no de aspecto.
 | P-04 | No se incluye la opción «Redondear» del total (No, Decimal, Arriba, Abajo): el dinero va en pesos enteros y las líneas se redondean al peso (D-16). | No aplica (confirmado) |
 | P-05 | Significado desconocido, no se incluyen por ahora: columnas «Tip», «Cont» y «B»; teclas **F4** «Calcula multiplicación» y **F6** «Calcula descuento»; casilla «El archivo a importar no contiene costos» (importar la compra desde un archivo); «Marcar servicios»; «Aplicar %Descuento antes de IVA». | Segunda fase (§15) |
 | P-06 | Búsqueda de productos por código o nombre; no hay código de barras ni referencia (§5.1). | Confirmado (§5.1) |
+
+## Decisiones de la Fase 3
+
+| #    | Decisión | Estado |
+| ---- | -------- | ------ |
+| D-80 | La Fase 3 se divide: **3a**, Facturar (6 borradores) con impresión térmica; **3b**, abonos de cliente e importador de saldos iniciales de cartera. Al terminar la 3a se detiene el trabajo para probar con la impresora real. | Confirmado |
+| D-81 | La escala por defecto de cada línea es **Menor**; se cambia por línea. **F6** cambia la escala sin abrir la lista (Menor → Mínimo → Mayor → Menor…): actúa sobre la línea donde está el foco o, desde el campo de código, sobre la última línea agregada. Está en el `keymap`. | Confirmado (la tecla F6 es propuesta) |
+| D-82 | Flujo de teclado: cliente, Enter, código, Enter (agrega la línea), cantidad (1 por defecto, seleccionada para sobrescribirla), Enter y vuelve al campo de código. Un borrador nuevo empieza con el foco en el cliente, que trae «Consumidor final». | Confirmado |
+| D-83 | Al reabrir un borrador guardado en disco, los precios de escala se actualizan a los vigentes (salvo los alterados con F7) y un aviso dice qué líneas cambiaron y de cuánto a cuánto. Un producto que quedó inactivo se marca en rojo y hay que quitarlo para guardar. | Confirmado (lo del producto inactivo es supuesto) |
+| D-84 | El **consecutivo inicial de la factura de cliente** se configura en «Datos del negocio» (84772 es solo el de este cliente, F-02). No puede ser menor ni igual a un número ya usado: si ya hay facturas, debe ser mayor que la última. | Confirmado (la restricción es supuesto) |
+| D-85 | Venta a crédito bloqueada (S-03, maqueta `facturar.html#bloqueada`): el recuadro de crédito se pone en rojo, «Guardar e imprimir» se desactiva y un aviso dice cada razón (facturas vencidas con la más antigua, o cuánto supera el disponible) con el botón «Cambiar a contado». Av. Pág lleva el foco a ese botón. | Supuesto (pendiente de aprobar la maqueta) |
+| D-86 | (3b) El importador de saldos iniciales lleva el **número de factura del sistema anterior** como referencia, y esos documentos se marcan como **«Saldo inicial»** en los reportes. Una fila por documento pendiente: código del tercero, número anterior, fecha, vencimiento o plazo, y saldo. No tienen líneas ni movimientos de kardex. | Confirmado |
+| D-87 | F7: el precio alterado puede ser mayor que la escala; por debajo del Mínimo (pero no del costo) se permite con aviso ámbar. **Solo el costo bloquea** (§7). | Confirmado |
+| D-88 | Impresión térmica silenciosa en la impresora elegida una vez en «Datos del negocio» (lista de impresoras de Windows). Sin impresora configurada se abre el diálogo de impresión de Windows. Si la impresión falla, la factura queda guardada y un mensaje ofrece «Reintentar impresión». | Confirmado |
+| D-89 | Los borradores se autoguardan en la base de datos (no en el historial: no son documentos). Al cerrar Facturar con borradores se pide confirmación y **se conservan**: vuelven al abrirla, también después de un apagón. Solo «Limpiar borrador» descarta uno. | Confirmado |
+| D-90 | Contado: una sola forma de pago por factura (sin pagos mixtos). «Recibido» y «Cambio» solo aparecen si la forma de pago calcula el cambio; «Recibido» vacío se toma como el valor exacto y no puede ser menor que el total. Crédito: no se permite a «Consumidor final»; un cliente sin tope tiene crédito sin límite (S-03). | Confirmado |
+| D-91 | La fecha de la factura de cliente es el momento de guardarla y no se edita. Un mismo producto puede ir en varias líneas (p. ej. con escalas distintas). «No. cajas de empaque» es opcional; vacío, la tirilla imprime la línea en blanco para llenarla a mano, como hoy. | Confirmado |
+| D-92 | No se imprime «NDEF» (F-07). «SALDO CREDITO» en la tirilla es el **saldo de esta factura** (el total si es a crédito, 0 si es de contado), hasta que el cliente confirme. | Confirmado (pendiente de confirmar con el cliente) |
+| D-93 | (3b) El recibo de abono de cliente sale en tirilla con «Imprimir recibo»; «Ver recibo» abre la vista previa en hoja carta y PDF, como el de proveedor (D-76). | Confirmado |
+| D-94 | Al elegir un cliente registrado la factura pasa a **crédito** con el plazo de su **última factura a crédito no anulada**; sin facturas anteriores se proponen **8 días** (el de la tirilla actual, F-06). Al elegir «Consumidor final» pasa a **contado**. La condición y el plazo se pueden cambiar antes de guardar. | Supuesto |
+| D-95 | A un **cliente inactivo** no se le puede facturar (el proceso principal lo rechaza; el buscador solo ofrece clientes activos). | Supuesto |
+| D-96 | F7 sobre una línea cuyo precio ya se alteró, con el foco en ese precio, lo **devuelve al de la escala**. Cambiar la escala con F6 no borra un precio alterado. | Supuesto |
+| D-97 | Si la impresión de la factura falla o se cancela, el diálogo ofrece «Reintentar impresión» las veces que haga falta; al cerrarlo, un aviso recuerda que quedó sin imprimir. La reimpresión desde una lista llega con «Reimpresiones» (Fase 4). | Supuesto |
+| D-98 | La tirilla imprime en cada línea, bajo el producto, la unidad y el precio unitario (`x UNIDAD · $14,500`), y la condición de contado con su forma de pago (`CONTADO, EFECTIVO`). «Fecha Generación» y «Fecha Expedición» son ambas el momento en que se guardó la factura. | Supuesto (por confirmar con la impresora real) |
+| D-99 | La página de la tirilla mide lo mismo que su contenido (80 mm de ancho, alto medido al imprimir y 8 mm de margen para el corte), para que la impresora corte al final y no gaste papel. | Supuesto (por confirmar con la impresora real) |

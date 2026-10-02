@@ -136,4 +136,22 @@ describe('reducirVentanas', () => {
     estado = reducirVentanas(estado, { tipo: 'marcarCambios', id: 'productos', conCambios: false });
     expect(ventanasConCambios(estado)).toHaveLength(0);
   });
+
+  it('marca el trabajo que se conserva al cerrar sin contarlo como cambios', () => {
+    const aviso = { resumen: '2 borradores pendientes', mensaje: 'Se conservan.' };
+    let estado = aplicar(
+      { tipo: 'abrir', id: 'facturar' },
+      { tipo: 'marcarConservados', id: 'facturar', aviso },
+    );
+    expect(estado.ventanas[0]?.conservados).toEqual(aviso);
+    expect(ventanasConCambios(estado)).toHaveLength(0);
+    const igual = reducirVentanas(estado, {
+      tipo: 'marcarConservados',
+      id: 'facturar',
+      aviso: { ...aviso },
+    });
+    expect(igual).toBe(estado);
+    estado = reducirVentanas(estado, { tipo: 'marcarConservados', id: 'facturar', aviso: null });
+    expect(estado.ventanas[0]?.conservados).toBeNull();
+  });
 });

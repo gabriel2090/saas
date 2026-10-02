@@ -1,12 +1,12 @@
-import type { DocumentoImprimible } from '../../shared/impresion';
-import type { ServicioImpresion } from '../servicios/impresion';
+import type { DocumentoImprimible, TipoDocumentoImprimible } from '../../shared/impresion';
+import type { FormatoImpresion, ServicioImpresion } from '../servicios/impresion';
 import type { RegistrarManejador } from './registrar';
 import { exigirBooleano, exigirEntero, exigirObjeto, exigirOpcion } from './validacion';
 
 /**
  * Tipos de documento imprimibles aceptados.
  */
-const TIPOS_DOCUMENTO: readonly DocumentoImprimible['tipo'][] = ['abono-proveedor'];
+const TIPOS_DOCUMENTO: readonly TipoDocumentoImprimible[] = ['abono-proveedor', 'factura-cliente'];
 
 /**
  * Dependencias de los canales de impresión.
@@ -15,12 +15,14 @@ export interface DependenciasIpcImpresion {
   /** Arma el HTML de los documentos. */
   servicio: ServicioImpresion;
   /**
-   * Abre el diálogo de impresión de Windows.
+   * Imprime el documento: en carta con el diálogo de Windows, o la tirilla en
+   * la impresora térmica configurada (D-88).
    *
    * @param html - Documento.
+   * @param formato - Papel del documento.
    * @returns `true` si se imprimió; `false` si se canceló.
    */
-  imprimir: (html: string) => Promise<boolean>;
+  imprimir: (html: string, formato: FormatoImpresion) => Promise<boolean>;
   /**
    * Genera el PDF y pide dónde guardarlo.
    *
@@ -60,9 +62,10 @@ export function registrarIpcImpresion(
 ): void {
   const { servicio } = dependencias;
   registrar('impresion:html', (peticion) => servicio.html(leerDocumento(peticion)));
-  registrar('impresion:imprimir', (peticion) =>
-    dependencias.imprimir(servicio.html(leerDocumento(peticion))),
-  );
+  registrar('impresion:imprimir', (peticion) => {
+    const documento = leerDocumento(peticion);
+    return dependencias.imprimir(servicio.html(documento), servicio.formato(documento));
+  });
   registrar('impresion:pdf', (peticion) => {
     const documento = leerDocumento(peticion);
     return dependencias.guardarPdf(servicio.html(documento), servicio.nombreArchivo(documento));

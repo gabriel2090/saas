@@ -15,7 +15,7 @@ flowchart LR
   end
   subgraph Main["Proceso principal"]
     IPC[manejadores IPC]
-    SRV[servicios: autenticación, respaldos, maestros, importador, compras, abonos, ajustes, impresión]
+    SRV[servicios: autenticación, respaldos, maestros, importador, compras, abonos, ajustes, ventas, impresión]
   end
   subgraph Data["src/data"]
     TX[ejecutor de transacciones]
@@ -273,12 +273,66 @@ erDiagram
 - **Ajuste:** el stock anterior y el movimiento se calculan dentro de la transacción; el movimiento `ajuste` del kardex lleva `documento_tipo = 'ajuste'` y el número del ajuste (las compras, `factura_proveedor` y su número interno).
 - Todo es de solo inserción salvo la anulación (triggers): las líneas, versiones y aplicaciones no admiten `UPDATE` ni `DELETE`; un abono solo puede pasar a `anulado`.
 
-## Impresión (D-52, D-72)
+## Modelo de datos (Fase 3a: `0004_ventas`)
 
-1. La pantalla pide un documento por tipo e id (`impresion:html`, `impresion:imprimir`, `impresion:pdf`); el proceso principal arma el HTML desde la base (`main/impresion/plantillas.ts`, función pura con pruebas), con los datos del negocio y las leyendas REIMPRESION y ANULADO.
+```mermaid
+erDiagram
+  clientes ||--o{ facturas_cliente : "compra"
+  facturas_cliente ||--|{ facturas_cliente_lineas : "líneas por versión"
+  facturas_cliente ||--|{ facturas_cliente_versiones : "contenido JSON"
+  facturas_cliente ||--o{ abonos_aplicaciones : "recibe (3b)"
+  formas_pago ||--o{ facturas_cliente : "contado con"
+  facturas_cliente {
+    INTEGER id PK
+    INTEGER numero "consecutivo configurable, único"
+    INTEGER cliente_codigo FK
+    TEXT fecha "ISO con hora: momento de guardar"
+    TEXT dia "AAAA-MM-DD local"
+    TEXT condicion "contado, credito"
+    INTEGER plazo_dias "0 en contado"
+    TEXT vence "AAAA-MM-DD"
+    INTEGER bodega_id FK
+    INTEGER total
+    INTEGER ahorro "su ahorro fue de"
+    INTEGER forma_pago_id "solo contado"
+    INTEGER recibido "contado con cambio o NULL"
+    INTEGER cambio "recibido - total o NULL"
+    INTEGER cajas_empaque "opcional"
+    INTEGER version
+    TEXT estado "activa, anulada"
+  }
+  facturas_cliente_lineas {
+    INTEGER factura_id FK
+    INTEGER version
+    INTEGER renglon
+    INTEGER producto_codigo FK
+    TEXT escala "mayor, menor, minimo"
+    INTEGER cantidad "milésimas"
+    INTEGER precio_escala "vigente al vender"
+    INTEGER precio "vendido"
+    INTEGER alterado "0/1: F7"
+    INTEGER total
+    INTEGER costo "del producto al vender"
+  }
+  borradores_factura {
+    INTEGER ranura PK "1 a 6"
+    TEXT contenido "JSON del formulario"
+    TEXT actualizado_en
+  }
+```
+
+- **Guardar una factura de venta** es una sola transacción: revisión del crédito con los saldos del momento (S-03), consecutivo, encabezado, líneas, versión 1, movimientos `venta` en el kardex (cantidad negativa y costo del producto) y borrado del borrador del que salió. Un intento rechazado no consume número.
+- **Cartera derivada:** el saldo de una factura a crédito es su `total` menos las aplicaciones de abonos activos (`abonos_aplicaciones.factura_cliente_id`, que llega a usarse en la 3b); una aplicación apunta a exactamente una factura (de proveedor o de cliente). El contado no deja cartera: guarda la forma de pago, lo recibido y el cambio.
+- **Borradores (D-89):** se escriben fuera del ejecutor (no son documentos: sin historial ni respaldo por cada tecla). La pantalla los autoguarda 0,5 s después del último cambio y al cerrar; al reabrirlos toma los precios vigentes y avisa lo que cambió (D-83).
+- **Consecutivo configurable (D-84):** «Datos del negocio» cambia `consecutivos.factura_cliente` con su registro en el historial (entidad `consecutivo`); debe ser mayor que la última factura usada.
+
+## Impresión (D-52, D-72, D-88)
+
+1. La pantalla pide un documento por tipo e id (`impresion:html`, `impresion:imprimir`, `impresion:pdf`); el proceso principal arma el HTML desde la base (`main/impresion/plantillas.ts` y `tirilla.ts`, funciones puras con pruebas), con los datos del negocio y las leyendas REIMPRESION y ANULADO/ANULADA.
 2. El HTML lleva su propia CSP (`default-src 'none'; style-src 'unsafe-inline'`) y escapa todo texto escrito por el usuario.
 3. **Vista previa:** `<iframe sandbox srcdoc>` dentro de la app, sin scripts.
-4. **Imprimir / PDF:** una ventana oculta (`sandbox`, `javascript: false`, sin preload, sin navegación) carga el HTML como `data:` y usa `webContents.print` o `printToPDF` en tamaño carta. El PDF se guarda donde el usuario elija.
+4. **Carta / PDF:** una ventana oculta (`sandbox`, `javascript: false`, sin preload, sin navegación) carga el HTML como `data:` y usa `webContents.print` o `printToPDF` en tamaño carta. El PDF se guarda donde el usuario elija.
+5. **Tirilla de 80 mm (factura de venta):** misma ventana oculta, pero con `javascript` habilitado solo para que el proceso principal mida el alto del contenido (`executeJavaScript`; el documento sigue sin poder ejecutar scripts propios por su CSP). Imprime con `pageSize` de 80 mm × alto medido + 8 mm, sin márgenes. Con impresora configurada en `configuracion.facturacion.impresora` imprime en silencio (`deviceName`) tras comprobar que esté instalada; sin impresora abre el diálogo de Windows. Un fallo deja la factura guardada y la pantalla ofrece «Reintentar impresión».
 
 ## Arranque
 

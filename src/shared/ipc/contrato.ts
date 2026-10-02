@@ -40,6 +40,17 @@ import type {
   TipoCatalogo,
 } from '../maestros';
 import type { Resultado } from '../resultado';
+import type {
+  BorradorGuardado,
+  ConfiguracionFacturacion,
+  ContextoFacturar,
+  CreditoCliente,
+  FacturaGuardada,
+  ImpresoraSistema,
+  PeticionConfigurarFacturacion,
+  PeticionGuardarBorrador,
+  PeticionGuardarFactura,
+} from '../ventas';
 
 /**
  * Estado de la autenticación al abrir la app.
@@ -175,6 +186,20 @@ export interface ContratoIpc {
   'ajustes:stock': { peticion: PeticionStockAjuste; respuesta: number };
   'ajustes:registrar': { peticion: PeticionAjuste; respuesta: AjusteResumen };
 
+  'ventas:contexto': { peticion: void; respuesta: ContextoFacturar };
+  'ventas:creditoCliente': { peticion: number; respuesta: CreditoCliente };
+  'ventas:guardar': { peticion: PeticionGuardarFactura; respuesta: FacturaGuardada };
+  'ventas:borradores': { peticion: void; respuesta: BorradorGuardado[] };
+  'ventas:guardarBorrador': { peticion: PeticionGuardarBorrador; respuesta: void };
+  'ventas:borrarBorrador': { peticion: number; respuesta: void };
+
+  'facturacion:configuracion': { peticion: void; respuesta: ConfiguracionFacturacion };
+  'facturacion:configurar': {
+    peticion: PeticionConfigurarFacturacion;
+    respuesta: ConfiguracionFacturacion;
+  };
+  'facturacion:impresoras': { peticion: void; respuesta: ImpresoraSistema[] };
+
   'impresion:html': { peticion: DocumentoImprimible; respuesta: string };
   'impresion:imprimir': { peticion: DocumentoImprimible; respuesta: boolean };
   'impresion:pdf': { peticion: DocumentoImprimible; respuesta: boolean };
@@ -252,6 +277,15 @@ export const CANALES_IPC: readonly CanalIpc[] = [
   'ajustes:listar',
   'ajustes:stock',
   'ajustes:registrar',
+  'ventas:contexto',
+  'ventas:creditoCliente',
+  'ventas:guardar',
+  'ventas:borradores',
+  'ventas:guardarBorrador',
+  'ventas:borrarBorrador',
+  'facturacion:configuracion',
+  'facturacion:configurar',
+  'facturacion:impresoras',
   'impresion:html',
   'impresion:imprimir',
   'impresion:pdf',

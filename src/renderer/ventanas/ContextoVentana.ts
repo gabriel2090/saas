@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { IdProceso } from '../../shared/procesos';
+import type { AvisoConservados } from './gestor';
 
 /**
  * Datos y operaciones de la ventana interna que contiene a un componente.
@@ -15,6 +16,12 @@ export interface DatosVentana {
    * @param conCambios - Si hay cambios.
    */
   marcarCambios: (conCambios: boolean) => void;
+  /**
+   * Marca el trabajo pendiente que se conserva al cerrar (no pide descartar).
+   *
+   * @param aviso - Resumen y mensaje de cierre, o `null` si no hay.
+   */
+  marcarConservados: (aviso: AvisoConservados | null) => void;
   /** Pide cerrar la ventana (con confirmación). */
   cerrar: () => void;
 }

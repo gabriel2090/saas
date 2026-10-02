@@ -100,6 +100,13 @@ textarea {
   gap: 8px;
 }
 
+.formulario__seccion {
+  margin: 8px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-borde);
+  font-size: 13px;
+}
+
 .campo {
   display: flex;
   flex-direction: column;
@@ -1195,4 +1202,173 @@ textarea {
 
 .vista-previa .aviso {
   margin: 0 16px 10px;
+}
+
+/* ---------- Facturar (maqueta docs/maquetas/facturar.html) ---------- */
+
+.borradores {
+  display: flex;
+  gap: 3px;
+  margin: -2px 0 0;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.borradores__pestana {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  align-items: baseline;
+  min-width: 0;
+  margin-bottom: -1px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-borde);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(#f3f5f8, #e1e6ed);
+  color: var(--color-tenue);
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.borradores__pestana--activa {
+  border-top: 3px solid var(--color-primario);
+  padding-top: 4px;
+  background: var(--color-panel);
+  color: var(--color-texto);
+}
+
+.borradores__atajo {
+  padding: 0 5px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.borradores__nombre {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+
+/* Los vacíos ocupan lo justo: el espacio es para el cliente y el total de los escritos. */
+.borradores__pestana--vacia {
+  flex: 0 0 120px;
+}
+
+.borradores__pestana--vacia .borradores__nombre {
+  font-weight: normal;
+  font-style: italic;
+}
+
+.borradores__total {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.borradores__cambios {
+  color: var(--color-primario);
+  font-size: 16px;
+  line-height: 0;
+}
+
+.documento__cliente {
+  grid-column: span 4;
+}
+
+.credito {
+  grid-column: span 3;
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  gap: 0 14px;
+  justify-content: end;
+  padding: 4px 10px;
+  border: 1px solid var(--color-borde);
+  border-radius: 4px;
+  background: var(--color-solo-lectura);
+  font-size: 12px;
+  color: var(--color-tenue);
+}
+
+.credito strong {
+  color: var(--color-texto);
+  font-size: 15px;
+  text-align: right;
+}
+
+.credito strong.texto-exito {
+  color: var(--color-exito);
+}
+
+.credito strong.texto-error {
+  color: var(--color-error);
+}
+
+.credito__nota {
+  grid-column: 1 / -1;
+  align-self: center;
+  padding: 8px 0;
+}
+
+.credito--bloqueado {
+  border-color: var(--color-error);
+  background: #fdecea;
+}
+
+.documento__encabezado .segmentado button {
+  padding: 5px 14px;
+}
+
+.tabla .precio-escala {
+  margin-right: 6px;
+  font-size: 12px;
+  color: var(--color-tenue);
+  text-decoration: line-through;
+}
+
+.tabla--precios select {
+  padding: 2px 4px;
+}
+
+.en-letras {
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px dashed var(--color-borde);
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.facturar__cajas {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+}
+
+.facturar__cajas input {
+  width: 70px;
+  padding: 3px 6px;
+  border: 1px solid var(--color-borde);
+  border-radius: 2px;
+}
+
+.aviso ul {
+  margin: 4px 0 6px;
+  padding-left: 18px;
+}
+
+.aviso__acciones {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.etiqueta--error {
+  color: var(--color-error);
+  background: #fdecea;
+  border: 1px solid currentColor;
+}
+
+.totales select {
+  width: 160px;
 }

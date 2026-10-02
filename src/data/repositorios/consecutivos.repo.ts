@@ -7,7 +7,13 @@ import type { ContextoTransaccion } from '../transaccion';
  * documentos (factura de cliente, abono de cliente…) con su propia migración.
  */
 export type ClaveConsecutivo =
-  'producto' | 'cliente' | 'proveedor' | 'compra' | 'abono_proveedor' | 'ajuste';
+  | 'producto'
+  | 'cliente'
+  | 'proveedor'
+  | 'compra'
+  | 'abono_proveedor'
+  | 'ajuste'
+  | 'factura_cliente';
 
 /**
  * Toma el siguiente número de un consecutivo y lo incrementa, de forma

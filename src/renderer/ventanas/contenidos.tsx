@@ -6,6 +6,7 @@ import { CambiarContrasena } from '../pantallas/CambiarContrasena';
 import { Catalogos } from '../pantallas/Catalogos';
 import { DatosNegocio } from '../pantallas/DatosNegocio';
 import { FacturaProveedor } from '../pantallas/FacturaProveedor';
+import { Facturar } from '../pantallas/Facturar';
 import { Importador } from '../pantallas/Importador';
 import { PendienteFase } from '../pantallas/PendienteFase';
 import { Productos } from '../pantallas/Productos';
@@ -27,6 +28,7 @@ const CONTENIDOS: Partial<Record<IdProceso, ComponentType>> = {
   'factura-proveedor': FacturaProveedor,
   'abono-proveedor': AbonoProveedor,
   'ajustes-inventario': AjustesInventario,
+  facturar: Facturar,
 };
 
 /**

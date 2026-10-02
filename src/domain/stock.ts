@@ -6,10 +6,11 @@ import { ErrorDeNegocio } from './errores';
  * - `inicial`: stock cargado por el importador o al crear el producto (D-39, D-45).
  * - `compra`: entrada por una factura de proveedor (§6).
  * - `ajuste`: merma, daño o conteo físico (§9.2, D-46).
+ * - `venta`: salida por una factura de cliente (§7).
  *
- * Las fases siguientes agregan venta, devoluciones y anulaciones.
+ * Las fases siguientes agregan devoluciones y anulaciones.
  */
-export type TipoMovimiento = 'inicial' | 'compra' | 'ajuste';
+export type TipoMovimiento = 'inicial' | 'compra' | 'ajuste' | 'venta';
 
 /**
  * Lo que se necesita para fijar el stock inicial de un producto en una bodega.

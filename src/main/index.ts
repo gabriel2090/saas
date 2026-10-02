@@ -6,7 +6,12 @@ import { migracionesDelProyecto } from '../data/migraciones';
 import { aplicarMigraciones } from '../data/migrador';
 import { obtenerConfiguracion } from '../data/repositorios/configuracion.repo';
 import { crearEjecutorTransacciones } from '../data/transaccion';
-import { generarPdf, imprimirDocumento } from './impresion/impresora';
+import {
+  generarPdf,
+  imprimirDocumento,
+  imprimirTirilla,
+  listarImpresoras,
+} from './impresion/impresora';
 import { registrarIpcAutenticacion } from './ipc/autenticacion.ipc';
 import { registrarIpcCompras } from './ipc/compras.ipc';
 import { registrarIpcImportador } from './ipc/importador.ipc';
@@ -14,6 +19,7 @@ import { registrarIpcImpresion } from './ipc/impresion.ipc';
 import { registrarIpcMaestros } from './ipc/maestros.ipc';
 import { crearRegistradorIpc } from './ipc/registrar';
 import { registrarIpcSistema } from './ipc/sistema.ipc';
+import { registrarIpcVentas } from './ipc/ventas.ipc';
 import { iniciarLog, registrarError, registrarInfo } from './log';
 import { crearServicioAbonos } from './servicios/abonos';
 import { crearServicioAjustes } from './servicios/ajustes';
@@ -26,6 +32,7 @@ import { crearServicioNegocio } from './servicios/negocio';
 import { crearServicioProductos } from './servicios/productos';
 import { crearServicioTerceros } from './servicios/terceros';
 import { crearServicioRespaldos, type ServicioRespaldos } from './servicios/respaldos';
+import { crearServicioVentas } from './servicios/ventas';
 import { crearVentanaPrincipal, type VentanaPrincipal } from './ventana-principal';
 
 /**
@@ -142,9 +149,17 @@ function iniciar(): void {
     abonos,
     ajustes: crearServicioAjustes(db, ejecutar),
   });
+  const ventas = crearServicioVentas(db, ejecutar);
+  registrarIpcVentas(registrar, {
+    ventas,
+    impresoras: () => listarImpresoras(ventana.ventana.webContents),
+  });
   registrarIpcImpresion(registrar, {
-    servicio: crearServicioImpresion({ negocio, abonos }),
-    imprimir: imprimirDocumento,
+    servicio: crearServicioImpresion({ negocio, abonos, ventas }),
+    imprimir: (html, formato) =>
+      formato === 'tirilla'
+        ? imprimirTirilla(html, ventas.configuracion().impresora)
+        : imprimirDocumento(html),
     guardarPdf: async (html, nombreSugerido) =>
       guardarArchivoElegido(ventana, nombreSugerido, await generarPdf(html), ARCHIVO_PDF),
   });

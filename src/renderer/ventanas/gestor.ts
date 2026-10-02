@@ -15,6 +15,21 @@ export interface VentanaAbierta {
   tamano: TamanoVentana | null;
   /** Si tiene cambios sin guardar (se pide confirmación al cerrarla). */
   conCambios: boolean;
+  /**
+   * Trabajo pendiente que se conserva al cerrar (p. ej. los borradores de
+   * Facturar, D-89), o `null`. Al cerrar se avisa sin hablar de descartar.
+   */
+  conservados: AvisoConservados | null;
+}
+
+/**
+ * Aviso de una ventana con trabajo pendiente que no se pierde al cerrarla.
+ */
+export interface AvisoConservados {
+  /** Texto corto para la barra de título, p. ej. «2 borradores pendientes». */
+  resumen: string;
+  /** Mensaje de la confirmación al cerrar. */
+  mensaje: string;
 }
 
 /**
@@ -52,7 +67,8 @@ export type AccionVentanas =
   | { tipo: 'siguiente' }
   | { tipo: 'mover'; id: IdProceso; x: number; y: number }
   | { tipo: 'redimensionar'; id: IdProceso; tamano: TamanoVentana }
-  | { tipo: 'marcarCambios'; id: IdProceso; conCambios: boolean };
+  | { tipo: 'marcarCambios'; id: IdProceso; conCambios: boolean }
+  | { tipo: 'marcarConservados'; id: IdProceso; aviso: AvisoConservados | null };
 
 /**
  * Estado inicial: sin ventanas abiertas.
@@ -114,6 +130,7 @@ export function reducirVentanas(estado: EstadoVentanas, accion: AccionVentanas):
         y: MARGEN_INICIAL + desplazamiento,
         tamano: accion.tamano ?? null,
         conCambios: false,
+        conservados: null,
       };
       return { ventanas: [...estado.ventanas, nueva] };
     }
@@ -165,6 +182,21 @@ export function reducirVentanas(estado: EstadoVentanas, accion: AccionVentanas):
       return {
         ventanas: estado.ventanas.map((v) =>
           v === ventana ? { ...v, conCambios: accion.conCambios } : v,
+        ),
+      };
+    }
+    case 'marcarConservados': {
+      const ventana = estado.ventanas.find((v) => v.id === accion.id);
+      if (
+        !ventana ||
+        (ventana.conservados?.resumen === accion.aviso?.resumen &&
+          ventana.conservados?.mensaje === accion.aviso?.mensaje)
+      ) {
+        return estado;
+      }
+      return {
+        ventanas: estado.ventanas.map((v) =>
+          v === ventana ? { ...v, conservados: accion.aviso } : v,
         ),
       };
     }
