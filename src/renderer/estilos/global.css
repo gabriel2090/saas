@@ -858,3 +858,341 @@ textarea {
 .importador__acciones {
   flex: none;
 }
+
+/* ---------- Documentos: factura de proveedor, abono, ajuste ---------- */
+
+.documento {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Encabezado en cuadrícula: proveedor ancho + deuda, luego los datos de la factura. */
+.documento__encabezado {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 0.9fr 0.9fr 0.9fr 1.4fr 1.2fr;
+  gap: 8px 12px;
+  align-items: end;
+}
+
+.documento__encabezado .campo input,
+.documento__encabezado .campo select {
+  width: 100%;
+  min-width: 0;
+}
+
+.documento__proveedor {
+  grid-column: span 5;
+}
+
+.deuda {
+  grid-column: span 2;
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  justify-content: flex-end;
+  padding: 6px 10px;
+  border: 1px solid var(--color-borde);
+  border-radius: 4px;
+  background: var(--color-solo-lectura);
+}
+
+.deuda strong {
+  font-size: 1.15em;
+}
+
+/* Las líneas ocupan el alto que sobra: el total y «Pagada de contado» siempre se ven (D-68). */
+.documento--lineas {
+  flex: 1;
+  min-height: 0;
+}
+
+.documento__lineas {
+  flex: 1;
+  min-height: 132px;
+}
+
+.documento__lineas td input {
+  width: 110px;
+}
+
+.documento__agregar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: -4px;
+  font-size: 12px;
+  color: var(--color-tenue);
+}
+
+.documento__agregar .sugerencias input {
+  width: 460px;
+  padding: 4px 7px;
+  border: 1px solid var(--color-borde);
+  border-radius: 2px;
+  font-size: 14px;
+  color: var(--color-texto);
+}
+
+.documento__pie {
+  display: grid;
+  grid-template-columns: 1fr 440px;
+  gap: 16px;
+  align-items: start;
+}
+
+/* Con muchas alertas la columna se desplaza sola y no empuja el total fuera de la vista. */
+.documento__avisos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 236px;
+  overflow-y: auto;
+}
+
+.totales {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.totales th {
+  text-align: left;
+  font-weight: normal;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.totales td {
+  padding: 4px 8px;
+  text-align: right;
+}
+
+.totales input:not([type='checkbox']) {
+  width: 120px;
+  padding: 3px 6px;
+  border: 1px solid var(--color-borde);
+  border-radius: 2px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.totales td.totales__casilla {
+  text-align: left;
+}
+
+.totales__contado {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.totales__contado .casilla {
+  white-space: nowrap;
+}
+
+.totales__contado select {
+  flex: 1;
+  max-width: 220px;
+}
+
+.totales__detalle {
+  display: inline-block;
+  min-width: 70px;
+  margin-left: 8px;
+  color: var(--color-tenue);
+}
+
+.totales__total th,
+.totales__total td {
+  border-top: 2px solid var(--color-titulo);
+  font-size: 1.25em;
+  font-weight: 700;
+  padding-top: 8px;
+}
+
+.segmentado--mini {
+  display: inline-flex;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.segmentado--mini button {
+  padding: 0 8px;
+  min-height: 0;
+  line-height: 20px;
+}
+
+.etiqueta--alerta {
+  color: var(--color-alerta);
+  background: var(--color-alerta-fondo);
+  border: 1px solid currentColor;
+}
+
+.linea__quitar {
+  float: right;
+  padding: 0 6px;
+  border: none;
+  background: none;
+  color: var(--color-tenue);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.linea__quitar:hover {
+  color: var(--color-error);
+}
+
+.tabla tr[data-linea]:focus {
+  outline: 2px solid var(--color-foco);
+  outline-offset: -2px;
+}
+
+/* Campo con sugerencias (proveedor, producto). */
+.sugerencias {
+  position: relative;
+}
+
+.sugerencias input {
+  width: 100%;
+}
+
+.sugerencias__lista {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 20;
+  min-width: 100%;
+  max-height: 240px;
+  margin: 2px 0 0;
+  padding: 2px 0;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--color-borde);
+  border-radius: 3px;
+  background: var(--color-panel);
+  box-shadow: 0 6px 16px rgb(0 0 0 / 20%);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.sugerencias__lista--arriba {
+  top: auto;
+  bottom: 100%;
+  margin: 0 0 2px;
+}
+
+.sugerencias__lista li {
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.sugerencias__lista li.sugerencias__opcion--resaltada {
+  background: var(--color-primario);
+  color: #fff;
+}
+
+/* Abono: encabezado de cinco columnas y resumen de lo aplicado. */
+.abono__encabezado {
+  grid-template-columns: 1.6fr 0.8fr 1fr 1fr 1fr;
+}
+
+.abono__encabezado .documento__proveedor {
+  grid-column: span 3;
+}
+
+.abono__observacion {
+  grid-column: span 2;
+}
+
+.abono__facturas {
+  height: 132px;
+}
+
+.abono__anteriores {
+  height: 112px;
+}
+
+.abono__acciones {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.reparto {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.reparto strong {
+  font-size: 1.1em;
+}
+
+.estado-anulado {
+  color: var(--color-error);
+  font-weight: 700;
+}
+
+.boton--peligro {
+  border-color: #8c1b12;
+  background: linear-gradient(var(--color-error), #8c1b12);
+  color: #fff;
+}
+
+.dialogo__lista {
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.5;
+}
+
+/* Ajustes de inventario. */
+.ajustes__formulario {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.6fr;
+  gap: 8px 12px;
+  align-items: end;
+}
+
+.ajustes__formulario .campo input,
+.ajustes__formulario .campo select {
+  width: 100%;
+  min-width: 0;
+}
+
+.ajustes__motivo {
+  grid-column: span 3;
+}
+
+.ajustes__recientes .tabla-contenedor {
+  height: 230px;
+}
+
+/* Vista previa de impresión: hoja carta a escala dentro del diálogo. */
+.vista-previa {
+  width: min(900px, 92vw);
+}
+
+.capa-modal:has(.vista-previa) {
+  padding-top: 3vh;
+}
+
+.vista-previa__hoja {
+  height: 70vh;
+  margin: 10px 16px;
+  border: 1px solid var(--color-borde);
+  background: #fff;
+}
+
+.vista-previa__hoja iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.vista-previa .aviso {
+  margin: 0 16px 10px;
+}

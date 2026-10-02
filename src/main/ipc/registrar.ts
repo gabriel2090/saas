@@ -17,7 +17,7 @@ export interface OpcionesManejador {
  */
 export type RegistrarManejador = <C extends CanalIpc>(
   canal: C,
-  manejador: (peticion: PeticionDe<C>) => RespuestaDe<C>,
+  manejador: (peticion: PeticionDe<C>) => RespuestaDe<C> | Promise<RespuestaDe<C>>,
   opciones?: OpcionesManejador,
 ) => void;
 

@@ -1,4 +1,5 @@
 import { calcularStockPorBodega, type TipoMovimiento } from '../../domain/stock';
+import type { StockProducto } from '../../shared/compras';
 import type { StockEnBodega } from '../../shared/maestros';
 import type { BaseDeDatos } from '../conexion';
 import type { ContextoTransaccion } from '../transaccion';
@@ -76,6 +77,42 @@ export function stockPorBodega(db: BaseDeDatos, productoCodigo: number): StockEn
       bodegaNombre: nombres.get(bodegaId) ?? `Bodega ${bodegaId}`,
       cantidad,
     }));
+}
+
+/**
+ * Stock de un producto en una bodega (suma de sus movimientos).
+ *
+ * @param db - Conexión abierta.
+ * @param productoCodigo - Producto.
+ * @param bodegaId - Bodega.
+ * @returns Milésimas (0 si no hay movimientos).
+ */
+export function stockEnBodega(db: BaseDeDatos, productoCodigo: number, bodegaId: number): number {
+  const fila = db
+    .prepare(
+      `SELECT COALESCE(SUM(cantidad), 0) AS cantidad FROM movimientos_inventario
+       WHERE producto_codigo = ? AND bodega_id = ?`,
+    )
+    .get(productoCodigo, bodegaId) as { cantidad: number };
+  return fila.cantidad;
+}
+
+/**
+ * Stock de todos los productos con movimientos en una bodega (para la
+ * columna «Stock» de la compra, D-66).
+ *
+ * @param db - Conexión abierta.
+ * @param bodegaId - Bodega.
+ * @returns Stock por producto, ordenado por código.
+ */
+export function stockDeBodega(db: BaseDeDatos, bodegaId: number): StockProducto[] {
+  return db
+    .prepare(
+      `SELECT producto_codigo AS productoCodigo, SUM(cantidad) AS cantidad
+       FROM movimientos_inventario WHERE bodega_id = ?
+       GROUP BY producto_codigo ORDER BY producto_codigo`,
+    )
+    .all(bodegaId) as StockProducto[];
 }
 
 /**

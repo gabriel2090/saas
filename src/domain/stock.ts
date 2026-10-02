@@ -2,11 +2,14 @@ import { MILESIMAS_POR_UNIDAD, type UnidadMedida } from '../shared/formato/canti
 import { ErrorDeNegocio } from './errores';
 
 /**
- * Tipos de movimiento de inventario. La Fase 1 solo crea `inicial` (stock
- * cargado por el importador o al crear el producto); las fases siguientes
- * agregan compra, venta, ajuste y devoluciones.
+ * Tipos de movimiento de inventario:
+ * - `inicial`: stock cargado por el importador o al crear el producto (D-39, D-45).
+ * - `compra`: entrada por una factura de proveedor (§6).
+ * - `ajuste`: merma, daño o conteo físico (§9.2, D-46).
+ *
+ * Las fases siguientes agregan venta, devoluciones y anulaciones.
  */
-export type TipoMovimiento = 'inicial';
+export type TipoMovimiento = 'inicial' | 'compra' | 'ajuste';
 
 /**
  * Lo que se necesita para fijar el stock inicial de un producto en una bodega.

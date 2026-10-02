@@ -6,15 +6,22 @@ import { migracionesDelProyecto } from '../data/migraciones';
 import { aplicarMigraciones } from '../data/migrador';
 import { obtenerConfiguracion } from '../data/repositorios/configuracion.repo';
 import { crearEjecutorTransacciones } from '../data/transaccion';
+import { generarPdf, imprimirDocumento } from './impresion/impresora';
 import { registrarIpcAutenticacion } from './ipc/autenticacion.ipc';
+import { registrarIpcCompras } from './ipc/compras.ipc';
 import { registrarIpcImportador } from './ipc/importador.ipc';
+import { registrarIpcImpresion } from './ipc/impresion.ipc';
 import { registrarIpcMaestros } from './ipc/maestros.ipc';
 import { crearRegistradorIpc } from './ipc/registrar';
 import { registrarIpcSistema } from './ipc/sistema.ipc';
 import { iniciarLog, registrarError, registrarInfo } from './log';
+import { crearServicioAbonos } from './servicios/abonos';
+import { crearServicioAjustes } from './servicios/ajustes';
 import { crearServicioAutenticacion } from './servicios/autenticacion';
 import { crearServicioCatalogos } from './servicios/catalogos';
+import { crearServicioCompras } from './servicios/compras';
 import { crearServicioImportador } from './servicios/importador';
+import { crearServicioImpresion } from './servicios/impresion';
 import { crearServicioNegocio } from './servicios/negocio';
 import { crearServicioProductos } from './servicios/productos';
 import { crearServicioTerceros } from './servicios/terceros';
@@ -117,8 +124,9 @@ function iniciar(): void {
     }),
     confirmarCierre: () => ventana.cerrarConfirmado(),
   });
+  const negocio = crearServicioNegocio(db, ejecutar);
   registrarIpcMaestros(registrar, {
-    negocio: crearServicioNegocio(db, ejecutar),
+    negocio,
     productos: crearServicioProductos(db, ejecutar),
     terceros: crearServicioTerceros(db, ejecutar),
     catalogos: crearServicioCatalogos(db, ejecutar),
@@ -126,30 +134,74 @@ function iniciar(): void {
   registrarIpcImportador(registrar, {
     servicio: crearServicioImportador(db, ejecutar),
     guardarArchivo: (nombreSugerido, contenido) =>
-      guardarArchivoElegido(ventana, nombreSugerido, contenido),
+      guardarArchivoElegido(ventana, nombreSugerido, contenido, ARCHIVO_EXCEL),
+  });
+  const abonos = crearServicioAbonos(db, ejecutar);
+  registrarIpcCompras(registrar, {
+    compras: crearServicioCompras(db, ejecutar),
+    abonos,
+    ajustes: crearServicioAjustes(db, ejecutar),
+  });
+  registrarIpcImpresion(registrar, {
+    servicio: crearServicioImpresion({ negocio, abonos }),
+    imprimir: imprimirDocumento,
+    guardarPdf: async (html, nombreSugerido) =>
+      guardarArchivoElegido(ventana, nombreSugerido, await generarPdf(html), ARCHIVO_PDF),
   });
 
   recursos = { db, respaldos, ventana };
 }
 
 /**
- * Pide al usuario dónde guardar un archivo XLSX y lo escribe. El diálogo es
- * modal sobre la ventana principal.
+ * Tipo de archivo que se ofrece en el diálogo de guardar.
+ */
+interface TipoArchivo {
+  /** Título del diálogo. */
+  titulo: string;
+  /** Nombre del filtro. */
+  nombre: string;
+  /** Extensión sin punto. */
+  extension: string;
+}
+
+/**
+ * Reporte de errores del importador.
+ */
+const ARCHIVO_EXCEL: TipoArchivo = {
+  titulo: 'Guardar reporte de errores',
+  nombre: 'Libro de Excel',
+  extension: 'xlsx',
+};
+
+/**
+ * Documento impreso en PDF.
+ */
+const ARCHIVO_PDF: TipoArchivo = {
+  titulo: 'Guardar PDF',
+  nombre: 'Documento PDF',
+  extension: 'pdf',
+};
+
+/**
+ * Pide al usuario dónde guardar un archivo y lo escribe. El diálogo es modal
+ * sobre la ventana principal.
  *
  * @param ventana - Ventana principal.
  * @param nombreSugerido - Nombre propuesto (solo se usa el nombre, sin carpetas).
  * @param contenido - Bytes del archivo.
+ * @param tipo - Título, filtro y extensión del diálogo.
  * @returns `true` si se guardó; `false` si el usuario canceló.
  */
 function guardarArchivoElegido(
   ventana: VentanaPrincipal,
   nombreSugerido: string,
   contenido: Uint8Array,
+  tipo: TipoArchivo,
 ): boolean {
   const ruta = dialog.showSaveDialogSync(ventana.ventana, {
-    title: 'Guardar reporte de errores',
+    title: tipo.titulo,
     defaultPath: join(app.getPath('documents'), basename(nombreSugerido)),
-    filters: [{ name: 'Libro de Excel', extensions: ['xlsx'] }],
+    filters: [{ name: tipo.nombre, extensions: [tipo.extension] }],
   });
   if (ruta === undefined) {
     return false;

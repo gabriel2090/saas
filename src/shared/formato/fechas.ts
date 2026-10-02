@@ -97,3 +97,31 @@ export function formatearHora(iso: string): string {
 export function formatearFechaHora(iso: string): string {
   return `${formatearFecha(iso)} ${formatearHora(iso)}`;
 }
+
+/**
+ * Lee una fecha escrita en pantalla como `dd/mm/aaaa` (día y mes pueden ir
+ * con un dígito) y la convierte al formato de la base de datos.
+ *
+ * @param texto - Fecha escrita.
+ * @returns Fecha `AAAA-MM-DD`, o `null` si no es una fecha del calendario.
+ *
+ * @example
+ * leerFecha('2/10/2026');  // '2026-10-02'
+ * leerFecha('31/02/2026'); // null
+ */
+export function leerFecha(texto: string): string | null {
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(texto.trim());
+  if (!m) {
+    return null;
+  }
+  const [, dia = '', mes = '', anio = ''] = m;
+  const fecha = new Date(Date.UTC(Number(anio), Number(mes) - 1, Number(dia)));
+  if (
+    fecha.getUTCFullYear() !== Number(anio) ||
+    fecha.getUTCMonth() !== Number(mes) - 1 ||
+    fecha.getUTCDate() !== Number(dia)
+  ) {
+    return null;
+  }
+  return `${anio}-${rellenar(Number(mes))}-${rellenar(Number(dia))}`;
+}

@@ -1,5 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { aIsoLocal, formatearFecha, formatearFechaHora, formatearHora } from './fechas';
+import { aIsoLocal, formatearFecha, formatearFechaHora, formatearHora, leerFecha } from './fechas';
+
+describe('leerFecha', () => {
+  it('convierte dd/mm/aaaa al formato de la base de datos', () => {
+    expect(leerFecha('02/10/2026')).toBe('2026-10-02');
+    expect(leerFecha(' 2/1/2026 ')).toBe('2026-01-02');
+    expect(leerFecha('29/02/2028')).toBe('2028-02-29');
+  });
+
+  it('rechaza fechas que no existen o mal escritas', () => {
+    expect(leerFecha('31/02/2026')).toBeNull();
+    expect(leerFecha('29/02/2026')).toBeNull();
+    expect(leerFecha('00/10/2026')).toBeNull();
+    expect(leerFecha('2026-10-02')).toBeNull();
+    expect(leerFecha('2/10/26')).toBeNull();
+    expect(leerFecha('')).toBeNull();
+  });
+});
 
 describe('aIsoLocal', () => {
   it('genera ISO 8601 con desfase que representa el mismo instante', () => {

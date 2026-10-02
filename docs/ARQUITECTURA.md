@@ -15,7 +15,7 @@ flowchart LR
   end
   subgraph Main["Proceso principal"]
     IPC[manejadores IPC]
-    SRV[servicios: autenticación, respaldos, maestros, importador]
+    SRV[servicios: autenticación, respaldos, maestros, importador, compras, abonos, ajustes, impresión]
   end
   subgraph Data["src/data"]
     TX[ejecutor de transacciones]
@@ -76,6 +76,8 @@ Si algo falla antes del `COMMIT`, se revierte todo: ni el cambio ni su historial
 - **Gestor de ventanas** (`renderer/ventanas/gestor.ts`): reductor puro. El orden del arreglo es el orden de apilado; la última ventana es la activa. Un proceso abre una sola ventana (D-04).
 - **Motor de atajos** (`renderer/atajos/`): un único escuchador de teclado en fase de captura despacha cada combinación a **capas** con prioridad `modal` > `ventana` > `global`. Una capa modal (diálogo, buscador) bloquea las de abajo. Un manejador puede devolver `false` para «no lo manejé» y dejar pasar la tecla (así Esc «retrocede»: primero la ventana, luego el cierre global).
 - Las combinaciones reservadas por Chromium (Ctrl+P, Ctrl+D, Ctrl+0, zoom, recarga…) se interceptan siempre. Además, la app no tiene menú de aplicación y el zoom se fija al 100 %.
+- **IPC asíncrono**: los manejadores pueden devolver una promesa (imprimir y generar el PDF lo son); `ejecutarManejador` la espera y convierte sus errores igual que los síncronos.
+- **Documentos** (`renderer/documentos/`): `Buscador` (campo con sugerencias por código o nombre, flechas y Enter), `Deuda`, `VistaPrevia` y los diálogos del abono. El cálculo en vivo de la compra (`formularioCompra.ts`) usa `calcularCompra` del dominio, la misma función con la que el proceso principal guarda (D-43). Los atajos de documentos (`guardarDocumento` Av. Pág, `quitarLinea` Supr, `quitarLineaSiempre` Ctrl+Supr) están en el ámbito `documento` del keymap.
 - **Maestros** (`renderer/maestros/`): `useMaestro` reúne la lógica común de lista y ficha: búsqueda, inactivos, detección de cambios, confirmación al descartar y los atajos F2 / Ctrl+S / F8. Cada pantalla solo aporta sus columnas, su formulario y sus llamadas IPC. La lista lleva `data-flechas-propias`: ahí las flechas cambian de registro en vez de saltar entre campos. También lleva `data-foco-inicial`, que la marca como el elemento que recibe el foco al abrir la ventana.
 
 ## Modelo de datos (Fase 0)
@@ -191,6 +193,92 @@ erDiagram
 - Los maestros no tienen fechas propias: su creación y cada cambio quedan en `historial_cambios`.
 - **Datos del negocio:** se guardan en `configuracion` (`negocio.datos`). La clave de recuperación se guarda solo como hash (`auth.hash_clave_recuperacion`).
 - **Importación:** valida las filas con las mismas reglas del dominio y guarda solo las válidas en una transacción. Primero entran los registros que traen código (y se ajusta el consecutivo) y después los que no, para que el consecutivo nunca asigne un código que aparece más abajo en el archivo.
+
+## Modelo de datos (Fase 2: `0003_compras`)
+
+```mermaid
+erDiagram
+  proveedores ||--o{ facturas_proveedor : "factura"
+  facturas_proveedor ||--|{ facturas_proveedor_lineas : "líneas por versión"
+  facturas_proveedor ||--|{ facturas_proveedor_versiones : "contenido JSON"
+  proveedores ||--o{ abonos : "abona"
+  abonos ||--|{ abonos_aplicaciones : "se reparte en"
+  facturas_proveedor ||--o{ abonos_aplicaciones : "recibe"
+  formas_pago ||--o{ abonos : "paga con"
+  productos ||--o{ ajustes_inventario : "ajusta"
+  facturas_proveedor {
+    INTEGER id PK
+    INTEGER numero "consecutivo interno, único"
+    INTEGER proveedor_codigo FK
+    TEXT numero_proveedor "único por proveedor entre activas (clave normalizada)"
+    TEXT fecha "AAAA-MM-DD"
+    INTEGER plazo_dias
+    TEXT vence "AAAA-MM-DD"
+    INTEGER bodega_id FK
+    INTEGER subtotal
+    INTEGER flete
+    INTEGER flete_proveedor "0/1: suma al total"
+    INTEGER descuento "pesos"
+    INTEGER descuento_porcentaje "centésimas o NULL"
+    INTEGER descuento_en_costo "0/1"
+    INTEGER total
+    INTEGER pagada_contado "0/1"
+    INTEGER version
+    TEXT estado "activa, anulada"
+  }
+  facturas_proveedor_lineas {
+    INTEGER factura_id FK
+    INTEGER version
+    INTEGER renglon
+    INTEGER producto_codigo FK
+    INTEGER cantidad "milésimas"
+    INTEGER costo_unitario
+    INTEGER total
+    INTEGER flete "parte de la línea"
+    INTEGER descuento "parte de la línea"
+    INTEGER costo_nuevo
+    INTEGER costo_anterior
+  }
+  abonos {
+    INTEGER id PK
+    TEXT tipo "proveedor, cliente (Fase 3)"
+    INTEGER numero "único por tipo"
+    INTEGER proveedor_codigo FK
+    TEXT fecha "AAAA-MM-DD"
+    INTEGER forma_pago_id FK
+    INTEGER valor
+    TEXT origen "manual, contado"
+    TEXT estado "activo, anulado"
+  }
+  abonos_aplicaciones {
+    INTEGER abono_id FK
+    INTEGER factura_proveedor_id FK
+    INTEGER valor
+  }
+  ajustes_inventario {
+    INTEGER numero "único"
+    INTEGER producto_codigo FK
+    INTEGER bodega_id FK
+    TEXT tipo "merma, dano, conteo"
+    INTEGER cantidad "milésimas con signo"
+    INTEGER stock_anterior
+    INTEGER cantidad_contada "solo conteo"
+    TEXT motivo
+  }
+```
+
+- **Saldo derivado:** el saldo de una compra no se guarda; es su `total` menos la suma de `abonos_aplicaciones` de abonos **activos**. Anular un abono devuelve el saldo sin tocar la compra. La deuda del proveedor es la suma de esos saldos; lo vencido, la de las compras con `vence` anterior a hoy.
+- **Guardar una compra** es una sola transacción: consecutivo, encabezado, líneas, versión 1, movimientos `compra` en el kardex (con el costo nuevo), costo del producto (solo si cambia, con su historial) y, si es de contado, el abono automático aplicado a la compra. La revisión de número duplicado se repite dentro de la transacción.
+- **Guardar un abono** valida el reparto dentro de la transacción contra los saldos del momento (D-71): suma exacta, sin pasar del saldo de ninguna compra.
+- **Ajuste:** el stock anterior y el movimiento se calculan dentro de la transacción; el movimiento `ajuste` del kardex lleva `documento_tipo = 'ajuste'` y el número del ajuste (las compras, `factura_proveedor` y su número interno).
+- Todo es de solo inserción salvo la anulación (triggers): las líneas, versiones y aplicaciones no admiten `UPDATE` ni `DELETE`; un abono solo puede pasar a `anulado`.
+
+## Impresión (D-52, D-72)
+
+1. La pantalla pide un documento por tipo e id (`impresion:html`, `impresion:imprimir`, `impresion:pdf`); el proceso principal arma el HTML desde la base (`main/impresion/plantillas.ts`, función pura con pruebas), con los datos del negocio y las leyendas REIMPRESION y ANULADO.
+2. El HTML lleva su propia CSP (`default-src 'none'; style-src 'unsafe-inline'`) y escapa todo texto escrito por el usuario.
+3. **Vista previa:** `<iframe sandbox srcdoc>` dentro de la app, sin scripts.
+4. **Imprimir / PDF:** una ventana oculta (`sandbox`, `javascript: false`, sin preload, sin navegación) carga el HTML como `data:` y usa `webContents.print` o `printToPDF` en tamaño carta. El PDF se guarda donde el usuario elija.
 
 ## Arranque
 

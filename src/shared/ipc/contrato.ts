@@ -1,4 +1,20 @@
 import type {
+  AbonoGuardado,
+  ContextoAbono,
+  ContextoAbonoProveedor,
+  PeticionAnularAbono,
+  PeticionGuardarAbono,
+} from '../abonos';
+import type { AjusteResumen, PeticionAjuste } from '../ajustes';
+import type {
+  CompraGuardada,
+  ContextoCompra,
+  ContextoCompraProveedor,
+  PeticionGuardarCompra,
+  StockProducto,
+} from '../compras';
+import type { DocumentoImprimible } from '../impresion';
+import type {
   PeticionGuardarReporte,
   PeticionImportacion,
   ResultadoImportacion,
@@ -144,6 +160,34 @@ export interface ContratoIpc {
   };
   'importador:importar': { peticion: PeticionImportacion; respuesta: ResultadoImportacion };
   'importador:guardarReporte': { peticion: PeticionGuardarReporte; respuesta: boolean };
+
+  'compras:contexto': { peticion: void; respuesta: ContextoCompra };
+  'compras:contextoProveedor': { peticion: number; respuesta: ContextoCompraProveedor };
+  'compras:stockBodega': { peticion: number; respuesta: StockProducto[] };
+  'compras:guardar': { peticion: PeticionGuardarCompra; respuesta: CompraGuardada };
+
+  'abonos:contexto': { peticion: void; respuesta: ContextoAbono };
+  'abonos:contextoProveedor': { peticion: number; respuesta: ContextoAbonoProveedor };
+  'abonos:guardar': { peticion: PeticionGuardarAbono; respuesta: AbonoGuardado };
+  'abonos:anular': { peticion: PeticionAnularAbono; respuesta: void };
+
+  'ajustes:listar': { peticion: void; respuesta: AjusteResumen[] };
+  'ajustes:stock': { peticion: PeticionStockAjuste; respuesta: number };
+  'ajustes:registrar': { peticion: PeticionAjuste; respuesta: AjusteResumen };
+
+  'impresion:html': { peticion: DocumentoImprimible; respuesta: string };
+  'impresion:imprimir': { peticion: DocumentoImprimible; respuesta: boolean };
+  'impresion:pdf': { peticion: DocumentoImprimible; respuesta: boolean };
+}
+
+/**
+ * Producto y bodega para consultar el stock antes de un ajuste.
+ */
+export interface PeticionStockAjuste {
+  /** Producto. */
+  productoCodigo: number;
+  /** Bodega. */
+  bodegaId: number;
 }
 
 /**
@@ -197,6 +241,20 @@ export const CANALES_IPC: readonly CanalIpc[] = [
   'importador:validar',
   'importador:importar',
   'importador:guardarReporte',
+  'compras:contexto',
+  'compras:contextoProveedor',
+  'compras:stockBodega',
+  'compras:guardar',
+  'abonos:contexto',
+  'abonos:contextoProveedor',
+  'abonos:guardar',
+  'abonos:anular',
+  'ajustes:listar',
+  'ajustes:stock',
+  'ajustes:registrar',
+  'impresion:html',
+  'impresion:imprimir',
+  'impresion:pdf',
 ];
 
 /**

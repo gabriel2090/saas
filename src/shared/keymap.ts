@@ -20,10 +20,12 @@ import type { IdProceso } from './procesos';
  * - `global`: en toda la aplicación.
  * - `formulario`: navegación entre campos dentro de una ventana.
  * - `maestro`: ventanas de maestros (productos, clientes, proveedores, bodegas, formas de pago).
+ * - `documento`: ventanas de documentos con líneas o reparto (factura de
+ *   proveedor, abono, ajuste de inventario).
  * - `facturar`, `correccion`, `reimpresiones`: solo dentro de esas ventanas.
  */
 export type AmbitoAtajo =
-  'global' | 'formulario' | 'maestro' | 'facturar' | 'correccion' | 'reimpresiones';
+  'global' | 'formulario' | 'maestro' | 'documento' | 'facturar' | 'correccion' | 'reimpresiones';
 
 /**
  * Definición de un atajo de teclado.
@@ -122,6 +124,27 @@ export const ATAJOS = {
     combinacion: 'F8',
     descripcion: 'Inactivar o reactivar el registro',
     ambito: 'maestro',
+    permitirEnCampoTexto: true,
+  },
+
+  // --- Documentos: factura de proveedor, abono y ajuste (Fase 2) ---
+  guardarDocumento: {
+    combinacion: 'PageDown',
+    descripcion: 'Guardar el documento',
+    ambito: 'documento',
+    permitirEnCampoTexto: true,
+  },
+  // Sin Ctrl, Supr no actúa mientras se escribe: ahí borra el carácter (D-60).
+  quitarLinea: {
+    combinacion: 'Delete',
+    descripcion: 'Quitar la línea seleccionada',
+    ambito: 'documento',
+    permitirEnCampoTexto: false,
+  },
+  quitarLineaSiempre: {
+    combinacion: 'Ctrl+Delete',
+    descripcion: 'Quitar la línea seleccionada, aunque se esté escribiendo',
+    ambito: 'documento',
     permitirEnCampoTexto: true,
   },
 

@@ -37,6 +37,20 @@ const TODOS_LOS_CANALES = {
   'importador:validar': true,
   'importador:importar': true,
   'importador:guardarReporte': true,
+  'compras:contexto': true,
+  'compras:contextoProveedor': true,
+  'compras:stockBodega': true,
+  'compras:guardar': true,
+  'abonos:contexto': true,
+  'abonos:contextoProveedor': true,
+  'abonos:guardar': true,
+  'abonos:anular': true,
+  'ajustes:listar': true,
+  'ajustes:stock': true,
+  'ajustes:registrar': true,
+  'impresion:html': true,
+  'impresion:imprimir': true,
+  'impresion:pdf': true,
 } as const satisfies Record<CanalIpc, true>;
 
 describe('lista blanca de canales IPC', () => {

@@ -2,7 +2,7 @@
 
 Aplicación de escritorio para Windows (100 % offline) de inventario, facturación, cuentas por cobrar y cuentas por pagar. La especificación completa está en [`docs/ESPECIFICACION.md`](docs/ESPECIFICACION.md), las decisiones tomadas en [`docs/DECISIONES.md`](docs/DECISIONES.md) y la arquitectura en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
 
-**Estado:** Fase 1 (maestros e importador) en revisión. Incluye:
+**Estado:** Fase 2 (compras y cuentas por pagar) en revisión. Incluye:
 
 - **Fase 0:** estructura, migraciones, contraseña, ventanas internas, barra de iconos, buscador de procesos, `keymap`, historial de cambios y respaldos automáticos.
 - **Fase 1:**
@@ -11,6 +11,10 @@ Aplicación de escritorio para Windows (100 % offline) de inventario, facturaci�
   - Productos (tres escalas de precio, % de ganancia, «Corregir costo…» y stock por bodega), clientes, proveedores, bodegas y formas de pago.
   - Kardex.
   - Importador CSV/XLSX.
+- **Fase 2:**
+  - Factura de proveedor: flete y descuento repartidos en el costo, costo nuevo por línea, avisos («revisar precios», variación de costo mayor a 25 %), stock por bodega, último plazo del proveedor y «Pagada de contado».
+  - Abono a proveedor: reparto automático a las compras más antiguas, abonos anteriores, anulación con su efecto en el saldo y recibo en hoja carta (imprimir o PDF).
+  - Ajustes de inventario: merma, daño y conteo físico.
 
 ## Requisitos
 
@@ -76,14 +80,14 @@ El stock inicial se puede volver a importar (reemplaza al anterior) mientras el 
 ```text
 src/
   main/      proceso principal: arranque, ventana segura, IPC, servicios (contraseña, respaldos,
-             maestros, importador), log
+             maestros, importador, compras, abonos, ajustes), impresión, log
   preload/   puente seguro (contextBridge) con lista blanca de canales
   domain/    reglas de negocio puras (dinero, auditoría, contraseña, respaldos, maestros, ganancia,
-             stock, importación)
+             stock, importación, compras, abonos, ajustes, fechas de documentos)
   data/      conexión SQLite, migrador, migraciones SQL, transacciones, repositorios
   shared/    contrato IPC, keymap, catálogo de procesos, formatos (moneda, cantidades, fechas, %)
   renderer/  interfaz React: acceso, escritorio MDI, barra de iconos, buscador, diálogos, atajos,
-             maestros (lista + ficha) e importador
+             maestros (lista + ficha), importador y documentos (compra, abono, ajuste)
 tests/integracion/  pruebas con SQLite en memoria
 ```
 
@@ -109,3 +113,12 @@ En las ventanas de maestros (productos, clientes, proveedores, bodegas y formas 
 | F8     | Inactivar o reactivar el registro (nunca se borra). |
 | ↑ / ↓  | Con el foco en la lista, cambiar de registro.       |
 | Enter  | Con el foco en la lista, pasar a editar la ficha.   |
+
+En la factura de proveedor, el abono y el ajuste de inventario:
+
+| Atajo     | Acción                                                                |
+| --------- | --------------------------------------------------------------------- |
+| Av. Pág   | Guardar el documento.                                                 |
+| Supr      | Quitar la línea de la compra (si no se está escribiendo).             |
+| Ctrl+Supr | Quitar la línea de la compra siempre.                                 |
+| ↑ / ↓     | En las sugerencias de productos o proveedores, elegir; Enter la toma. |

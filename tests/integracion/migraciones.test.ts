@@ -27,12 +27,18 @@ describe('migraciones del proyecto', () => {
 
   it('crean el esquema con sus datos iniciales', () => {
     const db = abrirBaseDeDatos(':memory:');
-    expect(aplicarMigraciones(db, migracionesDelProyecto(), () => FECHA_PRUEBA)).toEqual([1, 2]);
+    expect(aplicarMigraciones(db, migracionesDelProyecto(), () => FECHA_PRUEBA)).toEqual([1, 2, 3]);
     expect(tablas(db)).toEqual([
+      'abonos',
+      'abonos_aplicaciones',
+      'ajustes_inventario',
       'bodegas',
       'clientes',
       'configuracion',
       'consecutivos',
+      'facturas_proveedor',
+      'facturas_proveedor_lineas',
+      'facturas_proveedor_versiones',
       'formas_pago',
       'historial_cambios',
       'movimientos_inventario',
@@ -55,7 +61,10 @@ describe('migraciones del proyecto', () => {
       .prepare('SELECT clave, siguiente FROM consecutivos ORDER BY clave')
       .all();
     expect(consecutivos).toEqual([
+      { clave: 'abono_proveedor', siguiente: 1 },
+      { clave: 'ajuste', siguiente: 1 },
       { clave: 'cliente', siguiente: 10001 },
+      { clave: 'compra', siguiente: 1 },
       { clave: 'producto', siguiente: 101 },
       { clave: 'proveedor', siguiente: 10001 },
     ]);

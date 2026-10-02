@@ -138,7 +138,7 @@ export const PROCESOS: readonly DefinicionProceso[] = [
     id: 'ajustes-inventario',
     titulo: 'Ajustes de inventario',
     palabrasClave: ['merma', 'dano', 'conteo fisico'],
-    fase: 4,
+    fase: 2,
     anclado: false,
   },
   {

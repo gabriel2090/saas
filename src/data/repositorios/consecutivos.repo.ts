@@ -3,10 +3,11 @@ import type { BaseDeDatos } from '../conexion';
 import type { ContextoTransaccion } from '../transaccion';
 
 /**
- * Consecutivos existentes. Las fases siguientes agregan los de documentos
- * (factura de cliente, abonos, etc.) con su propia migración.
+ * Consecutivos existentes. Las fases siguientes agregan los de sus
+ * documentos (factura de cliente, abono de cliente…) con su propia migración.
  */
-export type ClaveConsecutivo = 'producto' | 'cliente' | 'proveedor';
+export type ClaveConsecutivo =
+  'producto' | 'cliente' | 'proveedor' | 'compra' | 'abono_proveedor' | 'ajuste';
 
 /**
  * Toma el siguiente número de un consecutivo y lo incrementa, de forma

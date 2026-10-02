@@ -69,4 +69,26 @@ describe('ejecutarManejador', () => {
     expect(resultado).toMatchObject({ ok: false, error: { codigo: 'NO_AUTORIZADO' } });
     expect(manejador).not.toHaveBeenCalled();
   });
+
+  it('espera a los manejadores asíncronos con el mismo trato de errores', async () => {
+    const ctx = contexto();
+    await expect(ejecutarManejador(() => Promise.resolve(7), undefined, ctx)).resolves.toEqual({
+      ok: true,
+      datos: 7,
+    });
+    await expect(
+      ejecutarManejador(
+        () => Promise.reject(new ErrorDeNegocio('CONFLICTO', 'Ya está anulado.')),
+        undefined,
+        ctx,
+      ),
+    ).resolves.toEqual({ ok: false, error: { codigo: 'CONFLICTO', mensaje: 'Ya está anulado.' } });
+    await expect(
+      ejecutarManejador(() => Promise.reject(new Error('fallo de impresora')), undefined, ctx),
+    ).resolves.toEqual({
+      ok: false,
+      error: { codigo: 'INESPERADO', mensaje: MENSAJE_ERROR_INESPERADO },
+    });
+    expect(ctx.registrarError).toHaveBeenCalledTimes(1);
+  });
 });
