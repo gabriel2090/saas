@@ -1,0 +1,22 @@
+# Configuración del instalador de Windows (se completa en la Fase 6).
+appId: co.negocio.inventario-facturacion
+productName: Inventario y Facturación
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+# better-sqlite3 13 trae binarios N-API precompilados válidos para Electron: no se recompila (D-10).
+npmRebuild: false
+asarUnpack:
+  - node_modules/better-sqlite3/**/*
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  shortcutName: Inventario y Facturación

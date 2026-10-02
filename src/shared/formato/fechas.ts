@@ -1,0 +1,99 @@
+/**
+ * Expresión que reconoce una fecha ISO 8601 con hora, opcionalmente con
+ * milisegundos y desfase horario. Se usa para leer las partes tal como se
+ * guardaron, sin reinterpretarlas en la zona horaria del equipo.
+ */
+const PATRON_ISO = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?)?/;
+
+/**
+ * Rellena un número con ceros a la izquierda.
+ *
+ * @param valor - Número a rellenar.
+ * @param largo - Largo total deseado.
+ * @returns El número como texto con ceros a la izquierda.
+ */
+function rellenar(valor: number, largo = 2): string {
+  return String(valor).padStart(largo, '0');
+}
+
+/**
+ * Genera la fecha y hora en ISO 8601 con el desfase horario local (D-06),
+ * p. ej. `2026-10-01T23:30:00.000-05:00`. Así el «día» de un documento es el
+ * día local del negocio y no el de UTC.
+ *
+ * @param fecha - Momento a convertir (por defecto, ahora).
+ * @returns Texto ISO 8601 con desfase local.
+ */
+export function aIsoLocal(fecha: Date = new Date()): string {
+  const desfaseMin = -fecha.getTimezoneOffset();
+  const signo = desfaseMin >= 0 ? '+' : '-';
+  const abs = Math.abs(desfaseMin);
+  return (
+    `${fecha.getFullYear()}-${rellenar(fecha.getMonth() + 1)}-${rellenar(fecha.getDate())}` +
+    `T${rellenar(fecha.getHours())}:${rellenar(fecha.getMinutes())}:${rellenar(fecha.getSeconds())}` +
+    `.${rellenar(fecha.getMilliseconds(), 3)}${signo}${rellenar(Math.floor(abs / 60))}:${rellenar(abs % 60)}`
+  );
+}
+
+/**
+ * Extrae las partes de una fecha ISO tal como fueron escritas.
+ *
+ * @param iso - Fecha ISO 8601.
+ * @returns Año, mes, día, hora, minuto y segundo.
+ * @throws {RangeError} Si el texto no es una fecha ISO válida.
+ */
+function partesIso(iso: string): {
+  anio: string;
+  mes: string;
+  dia: string;
+  hora: number;
+  minuto: string;
+} {
+  const m = PATRON_ISO.exec(iso);
+  if (!m) {
+    throw new RangeError(`Fecha inválida: «${iso}».`);
+  }
+  const [, anio = '', mes = '', dia = '', hora = '00', minuto = '00'] = m;
+  return { anio, mes, dia, hora: Number(hora), minuto };
+}
+
+/**
+ * Formatea una fecha ISO como `dd/mm/aaaa`.
+ *
+ * @param iso - Fecha ISO 8601.
+ * @returns Texto como `01/10/2026`.
+ * @throws {RangeError} Si el texto no es una fecha ISO válida.
+ */
+export function formatearFecha(iso: string): string {
+  const { anio, mes, dia } = partesIso(iso);
+  return `${dia}/${mes}/${anio}`;
+}
+
+/**
+ * Formatea la hora de una fecha ISO en formato de 12 horas.
+ *
+ * @param iso - Fecha ISO 8601 con hora.
+ * @returns Texto como `11:30 p. m.` o `12:05 a. m.`.
+ * @throws {RangeError} Si el texto no es una fecha ISO válida.
+ *
+ * @example
+ * formatearHora('2026-10-01T23:30:00-05:00'); // '11:30 p. m.'
+ * formatearHora('2026-10-01T00:05:00-05:00'); // '12:05 a. m.'
+ */
+export function formatearHora(iso: string): string {
+  const { hora, minuto } = partesIso(iso);
+  const sufijo = hora < 12 ? 'a. m.' : 'p. m.';
+  const hora12 = hora % 12 === 0 ? 12 : hora % 12;
+  return `${hora12}:${minuto} ${sufijo}`;
+}
+
+/**
+ * Formatea una fecha ISO como `dd/mm/aaaa hh:mm a. m./p. m.`.
+ *
+ * @param iso - Fecha ISO 8601 con hora.
+ * @returns Fecha y hora legibles.
+ * @throws {RangeError} Si el texto no es una fecha ISO válida.
+ */
+export function formatearFechaHora(iso: string): string {
+  return `${formatearFecha(iso)} ${formatearHora(iso)}`;
+}
