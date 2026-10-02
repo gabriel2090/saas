@@ -7,6 +7,7 @@ import {
   type DatosNegocio,
   type DatosProducto,
   type DatosTercero,
+  type StockInicialNuevo,
   type TipoCatalogo,
 } from '../../shared/maestros';
 import type { ServicioCatalogos } from '../servicios/catalogos';
@@ -158,11 +159,22 @@ export function registrarIpcMaestros(
   registrar('productos:siguienteCodigo', () => productos.siguienteCodigo());
   registrar('productos:crear', (peticion) => {
     const d = exigirObjeto(peticion);
-    return productos.crear({
-      ...leerDatosProducto(d),
-      codigo: exigirEnteroONulo(d.codigo, 'código'),
-      costo: exigirEntero(d.costo, 'costo'),
-    });
+    let stockInicial: StockInicialNuevo | null = null;
+    if (d.stockInicial !== null) {
+      const s = exigirObjeto(d.stockInicial);
+      stockInicial = {
+        bodegaId: exigirEntero(s.bodegaId, 'bodega'),
+        cantidad: exigirEntero(s.cantidad, 'cantidad'),
+      };
+    }
+    return productos.crear(
+      {
+        ...leerDatosProducto(d),
+        codigo: exigirEnteroONulo(d.codigo, 'código'),
+        costo: exigirEntero(d.costo, 'costo'),
+      },
+      stockInicial,
+    );
   });
   registrar('productos:editar', (peticion) => {
     const d = exigirObjeto(peticion);

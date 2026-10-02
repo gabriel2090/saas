@@ -172,6 +172,24 @@ export interface DatosProductoNuevo extends DatosProducto {
 }
 
 /**
+ * Stock inicial que se carga al crear un producto (D-45).
+ */
+export interface StockInicialNuevo {
+  /** Bodega (la Principal por defecto en la ficha). */
+  bodegaId: number;
+  /** Cantidad en milésimas (en UND, unidades enteras). */
+  cantidad: number;
+}
+
+/**
+ * Petición para crear un producto desde la ficha, con su stock inicial opcional.
+ */
+export interface PeticionCrearProducto extends DatosProductoNuevo {
+  /** Stock inicial, o `null` si no se escribió. */
+  stockInicial: StockInicialNuevo | null;
+}
+
+/**
  * Producto como se muestra en la lista.
  */
 export interface ProductoResumen extends DatosProducto {
@@ -205,6 +223,8 @@ export interface StockEnBodega {
 export interface ProductoDetalle extends ProductoResumen {
   /** Stock por bodega (solo bodegas con movimientos). */
   stockPorBodega: StockEnBodega[];
+  /** Stock inicial cargado por bodega (solo los distintos de cero); se muestra de solo lectura. */
+  stockInicial: StockEnBodega[];
   /** Si tiene movimientos de inventario (entonces no se puede cambiar la unidad). */
   tieneMovimientos: boolean;
 }

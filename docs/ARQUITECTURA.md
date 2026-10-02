@@ -36,7 +36,7 @@ flowchart LR
 - **`src/preload/`**: expone solo `window.api` con una lista blanca de canales.
 - **`src/shared/`**: contrato IPC tipado, `keymap`, catálogo de procesos y formatos. Lo usan todas las capas.
 - **`src/renderer/`**: interfaz React. Puede importar funciones **puras** de `src/domain/` y `src/shared/` para mostrar cálculos mientras se escribe (p. ej. el % de ganancia o la sugerencia de columnas del importador). La validación definitiva siempre la repite el proceso principal (D-43).
-- **Archivos del importador**: el renderer lee el CSV o el Excel con SheetJS (API de archivos del navegador, sin Node) y envía al proceso principal solo filas de texto ya asignadas a campos. SheetJS se carga bajo demanda para no demorar el arranque.
+- **Archivos del importador**: el renderer lee el CSV o el Excel con SheetJS (API de archivos del navegador, sin Node) y envía al proceso principal solo filas de texto ya asignadas a campos, junto con el formato numérico elegido. Las celdas numéricas de Excel se escriben en ese formato antes de enviarlas, para que se lean tal cual (D-40). SheetJS se carga bajo demanda para no demorar el arranque.
 
 ## Contrato IPC
 
@@ -187,6 +187,7 @@ erDiagram
 ```
 
 - **Stock = suma del kardex.** No hay un campo de stock editable: la lista y la ficha lo calculan sumando `movimientos_inventario`, que no admite `UPDATE` ni `DELETE`.
+- **Stock inicial** = suma de los movimientos `inicial` de un producto en una bodega. El importador y la ficha de producto nuevo usan la misma regla (`diferenciaStockInicial` en `domain/stock.ts`) y la misma escritura (`registrarStockInicial` en `kardex.repo.ts`). Volver a cargarlo agrega un movimiento por la diferencia, solo mientras el producto no tenga movimientos de otro tipo (D-39, D-45).
 - Los maestros no tienen fechas propias: su creación y cada cambio quedan en `historial_cambios`.
 - **Datos del negocio:** se guardan en `configuracion` (`negocio.datos`). La clave de recuperación se guarda solo como hash (`auth.hash_clave_recuperacion`).
 - **Importación:** valida las filas con las mismas reglas del dominio y guarda solo las válidas en una transacción. Primero entran los registros que traen código (y se ajusta el consecutivo) y después los que no, para que el consecutivo nunca asigne un código que aparece más abajo en el archivo.

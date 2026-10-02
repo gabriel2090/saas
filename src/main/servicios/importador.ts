@@ -8,12 +8,17 @@ import { claveComparacion } from '../../domain/texto';
 import type { BaseDeDatos } from '../../data/conexion';
 import { listarCatalogo } from '../../data/repositorios/catalogos.repo';
 import { ajustarConsecutivo, tomarConsecutivo } from '../../data/repositorios/consecutivos.repo';
-import { insertarMovimiento, paresConStockInicial } from '../../data/repositorios/kardex.repo';
+import {
+  productosConOtrosMovimientos,
+  registrarStockInicial,
+  stockInicialPorPar,
+} from '../../data/repositorios/kardex.repo';
 import { insertarProducto, mapaProductos } from '../../data/repositorios/productos.repo';
 import { indiceTerceros, insertarTercero } from '../../data/repositorios/terceros.repo';
 import type { ContextoTransaccion, EjecutorTransacciones } from '../../data/transaccion';
 import type {
   FilaImportacion,
+  FormatoNumerico,
   ResultadoImportacion,
   ResultadoValidacionImportacion,
   TipoImportacion,
@@ -33,9 +38,14 @@ export interface ServicioImportador {
    *
    * @param tipo - Qué se importa.
    * @param filas - Filas con los campos asignados.
-   * @returns Resumen y errores por fila.
+   * @param formato - Cómo están escritos los números (D-40); por defecto, punto decimal.
+   * @returns Resumen, errores y avisos por fila.
    */
-  validar(tipo: TipoImportacion, filas: readonly FilaImportacion[]): ResultadoValidacionImportacion;
+  validar(
+    tipo: TipoImportacion,
+    filas: readonly FilaImportacion[],
+    formato?: FormatoNumerico,
+  ): ResultadoValidacionImportacion;
   /**
    * Importa **solo las filas válidas** en una sola transacción: o entran
    * todas las válidas, o ninguna. Vuelve a validar dentro de la transacción
@@ -43,9 +53,14 @@ export interface ServicioImportador {
    *
    * @param tipo - Qué se importa.
    * @param filas - Filas con los campos asignados.
+   * @param formato - Cómo están escritos los números (D-40); por defecto, punto decimal.
    * @returns Cantidad importada, omitida y los errores de las omitidas.
    */
-  importar(tipo: TipoImportacion, filas: readonly FilaImportacion[]): ResultadoImportacion;
+  importar(
+    tipo: TipoImportacion,
+    filas: readonly FilaImportacion[],
+    formato?: FormatoNumerico,
+  ): ResultadoImportacion;
 }
 
 /**
@@ -81,7 +96,8 @@ function construirContexto(db: BaseDeDatos, tipo: TipoImportacion): ContextoImpo
       bodegas.filter((b) => b.activo).map((b) => [claveComparacion(b.nombre), b.id]),
     ),
     bodegaPrincipalId: principal.id,
-    stockInicialExistente: paresConStockInicial(db),
+    stockInicial: stockInicialPorPar(db),
+    productosConOtrosMovimientos: productosConOtrosMovimientos(db),
   };
 }
 
@@ -130,17 +146,13 @@ function guardarRegistros(
   >[] = [];
   for (const registro of registros) {
     if (registro.tipo === 'stock') {
-      // Cantidad cero: la fila es válida pero no hay nada que mover en el kardex.
-      if (registro.cantidad !== 0) {
-        insertarMovimiento(ctx, {
-          productoCodigo: registro.productoCodigo,
-          bodegaId: registro.bodegaId,
-          tipo: 'inicial',
-          cantidad: registro.cantidad,
-          costoUnitario: registro.costoUnitario,
-          documento: { tipo: 'importacion', id: ctx.fecha },
-        });
-      }
+      registrarStockInicial(ctx, {
+        productoCodigo: registro.productoCodigo,
+        bodegaId: registro.bodegaId,
+        diferencia: registro.diferencia,
+        costoUnitario: registro.costoUnitario,
+        documento: { tipo: 'importacion', id: ctx.fecha },
+      });
       continue;
     }
     const clave =
@@ -178,6 +190,7 @@ function resumen(resultado: ResultadoValidacionFilas): ResultadoValidacionImport
     total: resultado.total,
     validas: resultado.registros.length,
     errores: resultado.errores,
+    avisos: resultado.avisos,
   };
 }
 
@@ -193,12 +206,17 @@ export function crearServicioImportador(
   ejecutar: EjecutorTransacciones,
 ): ServicioImportador {
   return {
-    validar: (tipo, filas) =>
-      resumen(validarFilasImportacion(tipo, filas, construirContexto(db, tipo))),
+    validar: (tipo, filas, formato = 'punto-decimal') =>
+      resumen(validarFilasImportacion(tipo, filas, construirContexto(db, tipo), formato)),
 
-    importar(tipo, filas) {
+    importar(tipo, filas, formato = 'punto-decimal') {
       return ejecutar((ctx) => {
-        const resultado = validarFilasImportacion(tipo, filas, construirContexto(ctx.db, tipo));
+        const resultado = validarFilasImportacion(
+          tipo,
+          filas,
+          construirContexto(ctx.db, tipo),
+          formato,
+        );
         guardarRegistros(ctx, resultado.registros);
         const filasConError = new Set(resultado.errores.map((e) => e.fila)).size;
         ctx.registrarCambio({
@@ -208,9 +226,11 @@ export function crearServicioImportador(
           antes: null,
           despues: {
             tipo,
+            formato,
             filas: resultado.total,
             importadas: resultado.registros.length,
             omitidas: filasConError,
+            stockInicialReemplazado: resultado.avisos.length,
           },
           motivo: MOTIVO_IMPORTACION,
         });

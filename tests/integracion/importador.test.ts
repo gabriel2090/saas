@@ -70,6 +70,20 @@ const PROVEEDORES = filas(
   },
 );
 
+/**
+ * Producto en KG de prueba (proveedor 10001 de {@link PROVEEDORES}).
+ */
+const PRODUCTO_KG = {
+  codigo: '500',
+  nombre: 'Queso costeño',
+  proveedor: '10001',
+  unidad: 'kg',
+  costo: '15,000',
+  precioMayor: '$ 18,000',
+  precioMenor: '19000',
+  precioMinimo: '17500.00',
+};
+
 describe('importador', () => {
   it('la vista previa no guarda nada', () => {
     const { importador, terceros } = crear();
@@ -99,7 +113,7 @@ describe('importador', () => {
     expect(listarHistorial(db, { entidad: 'importacion' })).toHaveLength(1);
   });
 
-  it('importa productos y su stock inicial al kardex, una sola vez por bodega (D-39)', () => {
+  it('importa productos y su stock inicial al kardex (D-39)', () => {
     const { importador, productos } = crear();
     importador.importar('proveedores', PROVEEDORES);
     const resultado = importador.importar(
@@ -125,9 +139,63 @@ describe('importador', () => {
     expect([...new Set(stock.errores.map((e) => e.fila))]).toEqual([3]);
     expect(stock.importadas).toBe(1);
     expect(productos.obtener(500).stockTotal).toBe(12_500);
+    expect(productos.obtener(500).stockInicial).toMatchObject([{ cantidad: 12_500 }]);
+  });
 
-    const repetido = importador.importar('stock', filas({ producto: '500', cantidad: '1' }));
-    expect(repetido).toMatchObject({ importadas: 0, omitidas: 1 });
-    expect(productos.obtener(500).stockTotal).toBe(12_500);
+  it('volver a importar reemplaza el stock inicial mientras no haya otros movimientos (D-39)', () => {
+    const { db, importador, productos } = crear();
+    importador.importar('proveedores', PROVEEDORES);
+    importador.importar('productos', filas({ ...PRODUCTO_KG }));
+    importador.importar('stock', filas({ producto: '500', cantidad: '12.5' }));
+
+    const vista = importador.validar('stock', filas({ producto: '500', cantidad: '10' }));
+    expect(vista.avisos.map((a) => a.mensaje)).toEqual([
+      'Reemplaza el stock inicial cargado antes (12.500).',
+    ]);
+    expect(importador.importar('stock', filas({ producto: '500', cantidad: '10' }))).toMatchObject({
+      importadas: 1,
+      omitidas: 0,
+    });
+    const detalle = productos.obtener(500);
+    expect(detalle.stockTotal).toBe(10_000);
+    expect(detalle.stockInicial).toMatchObject([{ cantidad: 10_000 }]);
+    // El kardex no se edita: el reemplazo queda como un movimiento por la diferencia.
+    const movimientos = db
+      .prepare('SELECT tipo, cantidad FROM movimientos_inventario ORDER BY id')
+      .all();
+    expect(movimientos).toEqual([
+      { tipo: 'inicial', cantidad: 12_500 },
+      { tipo: 'inicial', cantidad: -2_500 },
+    ]);
+
+    // Con otro movimiento (p. ej. un ajuste de la Fase 2) ya no se puede.
+    db.prepare(
+      `INSERT INTO movimientos_inventario (fecha, producto_codigo, bodega_id, tipo, cantidad, costo_unitario)
+       VALUES ('2026-10-02T00:00:00.000Z', 500, 1, 'ajuste', -1000, 15000)`,
+    ).run();
+    const bloqueado = importador.importar('stock', filas({ producto: '500', cantidad: '20' }));
+    expect(bloqueado).toMatchObject({ importadas: 0, omitidas: 1 });
+    expect(bloqueado.errores[0]?.mensaje).toMatch(/ajuste de inventario/);
+  });
+
+  it('lee el archivo con coma decimal si el usuario lo elige (D-40)', () => {
+    const { importador, productos } = crear();
+    importador.importar('proveedores', PROVEEDORES);
+    const resultado = importador.importar(
+      'productos',
+      filas({
+        ...PRODUCTO_KG,
+        costo: '15.000',
+        precioMayor: '$ 18.000',
+        precioMinimo: '17.500,00',
+      }),
+      'coma-decimal',
+    );
+    expect(resultado).toMatchObject({ importadas: 1, omitidas: 0 });
+    importador.importar('stock', filas({ producto: '500', cantidad: '1.250,5' }), 'coma-decimal');
+    const detalle = productos.obtener(500);
+    expect(detalle.costo).toBe(15_000);
+    expect(detalle.precios.minimo).toBe(17_500);
+    expect(detalle.stockTotal).toBe(1_250_500);
   });
 });

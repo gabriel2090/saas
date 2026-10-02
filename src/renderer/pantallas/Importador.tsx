@@ -2,9 +2,11 @@ import { useMemo, useState, type ChangeEvent, type ReactNode } from 'react';
 import { sugerirMapeo } from '../../domain/importacion';
 import {
   CAMPOS_IMPORTACION,
+  FORMATOS_NUMERICOS,
   NOMBRES_IMPORTACION,
   type ErrorFila,
   type FilaImportacion,
+  type FormatoNumerico,
   type ResultadoImportacion,
   type ResultadoValidacionImportacion,
   type TipoImportacion,
@@ -74,6 +76,7 @@ export function Importador(): ReactNode {
   const [nombreHoja, setNombreHoja] = useState('');
   const [hoja, setHoja] = useState<HojaLeida | null>(null);
   const [mapeo, setMapeo] = useState<Record<string, number | null>>({});
+  const [formato, setFormato] = useState<FormatoNumerico>('punto-decimal');
   const [filas, setFilas] = useState<FilaImportacion[]>([]);
   const [validacion, setValidacion] = useState<ResultadoValidacionImportacion | null>(null);
   const [resultado, setResultado] = useState<ResultadoImportacion | null>(null);
@@ -156,9 +159,9 @@ export function Importador(): ReactNode {
       setError('La hoja no tiene filas de datos debajo de los encabezados.');
       return;
     }
-    const armadas = (await cargarLectura()).armarFilas(hoja, mapeo);
+    const armadas = (await cargarLectura()).armarFilas(hoja, mapeo, formato);
     setOcupado(true);
-    const respuesta = await invocar('importador:validar', { tipo, filas: armadas });
+    const respuesta = await invocar('importador:validar', { tipo, formato, filas: armadas });
     setOcupado(false);
     if (!respuesta.ok) {
       setError(respuesta.error.mensaje);
@@ -166,7 +169,7 @@ export function Importador(): ReactNode {
     }
     setFilas(armadas);
     setValidacion(respuesta.datos);
-    setSoloErrores(respuesta.datos.errores.length > 0);
+    setSoloErrores(respuesta.datos.errores.length + respuesta.datos.avisos.length > 0);
     irA('vista');
   };
 
@@ -175,11 +178,15 @@ export function Importador(): ReactNode {
       return;
     }
     const conErrores = validacion.total - validacion.validas;
+    const reemplazos = validacion.avisos.length;
     const confirmado = await confirmar({
       titulo: 'Importar',
       mensaje:
         `Se importarán ${validacion.validas} ${NOMBRES_IMPORTACION[tipo].toLowerCase()} en una sola operación` +
         (conErrores > 0 ? ` y se omitirán ${conErrores} filas con errores.` : '.') +
+        (reemplazos > 0
+          ? ` ${reemplazos === 1 ? 'Una fila reemplaza' : `${reemplazos} filas reemplazan`} el stock inicial cargado antes.`
+          : '') +
         ' ¿Continuar?',
       textoAceptar: 'Importar',
       textoCancelar: 'Cancelar',
@@ -188,7 +195,7 @@ export function Importador(): ReactNode {
       return;
     }
     setOcupado(true);
-    const respuesta = await invocar('importador:importar', { tipo, filas });
+    const respuesta = await invocar('importador:importar', { tipo, formato, filas });
     setOcupado(false);
     if (!respuesta.ok) {
       setError(respuesta.error.mensaje);
@@ -257,7 +264,7 @@ export function Importador(): ReactNode {
             />
             <span className="campo__ayuda">
               La primera fila debe tener los nombres de las columnas. Los valores en pesos van sin
-              centavos; use punto para los decimales de las cantidades (12.5).
+              centavos. En el paso siguiente indicará cómo están escritos los números.
             </span>
           </label>
         </div>
@@ -284,6 +291,20 @@ export function Importador(): ReactNode {
               </select>
             </label>
           )}
+          <label className="campo">
+            <span>Formato de los números</span>
+            <select value={formato} onChange={(e) => setFormato(e.target.value as FormatoNumerico)}>
+              {FORMATOS_NUMERICOS.map((f) => (
+                <option key={f.valor} value={f.valor}>
+                  {f.etiqueta}
+                </option>
+              ))}
+            </select>
+            <span className="campo__ayuda">
+              Cómo están escritos los decimales y los miles en el archivo. Las celdas numéricas de
+              Excel se toman por su valor, sin importar esta opción.
+            </span>
+          </label>
           <div className="mapeo">
             {campos.map((c) => (
               <label key={c.clave} className="campo">
@@ -373,6 +394,20 @@ export function Importador(): ReactNode {
 }
 
 /**
+ * Agrupa los mensajes por número de fila.
+ *
+ * @param mensajes - Errores o avisos.
+ * @returns Fila → mensajes en orden.
+ */
+function agruparPorFila(mensajes: readonly ErrorFila[]): Map<number, string[]> {
+  const mapa = new Map<number, string[]>();
+  for (const m of mensajes) {
+    mapa.set(m.fila, [...(mapa.get(m.fila) ?? []), m.mensaje]);
+  }
+  return mapa;
+}
+
+/**
  * Propiedades de {@link VistaPrevia}.
  */
 interface PropiedadesVistaPrevia {
@@ -384,7 +419,7 @@ interface PropiedadesVistaPrevia {
   filas: readonly FilaImportacion[];
   /** Resultado de la validación. */
   validacion: ResultadoValidacionImportacion;
-  /** Si solo se muestran las filas con errores. */
+  /** Si solo se muestran las filas con errores o avisos. */
   soloErrores: boolean;
   /** Cambia el filtro de errores. */
   alCambiarSoloErrores: (solo: boolean) => void;
@@ -409,16 +444,11 @@ interface PropiedadesVistaPrevia {
  */
 function VistaPrevia(props: PropiedadesVistaPrevia): ReactNode {
   const { validacion } = props;
-  const erroresPorFila = useMemo(() => {
-    const mapa = new Map<number, string[]>();
-    for (const e of validacion.errores) {
-      mapa.set(e.fila, [...(mapa.get(e.fila) ?? []), e.mensaje]);
-    }
-    return mapa;
-  }, [validacion]);
+  const erroresPorFila = useMemo(() => agruparPorFila(validacion.errores), [validacion]);
+  const avisosPorFila = useMemo(() => agruparPorFila(validacion.avisos), [validacion]);
   const conErrores = validacion.total - validacion.validas;
   const visibles = props.soloErrores
-    ? props.filas.filter((f) => erroresPorFila.has(f.numero))
+    ? props.filas.filter((f) => erroresPorFila.has(f.numero) || avisosPorFila.has(f.numero))
     : props.filas;
   const dibujadas = visibles.slice(0, MAXIMO_FILAS_VISTA);
 
@@ -440,7 +470,9 @@ function VistaPrevia(props: PropiedadesVistaPrevia): ReactNode {
             checked={props.soloErrores}
             onChange={(e) => props.alCambiarSoloErrores(e.target.checked)}
           />{' '}
-          Solo filas con errores
+          {validacion.avisos.length > 0
+            ? 'Solo filas con errores o avisos'
+            : 'Solo filas con errores'}
         </label>
         <span className="barra-herramientas__resumen">
           {visibles.length > MAXIMO_FILAS_VISTA &&
@@ -461,15 +493,23 @@ function VistaPrevia(props: PropiedadesVistaPrevia): ReactNode {
           <tbody>
             {dibujadas.map((f) => {
               const errores = erroresPorFila.get(f.numero);
+              const avisos = avisosPorFila.get(f.numero);
+              let estado = <td className="texto-tenue">Lista</td>;
+              if (errores) {
+                estado = <td className="texto-error importador__errores">{errores.join(' · ')}</td>;
+              } else if (avisos) {
+                estado = <td className="texto-alerta importador__errores">{avisos.join(' · ')}</td>;
+              }
               return (
-                <tr key={f.numero} className={errores ? 'fila--error' : undefined}>
+                <tr
+                  key={f.numero}
+                  className={errores ? 'fila--error' : avisos ? 'fila--alerta' : undefined}
+                >
                   <td className="num">{f.numero}</td>
                   {props.campos.map((c) => (
                     <td key={c}>{f.valores[c]}</td>
                   ))}
-                  <td className={errores ? 'texto-error importador__errores' : 'texto-tenue'}>
-                    {errores ? errores.join(' · ') : 'Lista'}
-                  </td>
+                  {estado}
                 </tr>
               );
             })}

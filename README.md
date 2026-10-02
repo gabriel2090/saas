@@ -63,11 +63,13 @@ Para volver a la pantalla de «primer inicio» en un equipo de pruebas, cierre l
 En el buscador (Ctrl+K) escriba «importar». El asistente acepta CSV (también los de Excel en español, separados por punto y coma) y libros de Excel:
 
 1. Elija qué importar. El orden recomendado es proveedores, clientes, productos y por último el stock inicial.
-2. Asigne las columnas; el asistente propone la asignación por el nombre del encabezado.
-3. Revise la vista previa: cada fila con problemas muestra su error.
+2. Asigne las columnas; el asistente propone la asignación por el nombre del encabezado. Indique también el formato de los números: punto decimal (`1,250.5`) o coma decimal (`1.250,5`).
+3. Revise la vista previa: cada fila con problemas muestra su error, y en ámbar las que reemplazan un stock inicial ya cargado.
 4. «Importar solo las filas válidas» guarda todo en una sola operación. Los errores se pueden exportar a Excel para corregirlos y volver a importar esas filas.
 
-Se conservan los códigos del archivo y el consecutivo sigue desde el mayor (D-25). Los valores en pesos van sin centavos y con coma de miles o sin separador (`13,200` o `13200`). Un valor como `13.200` se marca como error en lugar de adivinar (D-40).
+Se conservan los códigos del archivo y el consecutivo sigue desde el mayor (D-25). Los valores en pesos van sin centavos. Las celdas numéricas de Excel se toman por su valor; en las de texto, un valor ambiguo para el formato elegido (`13.200` con punto decimal) se marca como error en lugar de adivinar (D-40).
+
+El stock inicial se puede volver a importar (reemplaza al anterior) mientras el producto no tenga otros movimientos de inventario (D-39). También se puede cargar al crear un producto, desde su ficha (D-45).
 
 ## Estructura
 

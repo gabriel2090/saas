@@ -2,7 +2,11 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { escalasBajoCosto, porcentajeGanancia } from '../../domain/ganancia';
 import { LARGO_MAXIMO_NOMBRE } from '../../domain/maestros';
 import { claveComparacion } from '../../domain/texto';
-import { formatearCantidad, type UnidadMedida } from '../../shared/formato/cantidades';
+import {
+  formatearCantidad,
+  leerCantidad,
+  type UnidadMedida,
+} from '../../shared/formato/cantidades';
 import { agruparMiles, formatearPesos, leerPesos } from '../../shared/formato/moneda';
 import { formatearPorcentaje, SIN_PORCENTAJE } from '../../shared/formato/porcentaje';
 import {
@@ -11,6 +15,8 @@ import {
   type EscalaPrecio,
   type ProductoDetalle,
   type ProductoResumen,
+  type RegistroCatalogo,
+  type StockInicialNuevo,
   type Tercero,
 } from '../../shared/maestros';
 import { fallo, type Resultado } from '../../shared/resultado';
@@ -40,6 +46,10 @@ interface FormularioProducto {
   costo: string;
   /** Precio de cada escala escrito. */
   precios: Record<EscalaPrecio, string>;
+  /** Solo al crear: id de la bodega del stock inicial (la Principal por defecto). */
+  stockBodega: string;
+  /** Solo al crear: cantidad del stock inicial escrita (vacía: sin stock inicial). */
+  stockCantidad: string;
 }
 
 /**
@@ -104,7 +114,35 @@ function formularioDe(p: ProductoResumen): FormularioProducto {
       menor: agruparMiles(p.precios.menor),
       minimo: agruparMiles(p.precios.minimo),
     },
+    stockBodega: '',
+    stockCantidad: '',
   };
+}
+
+/**
+ * Lee el stock inicial escrito al crear el producto (D-45).
+ *
+ * @param f - Formulario.
+ * @returns El stock inicial, `null` si no se escribió cantidad, o un error de validación local.
+ */
+function leerStockInicial(f: FormularioProducto): Resultado<StockInicialNuevo | null> {
+  if (f.stockCantidad.trim() === '') {
+    return { ok: true, datos: null };
+  }
+  const cantidad = leerCantidad(f.stockCantidad, f.unidad);
+  if (cantidad === null) {
+    return fallo(
+      'VALIDACION',
+      f.unidad === 'UND'
+        ? 'La cantidad del stock inicial debe ser un número entero de unidades.'
+        : 'La cantidad del stock inicial no es válida: use hasta tres decimales separados por punto (12.5).',
+    );
+  }
+  const bodegaId = Number(f.stockBodega);
+  if (f.stockBodega === '' || !Number.isSafeInteger(bodegaId)) {
+    return fallo('VALIDACION', 'Seleccione la bodega del stock inicial.');
+  }
+  return { ok: true, datos: { bodegaId, cantidad } };
 }
 
 /**
@@ -156,8 +194,12 @@ const CONFIGURACION: ConfiguracionMaestro<ProductoResumen, FormularioProducto> =
     String(p.codigo).startsWith(texto) || claveComparacion(p.nombre).includes(texto),
   formularioDe,
   formularioNuevo: async () => {
-    const siguiente = await invocar('productos:siguienteCodigo', undefined);
+    const [siguiente, bodegas] = await Promise.all([
+      invocar('productos:siguienteCodigo', undefined),
+      invocar('catalogos:listar', 'bodega'),
+    ]);
     const codigo = siguiente.ok ? String(siguiente.datos) : '';
+    const principal = bodegas.ok ? bodegas.datos.find((b) => b.esPrincipal) : undefined;
     return {
       codigo,
       codigoPropuesto: codigo,
@@ -166,6 +208,8 @@ const CONFIGURACION: ConfiguracionMaestro<ProductoResumen, FormularioProducto> =
       unidad: 'UND',
       costo: '',
       precios: { mayor: '', menor: '', minimo: '' },
+      stockBodega: principal ? String(principal.id) : '',
+      stockCantidad: '',
     };
   },
   guardar: async (f, seleccionado) => {
@@ -190,7 +234,16 @@ const CONFIGURACION: ConfiguracionMaestro<ProductoResumen, FormularioProducto> =
         return fallo('VALIDACION', 'El código debe ser un número entero mayor que cero.');
       }
     }
-    return invocar('productos:crear', { ...datos.datos, codigo, costo });
+    const stockInicial = leerStockInicial(f);
+    if (!stockInicial.ok) {
+      return stockInicial;
+    }
+    return invocar('productos:crear', {
+      ...datos.datos,
+      codigo,
+      costo,
+      stockInicial: stockInicial.datos,
+    });
   },
   cambiarEstado: (p, activo) => invocar('productos:cambiarEstado', { id: p.codigo, activo }),
 };
@@ -206,6 +259,7 @@ export function Productos(): ReactNode {
   const maestro = useMaestro(CONFIGURACION);
   const { formulario: f, seleccionado, esNuevo } = maestro;
   const [proveedores, setProveedores] = useState<Tercero[]>([]);
+  const [bodegas, setBodegas] = useState<RegistroCatalogo[]>([]);
   const [detalleCargado, setDetalleCargado] = useState<ProductoDetalle | null>(null);
   const [corrigiendo, setCorrigiendo] = useState(false);
   const { ficha } = maestro;
@@ -214,6 +268,11 @@ export function Productos(): ReactNode {
     void invocar('terceros:listar', 'proveedor').then((r) => {
       if (r.ok) {
         setProveedores(r.datos);
+      }
+    });
+    void invocar('catalogos:listar', 'bodega').then((r) => {
+      if (r.ok) {
+        setBodegas(r.datos);
       }
     });
   }, []);
@@ -454,24 +513,46 @@ export function Productos(): ReactNode {
               )}
               {maestro.aviso && <Aviso tipo={maestro.aviso.tipo}>{maestro.aviso.texto}</Aviso>}
 
+              {esNuevo && (
+                <fieldset className="grupo">
+                  <legend>Stock inicial (opcional)</legend>
+                  <div className="ficha__fila">
+                    <label className="campo">
+                      <span>Bodega</span>
+                      <select
+                        value={f.stockBodega}
+                        onChange={(e) => maestro.cambiar({ stockBodega: e.target.value })}
+                      >
+                        {bodegas
+                          .filter((b) => b.activo)
+                          .map((b) => (
+                            <option key={b.id} value={String(b.id)}>
+                              {b.nombre}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                    <label className="campo campo--num">
+                      <span>Cantidad ({f.unidad})</span>
+                      <input
+                        value={f.stockCantidad}
+                        inputMode={f.unidad === 'KG' ? 'decimal' : 'numeric'}
+                        placeholder={f.unidad === 'KG' ? '0.000' : '0'}
+                        onChange={(e) => maestro.cambiar({ stockCantidad: e.target.value })}
+                      />
+                    </label>
+                  </div>
+                  <span className="campo__ayuda">
+                    Queda en el kardex al guardar. Después no se edita: las correcciones se hacen
+                    con ajustes de inventario.
+                  </span>
+                </fieldset>
+              )}
+
               {!esNuevo && (
                 <fieldset className="grupo">
                   <legend>Stock por bodega</legend>
-                  <table className="tabla">
-                    <tbody>
-                      {detalle && detalle.stockPorBodega.length === 0 && (
-                        <tr>
-                          <td className="tabla__vacia">Sin movimientos de inventario.</td>
-                        </tr>
-                      )}
-                      {detalle?.stockPorBodega.map((s) => (
-                        <tr key={s.bodegaId}>
-                          <td>{s.bodegaNombre}</td>
-                          <td className="num">{formatearCantidad(s.cantidad, detalle.unidad)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <TablaStock detalle={detalle} />
                 </fieldset>
               )}
             </>
@@ -491,6 +572,55 @@ export function Productos(): ReactNode {
         />
       )}
     </>
+  );
+}
+
+/**
+ * Tabla de stock de la ficha: por bodega, el stock inicial (solo lectura,
+ * D-45) y el stock actual (suma del kardex).
+ *
+ * @param props - Propiedades del componente.
+ * @param props.detalle - Producto con su detalle, o `null` mientras carga.
+ * @returns La tabla.
+ */
+function TablaStock({ detalle }: { detalle: ProductoDetalle | null }): ReactNode {
+  if (!detalle) {
+    return null;
+  }
+  if (detalle.stockPorBodega.length === 0) {
+    return <p className="tabla__vacia">Sin movimientos de inventario.</p>;
+  }
+  // `stockPorBodega` ya trae toda bodega con movimientos, incluidas las de stock inicial.
+  const inicialPorBodega = new Map(detalle.stockInicial.map((s) => [s.bodegaId, s.cantidad]));
+  return (
+    <table className="tabla">
+      <thead>
+        <tr>
+          <th>Bodega</th>
+          <th
+            className="num"
+            title="Se carga al crear el producto o con el importador; no se edita"
+          >
+            Inicial
+          </th>
+          <th className="num">Actual</th>
+        </tr>
+      </thead>
+      <tbody>
+        {detalle.stockPorBodega.map((s) => {
+          const inicial = inicialPorBodega.get(s.bodegaId);
+          return (
+            <tr key={s.bodegaId}>
+              <td>{s.bodegaNombre}</td>
+              <td className="num texto-tenue">
+                {inicial === undefined ? '—' : formatearCantidad(inicial, detalle.unidad)}
+              </td>
+              <td className="num">{formatearCantidad(s.cantidad, detalle.unidad)}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
   );
 }
 

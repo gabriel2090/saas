@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CAMPOS_IMPORTACION, type FilaImportacion } from '../shared/importacion';
 import {
+  aPuntoDecimal,
   leerCodigo,
   leerTipoIdentificacion,
   leerTipoPersona,
@@ -11,7 +12,8 @@ import {
 } from './importacion';
 
 /**
- * Contexto de ejemplo: proveedor 10003, producto 101 (UND) y 104 (KG), bodega Principal (1) y Norte (2).
+ * Contexto de ejemplo: proveedor 10003; productos 101 (UND), 104 (KG, con 5 kg de stock
+ * inicial en Norte) y 106 (UND, con otros movimientos); bodegas Principal (1) y Norte (2).
  */
 const CONTEXTO: ContextoImportacion = {
   codigosExistentes: new Set([101]),
@@ -20,13 +22,15 @@ const CONTEXTO: ContextoImportacion = {
   productos: new Map([
     [101, { unidad: 'UND' as const, costo: 1500 }],
     [104, { unidad: 'KG' as const, costo: 18500 }],
+    [106, { unidad: 'UND' as const, costo: 900 }],
   ]),
   bodegas: new Map([
     ['principal', 1],
     ['norte', 2],
   ]),
   bodegaPrincipalId: 1,
-  stockInicialExistente: new Set(['104|2']),
+  stockInicial: new Map([['104|2', 5_000]]),
+  productosConOtrosMovimientos: new Set([106]),
 };
 
 /**
@@ -116,7 +120,7 @@ describe('sugerirMapeo', () => {
 
 describe('validarFilasImportacion: productos', () => {
   it('convierte una fila válida', () => {
-    const r = validarFilasImportacion('productos', [fila(0, PRODUCTO)], CONTEXTO);
+    const r = validarFilasImportacion('productos', [fila(0, PRODUCTO)], CONTEXTO, 'punto-decimal');
     expect(r.errores).toEqual([]);
     expect(r.registros).toEqual([
       {
@@ -139,6 +143,7 @@ describe('validarFilasImportacion: productos', () => {
       'productos',
       [fila(0, { ...PRODUCTO, codigo: '' })],
       CONTEXTO,
+      'punto-decimal',
     );
     expect(r.registros[0]).toMatchObject({ datos: { codigo: null } });
   });
@@ -152,6 +157,7 @@ describe('validarFilasImportacion: productos', () => {
         fila(2, { ...PRODUCTO, codigo: '107', nombre: '' }),
       ],
       CONTEXTO,
+      'punto-decimal',
     );
     expect(r.total).toBe(3);
     expect(r.registros.map((x) => x.fila)).toEqual([2]);
@@ -168,6 +174,7 @@ describe('validarFilasImportacion: productos', () => {
       'productos',
       [fila(0, { ...PRODUCTO, costo: '13.200' })],
       CONTEXTO,
+      'punto-decimal',
     );
     expect(r.errores.map((e) => e.mensaje)).toEqual([
       'Costo «13.200»: use coma para separar los miles (13,200); el punto se lee como decimal.',
@@ -179,6 +186,7 @@ describe('validarFilasImportacion: productos', () => {
       'productos',
       [fila(0, { ...PRODUCTO, codigo: '101' }), fila(1, PRODUCTO), fila(2, PRODUCTO)],
       CONTEXTO,
+      'punto-decimal',
     );
     expect(r.registros.map((x) => x.fila)).toEqual([3]);
     expect(r.errores.map((e) => e.mensaje)).toEqual([
@@ -190,7 +198,7 @@ describe('validarFilasImportacion: productos', () => {
 
 describe('validarFilasImportacion: clientes y proveedores', () => {
   it('convierte una fila válida y deduce el tipo de persona', () => {
-    const r = validarFilasImportacion('clientes', [fila(0, CLIENTE)], CONTEXTO);
+    const r = validarFilasImportacion('clientes', [fila(0, CLIENTE)], CONTEXTO, 'punto-decimal');
     expect(r.errores).toEqual([]);
     expect(r.registros[0]).toMatchObject({
       tipo: 'clientes',
@@ -207,6 +215,7 @@ describe('validarFilasImportacion: clientes y proveedores', () => {
         fila(2, { ...CLIENTE, codigo: '', numeroIdentificacion: '212.121.354' }),
       ],
       CONTEXTO,
+      'punto-decimal',
     );
     expect(r.registros.map((x) => x.fila)).toEqual([3]);
     expect(r.errores.map((e) => e.fila)).toEqual([2, 4]);
@@ -218,6 +227,7 @@ describe('validarFilasImportacion: clientes y proveedores', () => {
       'clientes',
       [fila(0, { ...CLIENTE, celular: '', tipoIdentificacion: 'RUT' })],
       CONTEXTO,
+      'punto-decimal',
     );
     expect(r.errores.map((e) => e.campo)).toEqual(['tipoIdentificacion']);
   });
@@ -232,6 +242,7 @@ describe('validarFilasImportacion: stock inicial', () => {
         fila(1, { producto: '104', cantidad: '12.35', bodega: '' }),
       ],
       CONTEXTO,
+      'punto-decimal',
     );
     expect(r.errores).toEqual([]);
     expect(r.registros).toEqual([
@@ -241,6 +252,7 @@ describe('validarFilasImportacion: stock inicial', () => {
         productoCodigo: 101,
         bodegaId: 1,
         cantidad: 240000,
+        diferencia: 240000,
         costoUnitario: 1500,
       },
       {
@@ -249,9 +261,11 @@ describe('validarFilasImportacion: stock inicial', () => {
         productoCodigo: 104,
         bodegaId: 1,
         cantidad: 12350,
+        diferencia: 12350,
         costoUnitario: 18500,
       },
     ]);
+    expect(r.avisos).toEqual([]);
   });
 
   it('rechaza decimales en UND, productos o bodegas inexistentes', () => {
@@ -263,25 +277,123 @@ describe('validarFilasImportacion: stock inicial', () => {
         fila(2, { producto: '104', cantidad: '1', bodega: 'Sur' }),
       ],
       CONTEXTO,
+      'punto-decimal',
     );
     expect(r.registros).toHaveLength(0);
     expect(r.errores.map((e) => e.campo)).toEqual(['cantidad', 'producto', 'bodega']);
   });
 
-  it('no permite cargar dos veces el stock inicial de un producto en una bodega (D-39)', () => {
+  it('volver a importar reemplaza el stock inicial por la diferencia, con aviso (D-39)', () => {
+    const r = validarFilasImportacion(
+      'stock',
+      [fila(0, { producto: '104', cantidad: '8', bodega: 'NORTE' })],
+      CONTEXTO,
+      'punto-decimal',
+    );
+    expect(r.errores).toEqual([]);
+    expect(r.registros[0]).toMatchObject({ cantidad: 8_000, diferencia: 3_000 });
+    expect(r.avisos).toEqual([
+      {
+        fila: 2,
+        campo: 'cantidad',
+        mensaje: 'Reemplaza el stock inicial cargado antes (5.000).',
+      },
+    ]);
+  });
+
+  it('no admite stock inicial si el producto ya tiene otros movimientos (D-39)', () => {
+    const r = validarFilasImportacion(
+      'stock',
+      [fila(0, { producto: '106', cantidad: '3' })],
+      CONTEXTO,
+      'punto-decimal',
+    );
+    expect(r.registros).toEqual([]);
+    expect(r.errores.map((e) => e.mensaje)).toEqual([
+      'El producto 106 ya tiene movimientos de inventario: el stock se corrige con un ajuste de inventario.',
+    ]);
+  });
+
+  it('un producto repetido en la misma bodega dentro del archivo es error', () => {
     const r = validarFilasImportacion(
       'stock',
       [
-        fila(0, { producto: '104', cantidad: '1', bodega: 'NORTE' }),
-        fila(1, { producto: '101', cantidad: '1' }),
-        fila(2, { producto: '101', cantidad: '2', bodega: 'Principal' }),
+        fila(0, { producto: '101', cantidad: '1' }),
+        fila(1, { producto: '101', cantidad: '2', bodega: 'Principal' }),
       ],
       CONTEXTO,
+      'punto-decimal',
     );
-    expect(r.registros.map((x) => x.fila)).toEqual([3]);
+    expect(r.registros.map((x) => x.fila)).toEqual([2]);
     expect(r.errores.map((e) => e.mensaje)).toEqual([
-      'El producto 104 ya tiene stock inicial en esa bodega.',
-      'El producto 101 está repetido en la misma bodega (ya aparece en la fila 3).',
+      'El producto 101 está repetido en la misma bodega (ya aparece en la fila 2).',
     ]);
+  });
+});
+
+describe('formato numérico elegido por el usuario (D-40)', () => {
+  it('aPuntoDecimal intercambia punto y coma solo con coma decimal', () => {
+    expect(aPuntoDecimal('1.250,5', 'coma-decimal')).toBe('1,250.5');
+    expect(aPuntoDecimal('$ 13.200', 'coma-decimal')).toBe('$ 13,200');
+    expect(aPuntoDecimal('1,250.5', 'punto-decimal')).toBe('1,250.5');
+  });
+
+  it('con coma decimal lee el punto como separador de miles', () => {
+    const r = validarFilasImportacion(
+      'productos',
+      [
+        fila(0, {
+          ...PRODUCTO,
+          costo: '$ 13.200',
+          precioMayor: '14500',
+          precioMenor: '15.500,00',
+        }),
+      ],
+      CONTEXTO,
+      'coma-decimal',
+    );
+    expect(r.errores).toEqual([]);
+    expect(r.registros[0]).toMatchObject({
+      datos: { costo: 13_200, precios: { mayor: 14_500, menor: 15_500, minimo: 13_000 } },
+    });
+  });
+
+  it('con coma decimal, «13,200» es ambiguo y se explica cómo escribirlo', () => {
+    const r = validarFilasImportacion(
+      'productos',
+      [fila(0, { ...PRODUCTO, costo: '13,200', precioMenor: '15500' })],
+      CONTEXTO,
+      'coma-decimal',
+    );
+    expect(r.errores.map((e) => e.mensaje)).toEqual([
+      'Costo «13,200»: use punto para separar los miles (13.200); la coma se lee como decimal.',
+    ]);
+  });
+
+  it('las cantidades con coma decimal se leen en milésimas', () => {
+    const r = validarFilasImportacion(
+      'stock',
+      [
+        fila(0, { producto: '104', cantidad: '1.250,5' }),
+        fila(1, { producto: '101', cantidad: '12.5' }),
+      ],
+      CONTEXTO,
+      'coma-decimal',
+    );
+    expect(r.registros[0]).toMatchObject({ cantidad: 1_250_500 });
+    // «12.5» con coma decimal: el punto es de miles y está mal agrupado.
+    expect(r.errores.map((e) => e.fila)).toEqual([3]);
+  });
+
+  it('el mensaje de cantidad inválida nombra el separador decimal elegido', () => {
+    const r = validarFilasImportacion(
+      'stock',
+      [fila(0, { producto: '104', cantidad: '1,23456' })],
+      CONTEXTO,
+      'coma-decimal',
+    );
+    expect(r.errores[0]?.mensaje).toBe(
+      'La cantidad «1,23456» no es válida: use hasta tres decimales separados por coma.',
+    );
   });
 });

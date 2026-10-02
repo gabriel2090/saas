@@ -94,17 +94,98 @@ export function tieneMovimientos(db: BaseDeDatos, productoCodigo: number): boole
 }
 
 /**
- * Pares producto|bodega que ya tienen stock inicial cargado (D-39).
+ * Stock inicial cargado por producto y bodega: la suma de sus movimientos
+ * `inicial` (D-39). Incluye los pares cuyo stock inicial quedó en cero.
  *
  * @param db - Conexión abierta.
- * @returns Conjunto de claves `codigo|bodegaId`.
+ * @returns Clave `codigo|bodegaId` → milésimas.
  */
-export function paresConStockInicial(db: BaseDeDatos): Set<string> {
+export function stockInicialPorPar(db: BaseDeDatos): Map<string, number> {
   const filas = db
     .prepare(
-      `SELECT DISTINCT producto_codigo AS codigo, bodega_id AS bodega
-       FROM movimientos_inventario WHERE tipo = 'inicial'`,
+      `SELECT producto_codigo AS codigo, bodega_id AS bodega, SUM(cantidad) AS cantidad
+       FROM movimientos_inventario WHERE tipo = 'inicial'
+       GROUP BY producto_codigo, bodega_id`,
     )
-    .all() as { codigo: number; bodega: number }[];
-  return new Set(filas.map((f) => `${f.codigo}|${f.bodega}`));
+    .all() as { codigo: number; bodega: number; cantidad: number }[];
+  return new Map(filas.map((f) => [`${f.codigo}|${f.bodega}`, f.cantidad]));
+}
+
+/**
+ * Productos con algún movimiento distinto del stock inicial: ya no admiten
+ * stock inicial y se corrigen con ajustes de inventario (D-39).
+ *
+ * @param db - Conexión abierta.
+ * @returns Códigos de producto.
+ */
+export function productosConOtrosMovimientos(db: BaseDeDatos): Set<number> {
+  const filas = db
+    .prepare(
+      `SELECT DISTINCT producto_codigo AS codigo
+       FROM movimientos_inventario WHERE tipo <> 'inicial'`,
+    )
+    .all() as { codigo: number }[];
+  return new Set(filas.map((f) => f.codigo));
+}
+
+/**
+ * Stock inicial de un producto en cada bodega (suma de sus movimientos
+ * `inicial`), para mostrarlo de solo lectura en la ficha.
+ *
+ * @param db - Conexión abierta.
+ * @param productoCodigo - Producto.
+ * @returns Stock inicial por bodega distinto de cero, ordenado por bodega.
+ */
+export function stockInicialDeProducto(db: BaseDeDatos, productoCodigo: number): StockEnBodega[] {
+  return db
+    .prepare(
+      `SELECT m.bodega_id AS bodegaId, b.nombre AS bodegaNombre, SUM(m.cantidad) AS cantidad
+       FROM movimientos_inventario m JOIN bodegas b ON b.id = m.bodega_id
+       WHERE m.producto_codigo = ? AND m.tipo = 'inicial'
+       GROUP BY m.bodega_id HAVING SUM(m.cantidad) <> 0
+       ORDER BY m.bodega_id`,
+    )
+    .all(productoCodigo) as StockEnBodega[];
+}
+
+/**
+ * Stock inicial a registrar, ya validado con `diferenciaStockInicial`.
+ */
+export interface StockInicialARegistrar {
+  /** Producto. */
+  productoCodigo: number;
+  /** Bodega. */
+  bodegaId: number;
+  /** Diferencia en milésimas respecto del stock inicial anterior. */
+  diferencia: number;
+  /** Costo del producto. */
+  costoUnitario: number;
+  /** Documento que origina la carga (importación o creación del producto). */
+  documento: { tipo: string; id: string };
+}
+
+/**
+ * Registra el stock inicial en el kardex: un movimiento `inicial` por la
+ * diferencia. Lo usan tanto el importador como la ficha de producto nuevo,
+ * para que ambos caminos dejen el mismo rastro (D-45).
+ *
+ * @param ctx - Contexto de la transacción en curso.
+ * @param stock - Stock inicial validado.
+ * @returns Id del movimiento, o `null` si la diferencia es cero (no hay nada que mover).
+ */
+export function registrarStockInicial(
+  ctx: ContextoTransaccion,
+  stock: StockInicialARegistrar,
+): number | null {
+  if (stock.diferencia === 0) {
+    return null;
+  }
+  return insertarMovimiento(ctx, {
+    productoCodigo: stock.productoCodigo,
+    bodegaId: stock.bodegaId,
+    tipo: 'inicial',
+    cantidad: stock.diferencia,
+    costoUnitario: stock.costoUnitario,
+    documento: stock.documento,
+  });
 }

@@ -1,9 +1,10 @@
-import { leerCantidad, type UnidadMedida } from '../shared/formato/cantidades';
+import { formatearCantidad, leerCantidad, type UnidadMedida } from '../shared/formato/cantidades';
 import { leerPesos } from '../shared/formato/moneda';
 import type {
   CampoImportacion,
   ErrorFila,
   FilaImportacion,
+  FormatoNumerico,
   TipoImportacion,
 } from '../shared/importacion';
 import type {
@@ -14,6 +15,7 @@ import type {
 } from '../shared/maestros';
 import { esErrorDeNegocio } from './errores';
 import { claveIdentificacion, validarDatosProducto, validarDatosTercero } from './maestros';
+import { diferenciaStockInicial } from './stock';
 import { claveComparacion } from './texto';
 
 /**
@@ -32,8 +34,10 @@ export interface ContextoImportacion {
   bodegas: ReadonlyMap<string, number>;
   /** Id de la bodega Principal (se usa si la fila no indica bodega). */
   bodegaPrincipalId: number;
-  /** Productos que ya tienen stock inicial en una bodega (`codigo|bodegaId`, D-39). */
-  stockInicialExistente: ReadonlySet<string>;
+  /** Stock inicial ya cargado por producto y bodega (`codigo|bodegaId` → milésimas, D-39). */
+  stockInicial: ReadonlyMap<string, number>;
+  /** Productos con movimientos distintos del stock inicial (ya no admiten stock inicial). */
+  productosConOtrosMovimientos: ReadonlySet<number>;
 }
 
 /**
@@ -47,8 +51,10 @@ export type RegistroImportable =
       fila: number;
       productoCodigo: number;
       bodegaId: number;
-      /** Cantidad en milésimas (puede ser negativa; cero no genera movimiento). */
+      /** Stock inicial deseado en milésimas (puede ser negativo). */
       cantidad: number;
+      /** Movimiento a registrar: cantidad menos el stock inicial ya cargado (0: nada que mover). */
+      diferencia: number;
       /** Costo actual del producto, que acompaña al movimiento en el kardex. */
       costoUnitario: number;
     };
@@ -63,6 +69,28 @@ export interface ResultadoValidacionFilas {
   registros: RegistroImportable[];
   /** Errores (puede haber varios por fila). */
   errores: ErrorFila[];
+  /** Avisos de filas válidas (no impiden importarlas). */
+  avisos: ErrorFila[];
+}
+
+/**
+ * Lleva un número escrito con coma decimal (`1.250,5`) a la forma con punto
+ * decimal (`1,250.5`) que leen las reglas de pesos y cantidades,
+ * intercambiando los dos signos. Con punto decimal el texto queda igual.
+ *
+ * @param texto - Texto de la celda.
+ * @param formato - Formato elegido por el usuario.
+ * @returns Texto con punto decimal y coma de miles.
+ *
+ * @example
+ * aPuntoDecimal('1.250,5', 'coma-decimal');  // '1,250.5'
+ * aPuntoDecimal('1,250.5', 'punto-decimal'); // '1,250.5'
+ */
+export function aPuntoDecimal(texto: string, formato: FormatoNumerico): string {
+  if (formato === 'punto-decimal') {
+    return texto;
+  }
+  return texto.replace(/[.,]/g, (signo) => (signo === '.' ? ',' : '.'));
 }
 
 /**
@@ -251,6 +279,18 @@ class ErroresDeFila {
 }
 
 /**
+ * Resultado de validar una fila.
+ */
+interface ResultadoFila {
+  /** Registro válido, o `null` si la fila tiene errores. */
+  registro: RegistroImportable | null;
+  /** Errores de la fila. */
+  errores: ErrorFila[];
+  /** Avisos de la fila (solo filas válidas). */
+  avisos?: ErrorFila[];
+}
+
+/**
  * Valor de un campo de la fila (vacío si no se asignó columna).
  *
  * @param fila - Fila del archivo.
@@ -308,6 +348,7 @@ function leerCodigoOpcional(
  * @param campo - Clave del campo.
  * @param etiqueta - Nombre del campo para el mensaje.
  * @param errores - Acumulador de la fila.
+ * @param formato - Formato numérico del archivo.
  * @returns Pesos, o `null` si falta o es inválido.
  */
 function leerPesosObligatorio(
@@ -315,18 +356,26 @@ function leerPesosObligatorio(
   campo: string,
   etiqueta: string,
   errores: ErroresDeFila,
+  formato: FormatoNumerico,
 ): number | null {
   const texto = valor(fila, campo);
   if (texto === '') {
     errores.agregar(campo, `Falta el ${etiqueta.toLowerCase()}.`);
     return null;
   }
-  const pesos = leerPesos(texto);
+  const normalizado = aPuntoDecimal(texto, formato);
+  const pesos = leerPesos(normalizado);
   if (pesos === null) {
+    // «13.200» con punto decimal (o «13,200» con coma decimal) es ambiguo:
+    // se explica cómo escribirlo en lugar del mensaje genérico.
+    const ambiguo = /^\$?\s*\d{1,3}(\.\d{3})+$/.test(normalizado);
+    const [miles, decimal] =
+      formato === 'punto-decimal' ? ['coma', 'el punto'] : ['punto', 'la coma'];
+    const sugerido = aPuntoDecimal(normalizado.replace(/\./g, ','), formato);
     errores.agregar(
       campo,
-      /^\$?\s*\d{1,3}(\.\d{3})+$/.test(texto)
-        ? `${etiqueta} «${texto}»: use coma para separar los miles (${texto.replace(/\./g, ',')}); el punto se lee como decimal.`
+      ambiguo
+        ? `${etiqueta} «${texto}»: use ${miles} para separar los miles (${sugerido}); ${decimal} se lee como decimal.`
         : `${etiqueta} «${texto}» no es un valor en pesos enteros.`,
     );
   }
@@ -339,13 +388,15 @@ function leerPesosObligatorio(
  * @param fila - Fila del archivo.
  * @param contexto - Datos existentes.
  * @param codigosVistos - Códigos ya vistos en el archivo.
+ * @param formato - Formato numérico del archivo.
  * @returns Registro válido y errores de la fila.
  */
 function validarFilaProducto(
   fila: FilaImportacion,
   contexto: ContextoImportacion,
   codigosVistos: Map<number, number>,
-): { registro: RegistroImportable | null; errores: ErrorFila[] } {
+  formato: FormatoNumerico,
+): ResultadoFila {
   const errores = new ErroresDeFila(fila.numero);
   const codigo = leerCodigoOpcional(fila, errores, contexto, codigosVistos);
 
@@ -363,10 +414,10 @@ function validarFilaProducto(
     errores.agregar('unidad', `La unidad «${textoUnidad}» no es UND ni KG.`);
   }
 
-  const costo = leerPesosObligatorio(fila, 'costo', 'Costo', errores);
-  const mayor = leerPesosObligatorio(fila, 'precioMayor', 'Precio mayor', errores);
-  const menor = leerPesosObligatorio(fila, 'precioMenor', 'Precio menor', errores);
-  const minimo = leerPesosObligatorio(fila, 'precioMinimo', 'Precio mínimo', errores);
+  const costo = leerPesosObligatorio(fila, 'costo', 'Costo', errores, formato);
+  const mayor = leerPesosObligatorio(fila, 'precioMayor', 'Precio mayor', errores, formato);
+  const menor = leerPesosObligatorio(fila, 'precioMenor', 'Precio menor', errores, formato);
+  const minimo = leerPesosObligatorio(fila, 'precioMinimo', 'Precio mínimo', errores, formato);
 
   if (
     !errores.vacia ||
@@ -413,7 +464,7 @@ function validarFilaTercero(
   contexto: ContextoImportacion,
   codigosVistos: Map<number, number>,
   identificacionesVistas: Map<string, number>,
-): { registro: RegistroImportable | null; errores: ErrorFila[] } {
+): ResultadoFila {
   const errores = new ErroresDeFila(fila.numero);
   const codigo = leerCodigoOpcional(fila, errores, contexto, codigosVistos);
 
@@ -487,13 +538,15 @@ function validarFilaTercero(
  * @param fila - Fila del archivo.
  * @param contexto - Datos existentes.
  * @param vistos - Pares producto|bodega ya vistos → fila.
- * @returns Registro válido y errores de la fila.
+ * @param formato - Formato numérico del archivo.
+ * @returns Registro válido, errores y el aviso si reemplaza un stock inicial ya cargado.
  */
 function validarFilaStock(
   fila: FilaImportacion,
   contexto: ContextoImportacion,
   vistos: Map<string, number>,
-): { registro: RegistroImportable | null; errores: ErrorFila[] } {
+  formato: FormatoNumerico,
+): ResultadoFila {
   const errores = new ErroresDeFila(fila.numero);
   const textoProducto = valor(fila, 'producto');
   const productoCodigo = leerCodigo(textoProducto);
@@ -516,13 +569,14 @@ function validarFilaStock(
   const textoCantidad = valor(fila, 'cantidad');
   let cantidad: number | null = null;
   if (producto) {
-    cantidad = leerCantidad(textoCantidad, producto.unidad);
+    cantidad = leerCantidad(aPuntoDecimal(textoCantidad, formato), producto.unidad);
     if (cantidad === null) {
+      const separador = formato === 'punto-decimal' ? 'punto' : 'coma';
       errores.agregar(
         'cantidad',
         producto.unidad === 'UND'
           ? `La cantidad «${textoCantidad}» no es válida: el producto se vende por unidades (sin decimales).`
-          : `La cantidad «${textoCantidad}» no es válida: use hasta tres decimales separados por punto.`,
+          : `La cantidad «${textoCantidad}» no es válida: use hasta tres decimales separados por ${separador}.`,
       );
     }
   }
@@ -537,16 +591,25 @@ function validarFilaStock(
     return { registro: null, errores: errores.lista };
   }
   const par = `${productoCodigo}|${bodegaId}`;
-  if (contexto.stockInicialExistente.has(par)) {
-    errores.agregar(null, `El producto ${productoCodigo} ya tiene stock inicial en esa bodega.`);
-    return { registro: null, errores: errores.lista };
-  }
   const repetido = vistos.get(par);
   if (repetido !== undefined) {
     errores.agregar(
       null,
       `El producto ${productoCodigo} está repetido en la misma bodega (ya aparece en la fila ${repetido}).`,
     );
+    return { registro: null, errores: errores.lista };
+  }
+  const anterior = contexto.stockInicial.get(par);
+  const diferencia = errores.intentar(() =>
+    diferenciaStockInicial({
+      productoCodigo,
+      unidad: producto.unidad,
+      cantidad,
+      cantidadAnterior: anterior ?? 0,
+      tieneOtrosMovimientos: contexto.productosConOtrosMovimientos.has(productoCodigo),
+    }),
+  );
+  if (diferencia === null) {
     return { registro: null, errores: errores.lista };
   }
   vistos.set(par, fila.numero);
@@ -557,9 +620,20 @@ function validarFilaStock(
       productoCodigo,
       bodegaId,
       cantidad,
+      diferencia,
       costoUnitario: producto.costo,
     },
     errores: [],
+    avisos:
+      anterior === undefined
+        ? []
+        : [
+            {
+              fila: fila.numero,
+              campo: 'cantidad',
+              mensaje: `Reemplaza el stock inicial cargado antes (${formatearCantidad(anterior, producto.unidad)}).`,
+            },
+          ],
   };
 }
 
@@ -568,16 +642,19 @@ function validarFilaStock(
  * por separado: las válidas se pueden importar aunque otras tengan errores
  * («Importar solo las filas válidas», D-26). Un código o identificación que
  * ya existe, o que se repite dentro del archivo, es error de esa fila: nunca
- * se actualiza el registro existente.
+ * se actualiza el registro existente. La excepción es el stock inicial, que
+ * se puede volver a cargar mientras el producto no tenga otros movimientos
+ * (D-39); esas filas llevan un aviso.
  *
  * @param tipo - Qué se importa.
  * @param filas - Filas con los campos asignados.
  * @param contexto - Datos existentes en la base.
- * @returns Registros válidos y errores por fila.
+ * @param formato - Cómo están escritos los números en las celdas de texto (D-40).
+ * @returns Registros válidos, errores y avisos por fila.
  * @throws {Error} Si ocurre un error técnico (no de validación).
  *
  * @example
- * const r = validarFilasImportacion('productos', filas, contexto);
+ * const r = validarFilasImportacion('productos', filas, contexto, 'punto-decimal');
  * r.registros.length; // filas que se pueden importar
  * r.errores;          // [{ fila: 7, campo: 'costo', mensaje: 'Costo «abc» no es…' }]
  */
@@ -585,31 +662,34 @@ export function validarFilasImportacion(
   tipo: TipoImportacion,
   filas: readonly FilaImportacion[],
   contexto: ContextoImportacion,
+  formato: FormatoNumerico,
 ): ResultadoValidacionFilas {
   const registros: RegistroImportable[] = [];
   const errores: ErrorFila[] = [];
+  const avisos: ErrorFila[] = [];
   const codigosVistos = new Map<number, number>();
   const identificacionesVistas = new Map<string, number>();
   const paresVistos = new Map<string, number>();
 
   for (const fila of filas) {
-    let resultado: { registro: RegistroImportable | null; errores: ErrorFila[] };
+    let resultado: ResultadoFila;
     switch (tipo) {
       case 'productos':
-        resultado = validarFilaProducto(fila, contexto, codigosVistos);
+        resultado = validarFilaProducto(fila, contexto, codigosVistos, formato);
         break;
       case 'clientes':
       case 'proveedores':
         resultado = validarFilaTercero(tipo, fila, contexto, codigosVistos, identificacionesVistas);
         break;
       case 'stock':
-        resultado = validarFilaStock(fila, contexto, paresVistos);
+        resultado = validarFilaStock(fila, contexto, paresVistos, formato);
         break;
     }
     if (resultado.registro) {
       registros.push(resultado.registro);
     }
     errores.push(...resultado.errores);
+    avisos.push(...(resultado.avisos ?? []));
   }
-  return { total: filas.length, registros, errores };
+  return { total: filas.length, registros, errores, avisos };
 }

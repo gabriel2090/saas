@@ -1,5 +1,10 @@
 import { ErrorDeNegocio } from '../../domain/errores';
-import type { FilaImportacion, TipoImportacion } from '../../shared/importacion';
+import {
+  FORMATOS_NUMERICOS,
+  type FilaImportacion,
+  type FormatoNumerico,
+  type TipoImportacion,
+} from '../../shared/importacion';
 import type { ServicioImportador } from '../servicios/importador';
 import type { RegistrarManejador } from './registrar';
 import { exigirArreglo, exigirEntero, exigirObjeto, exigirOpcion, exigirTexto } from './validacion';
@@ -35,10 +40,14 @@ export interface DependenciasImportador {
  * Lee y verifica la petición de validar o importar.
  *
  * @param valor - Dato recibido.
- * @returns Tipo y filas.
+ * @returns Tipo, formato numérico y filas.
  * @throws {ErrorDeNegocio} Si la forma no es la esperada o hay demasiadas filas.
  */
-function leerPeticion(valor: unknown): { tipo: TipoImportacion; filas: FilaImportacion[] } {
+function leerPeticion(valor: unknown): {
+  tipo: TipoImportacion;
+  formato: FormatoNumerico;
+  filas: FilaImportacion[];
+} {
   const d = exigirObjeto(valor);
   const filas = exigirArreglo(d.filas, 'filas');
   if (filas.length > MAXIMO_FILAS) {
@@ -49,6 +58,11 @@ function leerPeticion(valor: unknown): { tipo: TipoImportacion; filas: FilaImpor
   }
   return {
     tipo: exigirOpcion(d.tipo, TIPOS, 'tipo de importación'),
+    formato: exigirOpcion(
+      d.formato,
+      FORMATOS_NUMERICOS.map((f) => f.valor),
+      'formato numérico',
+    ),
     filas: filas.map((f) => {
       const fila = exigirObjeto(f);
       const valores = exigirObjeto(fila.valores);
@@ -72,12 +86,12 @@ export function registrarIpcImportador(
   dependencias: DependenciasImportador,
 ): void {
   registrar('importador:validar', (peticion) => {
-    const { tipo, filas } = leerPeticion(peticion);
-    return dependencias.servicio.validar(tipo, filas);
+    const { tipo, formato, filas } = leerPeticion(peticion);
+    return dependencias.servicio.validar(tipo, filas, formato);
   });
   registrar('importador:importar', (peticion) => {
-    const { tipo, filas } = leerPeticion(peticion);
-    return dependencias.servicio.importar(tipo, filas);
+    const { tipo, formato, filas } = leerPeticion(peticion);
+    return dependencias.servicio.importar(tipo, filas, formato);
   });
   registrar('importador:guardarReporte', (peticion) => {
     const d = exigirObjeto(peticion);

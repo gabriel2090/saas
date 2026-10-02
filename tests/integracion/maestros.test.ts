@@ -183,6 +183,48 @@ describe('productos', () => {
     expect(entrada?.despues).toBe('{"costo":19500}');
   });
 
+  it('al crear carga el stock inicial en el kardex, en la misma transacción (D-45)', () => {
+    const { db, terceros, productos, catalogos } = crear();
+    terceros.crear('proveedor', tercero());
+    const norte = catalogos.crear('bodega', { nombre: 'Norte', calculaCambio: false });
+    const creado = productos.crear(producto(10001), { bodegaId: norte.id, cantidad: 12_500 });
+    expect(creado.stockTotal).toBe(12_500);
+    expect(creado.stockInicial).toEqual([
+      { bodegaId: norte.id, bodegaNombre: 'Norte', cantidad: 12_500 },
+    ]);
+    expect(creado.tieneMovimientos).toBe(true);
+    const movimiento = db
+      .prepare(
+        'SELECT tipo, costo_unitario AS costo, documento_tipo AS doc, documento_id AS id FROM movimientos_inventario',
+      )
+      .get();
+    expect(movimiento).toEqual({ tipo: 'inicial', costo: 18_000, doc: 'producto', id: '101' });
+
+    // Cantidad cero: el producto se crea sin movimiento.
+    expect(
+      productos.crear(producto(10001, { nombre: 'Otro' }), { bodegaId: norte.id, cantidad: 0 })
+        .tieneMovimientos,
+    ).toBe(false);
+  });
+
+  it('con un stock inicial inválido no crea el producto ni gasta el consecutivo', () => {
+    const { terceros, productos, catalogos } = crear();
+    terceros.crear('proveedor', tercero());
+    expect(() =>
+      productos.crear(producto(10001, { unidad: 'UND' }), { bodegaId: 1, cantidad: 1_500 }),
+    ).toThrow(/sin decimales/);
+    const sur = catalogos.crear('bodega', { nombre: 'Sur', calculaCambio: false });
+    catalogos.cambiarEstado('bodega', sur.id, false);
+    expect(() => productos.crear(producto(10001), { bodegaId: sur.id, cantidad: 1_000 })).toThrow(
+      /no existe o está inactiva/,
+    );
+    expect(() => productos.crear(producto(10001), { bodegaId: 999, cantidad: 1_000 })).toThrow(
+      /no existe o está inactiva/,
+    );
+    expect(productos.listar()).toHaveLength(0);
+    expect(productos.siguienteCodigo()).toBe(101);
+  });
+
   it('no cambia la unidad si el producto ya tiene movimientos', () => {
     const { db, ejecutar, terceros, productos } = crear();
     terceros.crear('proveedor', tercero());

@@ -5,7 +5,10 @@ import {
   validarMotivo,
   validarPesos,
 } from '../../domain/maestros';
+import { diferenciaStockInicial } from '../../domain/stock';
 import type { BaseDeDatos } from '../../data/conexion';
+import { obtenerCatalogo } from '../../data/repositorios/catalogos.repo';
+import { registrarStockInicial } from '../../data/repositorios/kardex.repo';
 import {
   ajustarConsecutivo,
   consultarConsecutivo,
@@ -26,6 +29,7 @@ import type {
   DatosProductoNuevo,
   ProductoDetalle,
   ProductoResumen,
+  StockInicialNuevo,
 } from '../../shared/maestros';
 
 /**
@@ -54,13 +58,16 @@ export interface ServicioProductos {
   siguienteCodigo(): number;
   /**
    * Crea un producto. Si no se indica código se toma el consecutivo; si se
-   * indica, debe estar libre y el consecutivo se ajusta (D-25).
+   * indica, debe estar libre y el consecutivo se ajusta (D-25). El stock
+   * inicial, si se indica, entra al kardex en la misma transacción y con las
+   * mismas reglas del importador (D-39, D-45).
    *
    * @param datos - Datos del producto, con su costo inicial.
+   * @param stockInicial - Stock inicial opcional (bodega y cantidad en milésimas).
    * @returns El producto creado.
-   * @throws {ErrorDeNegocio} Si los datos no son válidos, el código ya existe o el proveedor no existe o está inactivo.
+   * @throws {ErrorDeNegocio} Si los datos no son válidos, el código ya existe, el proveedor no existe o está inactivo, o la bodega o la cantidad del stock inicial no son válidas.
    */
-  crear(datos: DatosProductoNuevo): ProductoDetalle;
+  crear(datos: DatosProductoNuevo, stockInicial?: StockInicialNuevo | null): ProductoDetalle;
   /**
    * Edita los datos de un producto (no el costo: ver {@link ServicioProductos.corregirCosto}).
    *
@@ -141,10 +148,20 @@ export function crearServicioProductos(
 
     siguienteCodigo: () => consultarConsecutivo(db, 'producto'),
 
-    crear(nuevo) {
+    crear(nuevo, stockInicial = null) {
       const datos = validarDatosProducto(nuevo);
       const costo = validarPesos(nuevo.costo, 'Costo');
       exigirProveedorActivo(datos.proveedorCodigo);
+      const diferencia =
+        stockInicial === null
+          ? 0
+          : diferenciaStockInicial({
+              productoCodigo: nuevo.codigo ?? 0,
+              unidad: datos.unidad,
+              cantidad: stockInicial.cantidad,
+              cantidadAnterior: 0,
+              tieneOtrosMovimientos: false,
+            });
       const codigo = ejecutar((ctx) => {
         let elegido: number;
         if (nuevo.codigo === null) {
@@ -160,6 +177,22 @@ export function crearServicioProductos(
           ajustarConsecutivo(ctx, 'producto', elegido);
         }
         insertarProducto(ctx, elegido, datos, costo);
+        if (stockInicial !== null) {
+          const bodega = obtenerCatalogo(ctx.db, 'bodega', stockInicial.bodegaId);
+          if (!bodega?.activo) {
+            throw new ErrorDeNegocio(
+              'VALIDACION',
+              'La bodega del stock inicial no existe o está inactiva.',
+            );
+          }
+          registrarStockInicial(ctx, {
+            productoCodigo: elegido,
+            bodegaId: bodega.id,
+            diferencia,
+            costoUnitario: costo,
+            documento: { tipo: 'producto', id: String(elegido) },
+          });
+        }
         return elegido;
       });
       return exigir(codigo);

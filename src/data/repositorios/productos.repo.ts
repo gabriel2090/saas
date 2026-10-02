@@ -3,7 +3,7 @@ import type { UnidadMedida } from '../../shared/formato/cantidades';
 import type { DatosProducto, ProductoDetalle, ProductoResumen } from '../../shared/maestros';
 import type { BaseDeDatos } from '../conexion';
 import type { ContextoTransaccion } from '../transaccion';
-import { stockPorBodega, tieneMovimientos } from './kardex.repo';
+import { stockInicialDeProducto, stockPorBodega, tieneMovimientos } from './kardex.repo';
 
 /**
  * Fila de la consulta de productos.
@@ -110,6 +110,7 @@ export function obtenerProducto(db: BaseDeDatos, codigo: number): ProductoDetall
   return {
     ...aResumen(fila),
     stockPorBodega: stockPorBodega(db, codigo),
+    stockInicial: stockInicialDeProducto(db, codigo),
     tieneMovimientos: tieneMovimientos(db, codigo),
   };
 }

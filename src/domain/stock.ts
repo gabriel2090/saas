@@ -1,9 +1,69 @@
+import { MILESIMAS_POR_UNIDAD, type UnidadMedida } from '../shared/formato/cantidades';
+import { ErrorDeNegocio } from './errores';
+
 /**
  * Tipos de movimiento de inventario. La Fase 1 solo crea `inicial` (stock
- * cargado por el importador); las fases siguientes agregan compra, venta,
- * ajuste y devoluciones.
+ * cargado por el importador o al crear el producto); las fases siguientes
+ * agregan compra, venta, ajuste y devoluciones.
  */
 export type TipoMovimiento = 'inicial';
+
+/**
+ * Lo que se necesita para fijar el stock inicial de un producto en una bodega.
+ */
+export interface EntradaStockInicial {
+  /** Código del producto (para los mensajes). */
+  productoCodigo: number;
+  /** Unidad de medida del producto. */
+  unidad: UnidadMedida;
+  /** Stock inicial deseado en milésimas (puede ser negativo; cero lo deja en cero). */
+  cantidad: number;
+  /** Stock inicial ya cargado en esa bodega (suma de sus movimientos `inicial`), o 0. */
+  cantidadAnterior: number;
+  /** Si el producto ya tiene movimientos distintos del stock inicial (en cualquier bodega). */
+  tieneOtrosMovimientos: boolean;
+}
+
+/**
+ * Calcula el movimiento de kardex que deja el stock inicial de un producto en
+ * una bodega en la cantidad pedida. La regla es la misma para el importador y
+ * para la ficha de producto nuevo (D-39, D-45):
+ *
+ * - El stock inicial se puede volver a cargar (reemplaza al anterior)
+ *   mientras el producto no tenga otros movimientos. Como el kardex no se
+ *   edita, el reemplazo se registra como un movimiento `inicial` por la diferencia.
+ * - Si ya tiene otros movimientos, la corrección va por un ajuste de inventario.
+ * - En UND la cantidad debe ser un número entero de unidades.
+ *
+ * @param entrada - Producto, cantidad deseada y lo que ya existe.
+ * @returns Diferencia en milésimas a registrar (0: no hay que registrar nada).
+ * @throws {ErrorDeNegocio} Si la cantidad no es válida o el producto ya tiene otros movimientos.
+ *
+ * @example
+ * diferenciaStockInicial({
+ *   productoCodigo: 104, unidad: 'KG', cantidad: 12_500,
+ *   cantidadAnterior: 10_000, tieneOtrosMovimientos: false,
+ * }); // 2500
+ */
+export function diferenciaStockInicial(entrada: EntradaStockInicial): number {
+  const { productoCodigo, unidad, cantidad, cantidadAnterior } = entrada;
+  if (!Number.isSafeInteger(cantidad)) {
+    throw new ErrorDeNegocio('VALIDACION', 'La cantidad del stock inicial no es válida.');
+  }
+  if (unidad === 'UND' && cantidad % MILESIMAS_POR_UNIDAD !== 0) {
+    throw new ErrorDeNegocio(
+      'VALIDACION',
+      'La cantidad del stock inicial no es válida: el producto se vende por unidades (sin decimales).',
+    );
+  }
+  if (entrada.tieneOtrosMovimientos) {
+    throw new ErrorDeNegocio(
+      'VALIDACION',
+      `El producto ${productoCodigo} ya tiene movimientos de inventario: el stock se corrige con un ajuste de inventario.`,
+    );
+  }
+  return cantidad - cantidadAnterior;
+}
 
 /**
  * Movimiento de kardex tal como lo necesita el cálculo de stock.

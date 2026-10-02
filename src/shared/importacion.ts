@@ -144,7 +144,8 @@ export const CAMPOS_IMPORTACION: Readonly<Record<TipoImportacion, readonly Campo
       etiqueta: 'Cantidad',
       obligatorio: true,
       sinonimos: ['cantidad', 'stock', 'existencia', 'existencias', 'saldo'],
-      ayuda: 'KG con hasta tres decimales separados por punto; UND sin decimales.',
+      ayuda:
+        'KG con hasta tres decimales; UND sin decimales. Volver a importarla reemplaza el stock inicial mientras el producto no tenga otros movimientos.',
     },
     {
       clave: 'bodega',
@@ -189,11 +190,30 @@ export interface ErrorFila {
 }
 
 /**
+ * Cómo están escritos los números del archivo (D-40): lo elige el usuario.
+ * - `punto-decimal`: `1,250.5` (como la factura).
+ * - `coma-decimal`: `1.250,5` (configuración regional de Colombia en Excel).
+ *
+ * Las celdas numéricas de Excel no dependen de esta opción: se toman por su valor.
+ */
+export type FormatoNumerico = 'punto-decimal' | 'coma-decimal';
+
+/**
+ * Formatos numéricos con su texto en pantalla, en el orden del selector.
+ */
+export const FORMATOS_NUMERICOS: readonly { valor: FormatoNumerico; etiqueta: string }[] = [
+  { valor: 'punto-decimal', etiqueta: 'Punto decimal: 1,250.5' },
+  { valor: 'coma-decimal', etiqueta: 'Coma decimal: 1.250,5' },
+];
+
+/**
  * Petición para validar o importar un archivo.
  */
 export interface PeticionImportacion {
   /** Qué se importa. */
   tipo: TipoImportacion;
+  /** Cómo están escritos los números en las celdas de texto. */
+  formato: FormatoNumerico;
   /** Filas con sus campos. */
   filas: readonly FilaImportacion[];
 }
@@ -208,6 +228,8 @@ export interface ResultadoValidacionImportacion {
   validas: number;
   /** Errores encontrados (puede haber varios por fila). */
   errores: ErrorFila[];
+  /** Avisos de filas válidas que conviene revisar (p. ej. reemplazan un stock inicial ya cargado). */
+  avisos: ErrorFila[];
 }
 
 /**

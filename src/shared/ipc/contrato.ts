@@ -7,11 +7,11 @@ import type {
 import type {
   ClaseTercero,
   DatosNegocio,
-  DatosProductoNuevo,
   PeticionCambiarEstado,
   PeticionCambiarEstadoCatalogo,
   PeticionCambiarEstadoTercero,
   PeticionCorregirCosto,
+  PeticionCrearProducto,
   PeticionCrearCatalogo,
   PeticionCrearTercero,
   PeticionEditarCatalogo,
@@ -119,7 +119,7 @@ export interface ContratoIpc {
   'productos:listar': { peticion: void; respuesta: ProductoResumen[] };
   'productos:obtener': { peticion: number; respuesta: ProductoDetalle };
   'productos:siguienteCodigo': { peticion: void; respuesta: number };
-  'productos:crear': { peticion: DatosProductoNuevo; respuesta: ProductoDetalle };
+  'productos:crear': { peticion: PeticionCrearProducto; respuesta: ProductoDetalle };
   'productos:editar': { peticion: PeticionEditarProducto; respuesta: ProductoDetalle };
   'productos:cambiarEstado': { peticion: PeticionCambiarEstado; respuesta: ProductoDetalle };
   'productos:corregirCosto': { peticion: PeticionCorregirCosto; respuesta: ProductoDetalle };

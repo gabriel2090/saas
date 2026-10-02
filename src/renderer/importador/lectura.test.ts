@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { read, utils, write } from 'xlsx';
-import { abrirLibro, armarFilas, crearReporteErrores, decodificarCsv, leerHoja } from './lectura';
+import {
+  abrirLibro,
+  armarFilas,
+  crearReporteErrores,
+  decodificarCsv,
+  leerHoja,
+  textoNumero,
+} from './lectura';
 
 /**
  * Crea un XLSX en memoria a partir de una matriz.
@@ -47,16 +54,39 @@ describe('lectura de archivos del importador', () => {
     const { libro } = abrirLibro('stock.xlsx', bytes);
     const hoja = leerHoja(libro, 'Productos');
     expect(hoja.filas).toEqual([
-      { numero: 2, celdas: ['101', 'Queso', '12.5'] },
-      { numero: 4, celdas: ['102', 'Pan', '3'] },
+      { numero: 2, celdas: [101, 'Queso', 12.5] },
+      { numero: 4, celdas: [102, 'Pan', 3] },
     ]);
   });
 
   it('arma las filas solo con los campos asignados', () => {
     const hoja = { encabezados: ['A', 'B'], filas: [{ numero: 2, celdas: ['7', 'Queso'] }] };
-    expect(armarFilas(hoja, { codigo: 0, nombre: 1, costo: null })).toEqual([
+    expect(armarFilas(hoja, { codigo: 0, nombre: 1, costo: null }, 'punto-decimal')).toEqual([
       { numero: 2, valores: { codigo: '7', nombre: 'Queso' } },
     ]);
+  });
+
+  it('escribe las celdas numéricas en el formato elegido y deja el texto igual (D-40)', () => {
+    const hoja = {
+      encabezados: ['Cod', 'Costo', 'Cantidad', 'Texto'],
+      filas: [{ numero: 2, celdas: [101, 13200, 12.5, '1.250,5'] }],
+    };
+    const mapeo = { codigo: 0, costo: 1, cantidad: 2, otro: 3 };
+    expect(armarFilas(hoja, mapeo, 'coma-decimal')[0]?.valores).toEqual({
+      codigo: '101',
+      costo: '13200',
+      cantidad: '12,5',
+      otro: '1.250,5',
+    });
+    expect(armarFilas(hoja, mapeo, 'punto-decimal')[0]?.valores).toMatchObject({
+      cantidad: '12.5',
+    });
+  });
+
+  it('quita el ruido de coma flotante de los números de Excel', () => {
+    expect(textoNumero(0.1 + 0.2, 'punto-decimal')).toBe('0.3');
+    expect(textoNumero(12.300000000000001, 'coma-decimal')).toBe('12,3');
+    expect(textoNumero(3001234567, 'punto-decimal')).toBe('3001234567');
   });
 
   it('el reporte de errores incluye fila, campo, mensaje y los datos originales', () => {
