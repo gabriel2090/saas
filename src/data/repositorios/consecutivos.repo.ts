@@ -1,3 +1,4 @@
+import { siguienteConsecutivo } from '../../domain/maestros';
 import type { BaseDeDatos } from '../conexion';
 import type { ContextoTransaccion } from '../transaccion';
 
@@ -30,6 +31,27 @@ export function tomarConsecutivo(ctx: ContextoTransaccion, clave: ClaveConsecuti
     throw new Error(`No existe el consecutivo «${clave}».`);
   }
   return fila.asignado;
+}
+
+/**
+ * Ajusta un consecutivo después de guardar un código elegido por el usuario
+ * o importado, para que el próximo número siempre quede por encima (D-25).
+ *
+ * @param ctx - Contexto de la transacción en curso.
+ * @param clave - Consecutivo a ajustar.
+ * @param codigoUsado - Código que se acaba de guardar.
+ * @throws {Error} Si el consecutivo no existe.
+ */
+export function ajustarConsecutivo(
+  ctx: ContextoTransaccion,
+  clave: ClaveConsecutivo,
+  codigoUsado: number,
+): void {
+  const actual = consultarConsecutivo(ctx.db, clave);
+  const nuevo = siguienteConsecutivo(actual, codigoUsado);
+  if (nuevo !== actual) {
+    ctx.db.prepare('UPDATE consecutivos SET siguiente = ? WHERE clave = ?').run(nuevo, clave);
+  }
 }
 
 /**

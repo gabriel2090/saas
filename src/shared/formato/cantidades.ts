@@ -42,6 +42,22 @@ export function formatearCantidad(milesimas: number, unidad: UnidadMedida): stri
 }
 
 /**
+ * Verifica que las comas de un número escrito sean separadores de miles bien
+ * puestos (`1,250,000.5`). Así «12,5» (coma decimal) se rechaza en lugar de
+ * leerse como 125.
+ *
+ * @param texto - Número escrito, sin espacios ni signo de pesos.
+ * @returns `true` si no tiene comas o si todas agrupan de a tres cifras.
+ *
+ * @example
+ * comasDeMilesValidas('1,250.5'); // true
+ * comasDeMilesValidas('12,5');    // false
+ */
+export function comasDeMilesValidas(texto: string): boolean {
+  return !texto.includes(',') || /^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(texto);
+}
+
+/**
  * Convierte el texto escrito por el usuario en milésimas.
  *
  * Acepta punto como separador decimal e ignora las comas de miles. Para UND
@@ -57,8 +73,11 @@ export function formatearCantidad(milesimas: number, unidad: UnidadMedida): stri
  * leerCantidad('1.5', 'UND'); // null
  */
 export function leerCantidad(texto: string, unidad: UnidadMedida): number | null {
-  const limpio = texto.trim().replace(/,/g, '');
-  const coincidencia = /^(-?)(\d+)(?:\.(\d{1,3}))?$/.exec(limpio);
+  const recortado = texto.trim();
+  if (!comasDeMilesValidas(recortado)) {
+    return null;
+  }
+  const coincidencia = /^(-?)(\d+)(?:\.(\d{1,3}))?$/.exec(recortado.replace(/,/g, ''));
   if (!coincidencia) {
     return null;
   }

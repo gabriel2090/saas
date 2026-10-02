@@ -41,9 +41,15 @@ export function registrarIpcSistema(
   );
 
   // Sin sesión: la clave de recuperación se copia en la pantalla de acceso.
-  registrar('sistema:copiarTexto', (texto) => clipboard.writeText(exigirTexto(texto, 'texto')), {
-    requiereSesion: false,
-  });
+  registrar(
+    'sistema:copiarTexto',
+    (texto) => {
+      clipboard
+        .writeText(exigirTexto(texto, 'texto'))
+        .catch((error: unknown) => registrarError('sistema:copiarTexto', error));
+    },
+    { requiereSesion: false },
+  );
 
   registrar('app:confirmarCierre', () => dependencias.confirmarCierre(), { requiereSesion: false });
 }

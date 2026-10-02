@@ -41,6 +41,9 @@ describe('leerCantidad', () => {
     expect(leerCantidad('', 'KG')).toBeNull();
     expect(leerCantidad('abc', 'KG')).toBeNull();
     expect(leerCantidad('1.2345', 'KG')).toBeNull();
+    // Coma decimal o comas mal agrupadas: no se adivina.
+    expect(leerCantidad('12,5', 'KG')).toBeNull();
+    expect(leerCantidad('1,25,000', 'KG')).toBeNull();
   });
 
   it('acepta negativos (para ajustes)', () => {

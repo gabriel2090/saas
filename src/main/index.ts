@@ -1,16 +1,23 @@
 import { app, dialog, Menu } from 'electron';
-import { existsSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { basename, join } from 'node:path';
 import { abrirBaseDeDatos, verificarIntegridad, type BaseDeDatos } from '../data/conexion';
 import { migracionesDelProyecto } from '../data/migraciones';
 import { aplicarMigraciones } from '../data/migrador';
 import { obtenerConfiguracion } from '../data/repositorios/configuracion.repo';
 import { crearEjecutorTransacciones } from '../data/transaccion';
 import { registrarIpcAutenticacion } from './ipc/autenticacion.ipc';
+import { registrarIpcImportador } from './ipc/importador.ipc';
+import { registrarIpcMaestros } from './ipc/maestros.ipc';
 import { crearRegistradorIpc } from './ipc/registrar';
 import { registrarIpcSistema } from './ipc/sistema.ipc';
 import { iniciarLog, registrarError, registrarInfo } from './log';
 import { crearServicioAutenticacion } from './servicios/autenticacion';
+import { crearServicioCatalogos } from './servicios/catalogos';
+import { crearServicioImportador } from './servicios/importador';
+import { crearServicioNegocio } from './servicios/negocio';
+import { crearServicioProductos } from './servicios/productos';
+import { crearServicioTerceros } from './servicios/terceros';
 import { crearServicioRespaldos, type ServicioRespaldos } from './servicios/respaldos';
 import { crearVentanaPrincipal, type VentanaPrincipal } from './ventana-principal';
 
@@ -110,8 +117,45 @@ function iniciar(): void {
     }),
     confirmarCierre: () => ventana.cerrarConfirmado(),
   });
+  registrarIpcMaestros(registrar, {
+    negocio: crearServicioNegocio(db, ejecutar),
+    productos: crearServicioProductos(db, ejecutar),
+    terceros: crearServicioTerceros(db, ejecutar),
+    catalogos: crearServicioCatalogos(db, ejecutar),
+  });
+  registrarIpcImportador(registrar, {
+    servicio: crearServicioImportador(db, ejecutar),
+    guardarArchivo: (nombreSugerido, contenido) =>
+      guardarArchivoElegido(ventana, nombreSugerido, contenido),
+  });
 
   recursos = { db, respaldos, ventana };
+}
+
+/**
+ * Pide al usuario dónde guardar un archivo XLSX y lo escribe. El diálogo es
+ * modal sobre la ventana principal.
+ *
+ * @param ventana - Ventana principal.
+ * @param nombreSugerido - Nombre propuesto (solo se usa el nombre, sin carpetas).
+ * @param contenido - Bytes del archivo.
+ * @returns `true` si se guardó; `false` si el usuario canceló.
+ */
+function guardarArchivoElegido(
+  ventana: VentanaPrincipal,
+  nombreSugerido: string,
+  contenido: Uint8Array,
+): boolean {
+  const ruta = dialog.showSaveDialogSync(ventana.ventana, {
+    title: 'Guardar reporte de errores',
+    defaultPath: join(app.getPath('documents'), basename(nombreSugerido)),
+    filters: [{ name: 'Libro de Excel', extensions: ['xlsx'] }],
+  });
+  if (ruta === undefined) {
+    return false;
+  }
+  writeFileSync(ruta, contenido);
+  return true;
 }
 
 /**

@@ -25,14 +25,31 @@ describe('migraciones del proyecto', () => {
     versiones.forEach((v, i) => expect(v).toBe(i + 1));
   });
 
-  it('crean el esquema base con sus datos iniciales', () => {
+  it('crean el esquema con sus datos iniciales', () => {
     const db = abrirBaseDeDatos(':memory:');
-    expect(aplicarMigraciones(db, migracionesDelProyecto(), () => FECHA_PRUEBA)).toEqual([1]);
+    expect(aplicarMigraciones(db, migracionesDelProyecto(), () => FECHA_PRUEBA)).toEqual([1, 2]);
     expect(tablas(db)).toEqual([
+      'bodegas',
+      'clientes',
       'configuracion',
       'consecutivos',
+      'formas_pago',
       'historial_cambios',
+      'movimientos_inventario',
+      'productos',
+      'proveedores',
       'schema_migraciones',
+    ]);
+    expect(db.prepare('SELECT nombre, es_principal FROM bodegas').all()).toEqual([
+      { nombre: 'Principal', es_principal: 1 },
+    ]);
+    expect(db.prepare('SELECT nombre, calcula_cambio FROM formas_pago ORDER BY id').all()).toEqual([
+      { nombre: 'Efectivo', calcula_cambio: 1 },
+      { nombre: 'Transferencia', calcula_cambio: 0 },
+      { nombre: 'Tarjeta', calcula_cambio: 0 },
+    ]);
+    expect(db.prepare('SELECT codigo, nombre, es_sistema FROM clientes').all()).toEqual([
+      { codigo: 0, nombre: 'CONSUMIDOR FINAL', es_sistema: 1 },
     ]);
     const consecutivos = db
       .prepare('SELECT clave, siguiente FROM consecutivos ORDER BY clave')
@@ -43,6 +60,45 @@ describe('migraciones del proyecto', () => {
       { clave: 'proveedor', siguiente: 10001 },
     ]);
     expect(verificarIntegridad(db).ok).toBe(true);
+  });
+
+  it('protegen el kardex y las reglas de los maestros', () => {
+    const db = abrirBaseDeDatos(':memory:');
+    aplicarMigraciones(db, migracionesDelProyecto());
+    expect(() => db.prepare('UPDATE bodegas SET activo = 0 WHERE es_principal = 1').run()).toThrow(
+      /CHECK/,
+    );
+    expect(() =>
+      db
+        .prepare("INSERT INTO bodegas (nombre, nombre_clave, es_principal) VALUES ('B', 'b', 1)")
+        .run(),
+    ).toThrow(/UNIQUE/);
+    expect(() =>
+      db
+        .prepare(
+          `INSERT INTO productos (codigo, nombre, proveedor_codigo, unidad, costo, precio_mayor, precio_menor, precio_minimo)
+           VALUES (101, 'X', 99999, 'UND', 1, 1, 1, 1)`,
+        )
+        .run(),
+    ).toThrow(/FOREIGN KEY/);
+    db.prepare(
+      `INSERT INTO proveedores (codigo, tipo_persona, nombre, tipo_identificacion, numero_identificacion, celular, direccion)
+       VALUES (10001, 'juridica', 'P', 'NIT', '900', '300', 'Calle 1')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO productos (codigo, nombre, proveedor_codigo, unidad, costo, precio_mayor, precio_menor, precio_minimo)
+       VALUES (101, 'X', 10001, 'UND', 1, 1, 1, 1)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO movimientos_inventario (fecha, producto_codigo, bodega_id, tipo, cantidad, costo_unitario)
+       VALUES ('2026-10-01T10:00:00-05:00', 101, 1, 'inicial', 1000, 1)`,
+    ).run();
+    expect(() => db.prepare('UPDATE movimientos_inventario SET cantidad = 5').run()).toThrow(
+      /no se pueden modificar/,
+    );
+    expect(() => db.prepare('DELETE FROM movimientos_inventario').run()).toThrow(
+      /no se pueden borrar/,
+    );
   });
 
   it('activa las claves foráneas', () => {
