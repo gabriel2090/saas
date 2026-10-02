@@ -3,10 +3,10 @@ import type { RegistrarManejador } from './registrar';
 import { exigirObjeto, exigirTexto } from './validacion';
 
 /**
- * Registra los canales IPC de la contraseña de acceso.
+ * Registra los canales IPC de la contraseña de acceso y la clave de recuperación.
  *
- * `estado`, `crear` e `ingresar` no exigen sesión (son los que la inician);
- * `cambiar` sí.
+ * `estado`, `crear`, `ingresar` y `restablecer` no exigen sesión (son los que
+ * la inician); `cambiar` y `generarClave` sí.
  *
  * @param registrar - Función de registro de manejadores.
  * @param servicio - Servicio de autenticación.
@@ -15,22 +15,38 @@ export function registrarIpcAutenticacion(
   registrar: RegistrarManejador,
   servicio: ServicioAutenticacion,
 ): void {
-  registrar('autenticacion:estado', () => ({ tieneContrasena: servicio.tieneContrasena() }), {
-    requiereSesion: false,
-  });
+  registrar(
+    'autenticacion:estado',
+    () => ({
+      tieneContrasena: servicio.tieneContrasena(),
+      tieneClaveRecuperacion: servicio.tieneClaveRecuperacion(),
+    }),
+    { requiereSesion: false },
+  );
   registrar(
     'autenticacion:crear',
-    (contrasena) => servicio.crear(exigirTexto(contrasena, 'contraseña')),
-    {
-      requiereSesion: false,
-    },
+    (contrasena) => ({
+      claveRecuperacion: servicio.crear(exigirTexto(contrasena, 'contraseña')),
+    }),
+    { requiereSesion: false },
   );
   registrar(
     'autenticacion:ingresar',
     (contrasena) => servicio.ingresar(exigirTexto(contrasena, 'contraseña')),
-    {
-      requiereSesion: false,
+    { requiereSesion: false },
+  );
+  registrar(
+    'autenticacion:restablecer',
+    (peticion) => {
+      const datos = exigirObjeto(peticion);
+      return {
+        claveRecuperacion: servicio.restablecer(
+          exigirTexto(datos.clave, 'clave de recuperación'),
+          exigirTexto(datos.nueva, 'contraseña nueva'),
+        ),
+      };
     },
+    { requiereSesion: false },
   );
   registrar('autenticacion:cambiar', (peticion) => {
     const datos = exigirObjeto(peticion);
@@ -39,4 +55,7 @@ export function registrarIpcAutenticacion(
       exigirTexto(datos.nueva, 'contraseña nueva'),
     );
   });
+  registrar('autenticacion:generarClave', () => ({
+    claveRecuperacion: servicio.generarClaveRecuperacion(),
+  }));
 }

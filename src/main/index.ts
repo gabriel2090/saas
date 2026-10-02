@@ -106,6 +106,7 @@ function iniciar(): void {
       carpetaDatos,
       carpetaRespaldos: respaldos.carpeta(),
       ultimoRespaldo: respaldos.ultimoRespaldo(),
+      desarrollo: !app.isPackaged,
     }),
     confirmarCierre: () => ventana.cerrarConfirmado(),
   });
@@ -151,8 +152,19 @@ function liberarRecursos(): void {
  */
 const PARAMETRO_CARPETA_DATOS = 'carpeta-datos';
 
-if (!app.isPackaged && app.commandLine.hasSwitch(PARAMETRO_CARPETA_DATOS)) {
-  app.setPath('userData', app.commandLine.getSwitchValue(PARAMETRO_CARPETA_DATOS));
+/**
+ * Sufijo de la carpeta de datos cuando la app corre sin empaquetar (D-21).
+ */
+const SUFIJO_CARPETA_DESARROLLO = ' (desarrollo)';
+
+// Sin empaquetar (`npm run dev`) nunca se usan los datos reales del negocio.
+if (!app.isPackaged) {
+  app.setPath(
+    'userData',
+    app.commandLine.hasSwitch(PARAMETRO_CARPETA_DATOS)
+      ? app.commandLine.getSwitchValue(PARAMETRO_CARPETA_DATOS)
+      : join(app.getPath('appData'), `${app.getName()}${SUFIJO_CARPETA_DESARROLLO}`),
+  );
 }
 
 // Una sola instancia: dos procesos escribiendo la misma base SQLite causarían bloqueos.

@@ -1,3 +1,4 @@
+import { clipboard } from 'electron';
 import type { InfoSistema } from '../../shared/ipc/contrato';
 import { registrarError } from '../log';
 import type { RegistrarManejador } from './registrar';
@@ -38,6 +39,11 @@ export function registrarIpcSistema(
     },
     { requiereSesion: false },
   );
+
+  // Sin sesión: la clave de recuperación se copia en la pantalla de acceso.
+  registrar('sistema:copiarTexto', (texto) => clipboard.writeText(exigirTexto(texto, 'texto')), {
+    requiereSesion: false,
+  });
 
   registrar('app:confirmarCierre', () => dependencias.confirmarCierre(), { requiereSesion: false });
 }

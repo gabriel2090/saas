@@ -34,6 +34,11 @@ export function BarraEstado(): ReactNode {
   return (
     <footer className="barra-estado">
       <span>Versión {info?.version ?? '…'}</span>
+      {info?.desarrollo && (
+        <span className="texto-alerta" title={info.carpetaDatos}>
+          Datos de desarrollo
+        </span>
+      )}
       <span title={info?.carpetaRespaldos}>
         Último respaldo:{' '}
         {info?.ultimoRespaldo ? formatearFechaHora(info.ultimoRespaldo) : 'sin cambios aún'}

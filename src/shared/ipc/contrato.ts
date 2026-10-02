@@ -1,4 +1,57 @@
+import type {
+  PeticionGuardarReporte,
+  PeticionImportacion,
+  ResultadoImportacion,
+  ResultadoValidacionImportacion,
+} from '../importacion';
+import type {
+  ClaseTercero,
+  DatosNegocio,
+  DatosProductoNuevo,
+  PeticionCambiarEstado,
+  PeticionCambiarEstadoCatalogo,
+  PeticionCambiarEstadoTercero,
+  PeticionCorregirCosto,
+  PeticionCrearCatalogo,
+  PeticionCrearTercero,
+  PeticionEditarCatalogo,
+  PeticionEditarProducto,
+  PeticionEditarTercero,
+  ProductoDetalle,
+  ProductoResumen,
+  RegistroCatalogo,
+  Tercero,
+  TipoCatalogo,
+} from '../maestros';
 import type { Resultado } from '../resultado';
+
+/**
+ * Estado de la autenticación al abrir la app.
+ */
+export interface EstadoAutenticacion {
+  /** Si ya se creó la contraseña (si no, es el primer arranque). */
+  tieneContrasena: boolean;
+  /** Si hay una clave de recuperación vigente (habilita «¿Olvidó la contraseña?»). */
+  tieneClaveRecuperacion: boolean;
+}
+
+/**
+ * Clave de recuperación recién generada, para mostrarla una sola vez (D-22).
+ */
+export interface ClaveRecuperacion {
+  /** Clave agrupada, p. ej. `ABCD-EFGH-…`. */
+  claveRecuperacion: string;
+}
+
+/**
+ * Datos para restablecer la contraseña con la clave de recuperación.
+ */
+export interface PeticionRestablecerContrasena {
+  /** Clave de recuperación escrita por el usuario. */
+  clave: string;
+  /** Contraseña nueva. */
+  nueva: string;
+}
 
 /**
  * Información general del sistema que el renderer muestra en la barra de estado.
@@ -12,6 +65,8 @@ export interface InfoSistema {
   carpetaRespaldos: string;
   /** Fecha ISO del último respaldo hecho, o `null` si aún no hay. */
   ultimoRespaldo: string | null;
+  /** Si la app corre sin empaquetar, con la carpeta de datos de desarrollo (D-21). */
+  desarrollo: boolean;
 }
 
 /**
@@ -44,13 +99,51 @@ export interface PeticionRegistrarError {
  * que un canal nuevo solo se declara aquí.
  */
 export interface ContratoIpc {
-  'autenticacion:estado': { peticion: void; respuesta: { tieneContrasena: boolean } };
-  'autenticacion:crear': { peticion: string; respuesta: void };
+  'autenticacion:estado': { peticion: void; respuesta: EstadoAutenticacion };
+  'autenticacion:crear': { peticion: string; respuesta: ClaveRecuperacion };
   'autenticacion:ingresar': { peticion: string; respuesta: void };
   'autenticacion:cambiar': { peticion: PeticionCambiarContrasena; respuesta: void };
+  'autenticacion:restablecer': {
+    peticion: PeticionRestablecerContrasena;
+    respuesta: ClaveRecuperacion;
+  };
+  'autenticacion:generarClave': { peticion: void; respuesta: ClaveRecuperacion };
   'sistema:info': { peticion: void; respuesta: InfoSistema };
   'sistema:registrarError': { peticion: PeticionRegistrarError; respuesta: void };
+  'sistema:copiarTexto': { peticion: string; respuesta: void };
   'app:confirmarCierre': { peticion: void; respuesta: void };
+
+  'negocio:obtener': { peticion: void; respuesta: DatosNegocio };
+  'negocio:guardar': { peticion: DatosNegocio; respuesta: DatosNegocio };
+
+  'productos:listar': { peticion: void; respuesta: ProductoResumen[] };
+  'productos:obtener': { peticion: number; respuesta: ProductoDetalle };
+  'productos:siguienteCodigo': { peticion: void; respuesta: number };
+  'productos:crear': { peticion: DatosProductoNuevo; respuesta: ProductoDetalle };
+  'productos:editar': { peticion: PeticionEditarProducto; respuesta: ProductoDetalle };
+  'productos:cambiarEstado': { peticion: PeticionCambiarEstado; respuesta: ProductoDetalle };
+  'productos:corregirCosto': { peticion: PeticionCorregirCosto; respuesta: ProductoDetalle };
+
+  'terceros:listar': { peticion: ClaseTercero; respuesta: Tercero[] };
+  'terceros:siguienteCodigo': { peticion: ClaseTercero; respuesta: number };
+  'terceros:crear': { peticion: PeticionCrearTercero; respuesta: Tercero };
+  'terceros:editar': { peticion: PeticionEditarTercero; respuesta: Tercero };
+  'terceros:cambiarEstado': { peticion: PeticionCambiarEstadoTercero; respuesta: Tercero };
+
+  'catalogos:listar': { peticion: TipoCatalogo; respuesta: RegistroCatalogo[] };
+  'catalogos:crear': { peticion: PeticionCrearCatalogo; respuesta: RegistroCatalogo };
+  'catalogos:editar': { peticion: PeticionEditarCatalogo; respuesta: RegistroCatalogo };
+  'catalogos:cambiarEstado': {
+    peticion: PeticionCambiarEstadoCatalogo;
+    respuesta: RegistroCatalogo;
+  };
+
+  'importador:validar': {
+    peticion: PeticionImportacion;
+    respuesta: ResultadoValidacionImportacion;
+  };
+  'importador:importar': { peticion: PeticionImportacion; respuesta: ResultadoImportacion };
+  'importador:guardarReporte': { peticion: PeticionGuardarReporte; respuesta: boolean };
 }
 
 /**
@@ -77,9 +170,33 @@ export const CANALES_IPC: readonly CanalIpc[] = [
   'autenticacion:crear',
   'autenticacion:ingresar',
   'autenticacion:cambiar',
+  'autenticacion:restablecer',
+  'autenticacion:generarClave',
   'sistema:info',
   'sistema:registrarError',
+  'sistema:copiarTexto',
   'app:confirmarCierre',
+  'negocio:obtener',
+  'negocio:guardar',
+  'productos:listar',
+  'productos:obtener',
+  'productos:siguienteCodigo',
+  'productos:crear',
+  'productos:editar',
+  'productos:cambiarEstado',
+  'productos:corregirCosto',
+  'terceros:listar',
+  'terceros:siguienteCodigo',
+  'terceros:crear',
+  'terceros:editar',
+  'terceros:cambiarEstado',
+  'catalogos:listar',
+  'catalogos:crear',
+  'catalogos:editar',
+  'catalogos:cambiarEstado',
+  'importador:validar',
+  'importador:importar',
+  'importador:guardarReporte',
 ];
 
 /**

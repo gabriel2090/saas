@@ -1,3 +1,4 @@
+import type { DatosNegocio } from '../../shared/maestros';
 import type { BaseDeDatos } from '../conexion';
 import type { ContextoTransaccion } from '../transaccion';
 
@@ -8,8 +9,12 @@ import type { ContextoTransaccion } from '../transaccion';
 export interface EsquemaConfiguracion {
   /** Hash scrypt de la contraseña única de acceso. */
   'auth.hash_contrasena': string;
+  /** Hash scrypt de la clave de recuperación vigente (D-22, D-23). */
+  'auth.hash_clave_recuperacion': string;
   /** Carpeta donde se guardan los respaldos automáticos. */
   'respaldos.carpeta': string;
+  /** Datos del negocio para el encabezado de la factura (D-12). */
+  'negocio.datos': DatosNegocio;
 }
 
 /**
@@ -20,7 +25,10 @@ export type ClaveConfiguracion = keyof EsquemaConfiguracion;
 /**
  * Claves cuyo valor nunca se guarda en el historial de cambios.
  */
-const CLAVES_SECRETAS: readonly ClaveConfiguracion[] = ['auth.hash_contrasena'];
+const CLAVES_SECRETAS: readonly ClaveConfiguracion[] = [
+  'auth.hash_contrasena',
+  'auth.hash_clave_recuperacion',
+];
 
 /**
  * Lee un valor de configuración.
