@@ -1,0 +1,147 @@
+/*
+ * Clases propuestas para las ventanas de documentos (factura de proveedor,
+ * abono). Solo para las maquetas: al aprobarse pasan a global.css.
+ */
+
+.documento {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Encabezado en cuadrícula: proveedor ancho + deuda, luego los datos de la factura. */
+.documento__encabezado {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 0.9fr 0.9fr 0.9fr 1.4fr 1.2fr;
+  gap: 8px 12px;
+  align-items: end;
+}
+
+.documento__encabezado .campo input,
+.documento__encabezado .campo select {
+  width: 100%;
+  min-width: 0;
+}
+
+.documento__proveedor {
+  grid-column: span 5;
+}
+
+.deuda {
+  grid-column: span 2;
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  justify-content: flex-end;
+  padding: 6px 10px;
+  border: 1px solid var(--color-borde);
+  border-radius: 4px;
+  background: var(--color-solo-lectura);
+}
+
+.deuda strong {
+  font-size: 1.15em;
+}
+
+.documento__lineas {
+  height: 228px;
+}
+
+.documento__lineas td input {
+  width: 110px;
+}
+
+.documento__pie {
+  display: grid;
+  grid-template-columns: 1fr 440px;
+  gap: 16px;
+  align-items: start;
+}
+
+.documento__avisos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.documento__contado {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+}
+
+.totales {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.totales th {
+  text-align: left;
+  font-weight: normal;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.totales td {
+  padding: 4px 8px;
+  text-align: right;
+}
+
+.totales input {
+  width: 120px;
+  text-align: right;
+}
+
+.totales td.totales__casilla {
+  text-align: left;
+}
+
+.totales__detalle {
+  display: inline-block;
+  min-width: 70px;
+  margin-left: 8px;
+  color: var(--color-tenue);
+}
+
+.totales__total th,
+.totales__total td {
+  border-top: 2px solid var(--color-titulo);
+  font-size: 1.25em;
+  font-weight: 700;
+  padding-top: 8px;
+}
+
+.segmentado--mini {
+  display: inline-flex;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.segmentado--mini button {
+  padding: 0 8px;
+  min-height: 0;
+  line-height: 20px;
+}
+
+.etiqueta--alerta {
+  color: var(--color-alerta);
+  background: var(--color-alerta-fondo);
+  border: 1px solid currentColor;
+}
+
+/* Abono: resumen de lo aplicado. */
+.reparto {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.reparto strong {
+  font-size: 1.1em;
+}
+
+.estado-anulado {
+  color: var(--color-error);
+  font-weight: 700;
+}

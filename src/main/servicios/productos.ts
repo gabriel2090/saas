@@ -161,6 +161,7 @@ export function crearServicioProductos(
               cantidad: stockInicial.cantidad,
               cantidadAnterior: 0,
               tieneOtrosMovimientos: false,
+              permitirNegativo: false,
             });
       const codigo = ejecutar((ctx) => {
         let elegido: number;

@@ -16,8 +16,10 @@ export interface EntradaStockInicial {
   productoCodigo: number;
   /** Unidad de medida del producto. */
   unidad: UnidadMedida;
-  /** Stock inicial deseado en milésimas (puede ser negativo; cero lo deja en cero). */
+  /** Stock inicial deseado en milésimas (cero lo deja en cero). */
   cantidad: number;
+  /** Si se acepta una cantidad negativa: sí en el importador (con aviso), no al crear el producto (D-45). */
+  permitirNegativo: boolean;
   /** Stock inicial ya cargado en esa bodega (suma de sus movimientos `inicial`), o 0. */
   cantidadAnterior: number;
   /** Si el producto ya tiene movimientos distintos del stock inicial (en cualquier bodega). */
@@ -34,6 +36,7 @@ export interface EntradaStockInicial {
  *   edita, el reemplazo se registra como un movimiento `inicial` por la diferencia.
  * - Si ya tiene otros movimientos, la corrección va por un ajuste de inventario.
  * - En UND la cantidad debe ser un número entero de unidades.
+ * - Una cantidad negativa solo se acepta si `permitirNegativo` (importador).
  *
  * @param entrada - Producto, cantidad deseada y lo que ya existe.
  * @returns Diferencia en milésimas a registrar (0: no hay que registrar nada).
@@ -42,7 +45,7 @@ export interface EntradaStockInicial {
  * @example
  * diferenciaStockInicial({
  *   productoCodigo: 104, unidad: 'KG', cantidad: 12_500,
- *   cantidadAnterior: 10_000, tieneOtrosMovimientos: false,
+ *   cantidadAnterior: 10_000, tieneOtrosMovimientos: false, permitirNegativo: true,
  * }); // 2500
  */
 export function diferenciaStockInicial(entrada: EntradaStockInicial): number {
@@ -55,6 +58,9 @@ export function diferenciaStockInicial(entrada: EntradaStockInicial): number {
       'VALIDACION',
       'La cantidad del stock inicial no es válida: el producto se vende por unidades (sin decimales).',
     );
+  }
+  if (cantidad < 0 && !entrada.permitirNegativo) {
+    throw new ErrorDeNegocio('VALIDACION', 'El stock inicial no puede ser negativo.');
   }
   if (entrada.tieneOtrosMovimientos) {
     throw new ErrorDeNegocio(

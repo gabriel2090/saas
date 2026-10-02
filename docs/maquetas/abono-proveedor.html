@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Maqueta: abono a proveedor</title>
+    <!-- Estilo real de la app. -->
+    <link rel="stylesheet" href="../../src/renderer/estilos/global.css" />
+    <!-- Clases nuevas propuestas para documentos; pasarían a global.css al aprobarse. -->
+    <link rel="stylesheet" href="documentos.css" />
+    <style>
+      .abono__encabezado {
+        grid-template-columns: 1.6fr 0.8fr 1fr 1fr 1fr;
+      }
+      .abono__encabezado .documento__proveedor {
+        grid-column: span 3;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="raiz">
+      <div class="aplicacion">
+        <nav class="barra-iconos">
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2zM9 7h6M9 11h6M9 15h4" /></svg><span>Facturar</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h13v10H3zM16 10h3l2 3v4h-5zM7 19a2 2 0 1 0 0-.01M17 19a2 2 0 1 0 0-.01" /></svg><span>Factura de proveedor</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h20v10H2zM12 12m-2.5 0a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0M5 10v4M19 10v4" /></svg><span>Abono de cliente</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h20v10H2zM8 12h8M13 9l3 3-3 3" /></svg><span>Abono a proveedor</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7zM3 7l9 5 9-5M12 12v10" /></svg><span>Productos</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8m-4 0a4 4 0 1 0 8 0a4 4 0 1 0-8 0M4 21c0-4 4-6 8-6s8 2 8 6" /></svg><span>Clientes</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l6-4v4l6-4v4l6-4v16zM7 17h2M11 17h2M15 17h2" /></svg><span>Proveedores</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z" /></svg><span>Reimpresiones</span></button>
+          <button class="barra-iconos__boton barra-iconos__buscar"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10 10m-6 0a6 6 0 1 0 12 0a6 6 0 1 0-12 0M15 15l6 6" /></svg><span>Buscar (Ctrl+K)</span></button>
+        </nav>
+
+        <main class="escritorio">
+          <section class="ventana ventana--activa" style="left: 12px; top: 6px; width: 1236px">
+            <div class="ventana__titulo">
+              <span>Abono a proveedor<span class="ventana__cambios"> • sin guardar</span></span>
+              <button class="ventana__cerrar">×</button>
+            </div>
+            <div class="ventana__contenido documento">
+              <div class="barra-herramientas">
+                <button class="boton boton--primario">Guardar<span class="atajo">Av. Pág</span></button>
+                <button class="boton">Limpiar</button>
+                <span class="barra-herramientas__separador"></span>
+                <span class="texto-tenue">Abono No. <strong>8</strong> (se confirma al guardar) · al guardar se abre la vista previa del recibo</span>
+              </div>
+
+              <div class="documento__encabezado abono__encabezado">
+                <label class="campo documento__proveedor">
+                  <span>Proveedor *</span>
+                  <input value="10004 - CÁRNICOS DEL VALLE" />
+                </label>
+                <div class="deuda">
+                  <span>Deuda actual</span>
+                  <strong>$ 2,450,000</strong>
+                  <span class="texto-error">Vencido: $ 380,000</span>
+                </div>
+                <label class="campo campo--num"><span>Fecha *</span><input value="02/10/2026" /></label>
+                <label class="campo"><span>Forma de pago *</span><select><option>Transferencia</option></select></label>
+                <label class="campo campo--num"><span>Valor del abono *</span><input value="1,000,000" style="outline: 2px solid var(--color-foco); outline-offset: 1px" /></label>
+                <label class="campo" style="grid-column: span 2"><span>Observación</span><input value="" placeholder="Opcional (se imprime en el recibo)" /></label>
+              </div>
+
+              <fieldset class="grupo">
+                <legend>Facturas pendientes · se reparte a las más antiguas primero; puede cambiar cada monto</legend>
+                <div class="tabla-contenedor" style="height: 132px">
+                  <table class="tabla tabla--precios">
+                    <thead>
+                      <tr>
+                        <th class="num">Compra</th>
+                        <th>Factura proveedor</th>
+                        <th class="num">Fecha</th>
+                        <th class="num">Vence</th>
+                        <th>Estado</th>
+                        <th class="num">Total</th>
+                        <th class="num">Saldo</th>
+                        <th class="num">Aplicar</th>
+                        <th class="num">Saldo después</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td class="num">9</td><td>FV-20512</td><td class="num">20/08/2026</td><td class="num">19/09/2026</td><td class="texto-error">Vencida hace 13 días</td><td class="num">380,000</td><td class="num">380,000</td><td><input value="380,000" /></td><td class="num">0</td></tr>
+                      <tr><td class="num">11</td><td>FV-20688</td><td class="num">05/09/2026</td><td class="num">05/10/2026</td><td>Vence en 3 días</td><td class="num">1,125,700</td><td class="num">825,700</td><td><input value="620,000" /></td><td class="num">205,700</td></tr>
+                      <tr><td class="num">13</td><td>FV-20870</td><td class="num">22/09/2026</td><td class="num">22/10/2026</td><td>Vence en 20 días</td><td class="num">1,244,300</td><td class="num">1,244,300</td><td><input value="0" /></td><td class="num">1,244,300</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="reparto">
+                  <button class="boton">Repartir de nuevo</button>
+                  <span>Aplicado: <strong>$ 1,000,000</strong></span>
+                  <span>Sin aplicar: <strong>$ 0</strong></span>
+                  <span>Deuda después del abono: <strong>$ 1,450,000</strong></span>
+                </div>
+              </fieldset>
+
+              <fieldset class="grupo">
+                <legend>Abonos anteriores de este proveedor</legend>
+                <div class="tabla-contenedor" style="height: 112px">
+                  <table class="tabla">
+                    <thead>
+                      <tr><th class="num">Abono</th><th class="num">Fecha</th><th>Forma de pago</th><th class="num">Valor</th><th>Facturas</th><th>Estado</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td class="num">7</td><td class="num">15/09/2026</td><td>Efectivo</td><td class="num">300,000</td><td>Compra 11</td><td>Activo</td><td class="num"><button class="boton">Ver recibo</button> <button class="boton">Anular…</button></td></tr>
+                      <tr class="fila--inactiva"><td class="num">5</td><td class="num">02/09/2026</td><td>Transferencia</td><td class="num">150,000</td><td>Compra 9</td><td class="estado-anulado">ANULADO</td><td class="num"><button class="boton">Ver recibo</button></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </fieldset>
+            </div>
+          </section>
+        </main>
+
+        <footer class="barra-estado">
+          <span>Versión 0.1.0</span>
+          <span>Último respaldo: 02/10/2026 1:40 a. m.</span>
+          <span class="barra-estado__atajos">↑↓ moverse entre facturas · Av. Pág guardar · Esc cerrar · Ctrl+K buscar</span>
+        </footer>
+      </div>
+    </div>
+  </body>
+</html>

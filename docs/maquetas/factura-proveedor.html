@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Maqueta: factura de proveedor</title>
+    <!-- Estilo real de la app. -->
+    <link rel="stylesheet" href="../../src/renderer/estilos/global.css" />
+    <!-- Clases nuevas propuestas para documentos; pasarían a global.css al aprobarse. -->
+    <link rel="stylesheet" href="documentos.css" />
+  </head>
+  <body>
+    <div id="raiz">
+      <div class="aplicacion">
+        <nav class="barra-iconos">
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2zM9 7h6M9 11h6M9 15h4" /></svg><span>Facturar</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h13v10H3zM16 10h3l2 3v4h-5zM7 19a2 2 0 1 0 0-.01M17 19a2 2 0 1 0 0-.01" /></svg><span>Factura de proveedor</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h20v10H2zM12 12m-2.5 0a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0M5 10v4M19 10v4" /></svg><span>Abono de cliente</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h20v10H2zM8 12h8M13 9l3 3-3 3" /></svg><span>Abono a proveedor</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7zM3 7l9 5 9-5M12 12v10" /></svg><span>Productos</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8m-4 0a4 4 0 1 0 8 0a4 4 0 1 0-8 0M4 21c0-4 4-6 8-6s8 2 8 6" /></svg><span>Clientes</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l6-4v4l6-4v4l6-4v16zM7 17h2M11 17h2M15 17h2" /></svg><span>Proveedores</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z" /></svg><span>Reimpresiones</span></button>
+          <button class="barra-iconos__boton barra-iconos__buscar"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10 10m-6 0a6 6 0 1 0 12 0a6 6 0 1 0-12 0M15 15l6 6" /></svg><span>Buscar (Ctrl+K)</span></button>
+        </nav>
+
+        <main class="escritorio">
+          <section class="ventana ventana--activa" style="left: 12px; top: 6px; width: 1236px">
+            <div class="ventana__titulo">
+              <span>Factura de proveedor<span class="ventana__cambios"> • sin guardar</span></span>
+              <button class="ventana__cerrar">×</button>
+            </div>
+            <div class="ventana__contenido documento">
+              <div class="barra-herramientas">
+                <button class="boton boton--primario">Guardar<span class="atajo">Av. Pág</span></button>
+                <button class="boton">Limpiar</button>
+                <span class="barra-herramientas__separador"></span>
+                <span class="texto-tenue">Compra No. <strong>15</strong> (se confirma al guardar)</span>
+              </div>
+
+              <div class="documento__encabezado">
+                <label class="campo documento__proveedor">
+                  <span>Proveedor *</span>
+                  <input value="10004 - CÁRNICOS DEL VALLE" />
+                </label>
+                <div class="deuda">
+                  <span>Deuda actual</span>
+                  <strong>$ 2,450,000</strong>
+                  <span class="texto-error">Vencido: $ 380,000</span>
+                </div>
+                <label class="campo"><span>No. factura del proveedor *</span><input value="FV-20931" /></label>
+                <label class="campo campo--num"><span>Fecha *</span><input value="02/10/2026" /></label>
+                <label class="campo campo--num"><span>Plazo (días)</span><input value="30" /></label>
+                <label class="campo campo--num"><span>Vence</span><input value="01/11/2026" readonly /></label>
+                <label class="campo"><span>Bodega</span><select><option>Principal</option></select></label>
+                <label class="campo"><span>Orden de compra</span><input value="" placeholder="Opcional" /></label>
+              </div>
+
+              <div class="tabla-contenedor documento__lineas">
+                <table class="tabla tabla--precios">
+                  <thead>
+                    <tr>
+                      <th class="num">#</th>
+                      <th class="num">Código</th>
+                      <th>Producto</th>
+                      <th>Und</th>
+                      <th class="num">Cantidad</th>
+                      <th class="num">Costo unit.</th>
+                      <th class="num">Total</th>
+                      <th class="num" title="Parte del flete que le toca a la línea">Flete</th>
+                      <th class="num" title="Costo unitario con flete: así queda el costo del producto">Costo nuevo</th>
+                      <th class="num">Costo anterior</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td class="num">1</td><td class="num">103</td><td>CHORIZO SANTARROSANO X 10</td><td>UND</td><td><input value="24" /></td><td><input value="7,900" /></td><td class="num">189,600</td><td class="num texto-tenue">5,903</td><td class="num">8,146</td><td class="num texto-tenue">7,800</td></tr>
+                    <tr><td class="num">2</td><td class="num">104</td><td>JAMÓN SÁNDWICH</td><td>KG</td><td><input value="15.500" /></td><td><input value="18,900" /></td><td class="num">292,950</td><td class="num texto-tenue">9,121</td><td class="num">19,488</td><td class="num texto-tenue">18,500</td></tr>
+                    <tr class="fila--alerta"><td class="num">3</td><td class="num">108</td><td>SALCHICHA RANCHERA X 12 <span class="etiqueta etiqueta--alerta">bajo costo</span></td><td>UND</td><td><input value="30" /></td><td><input value="11,200" /></td><td class="num">336,000</td><td class="num texto-tenue">10,461</td><td class="num texto-alerta">11,549</td><td class="num texto-tenue">9,600</td></tr>
+                    <tr><td class="num">4</td><td class="num">101</td><td>CAJA PIZZA 35*35 FD <span class="etiqueta etiqueta--alerta">otro proveedor</span></td><td>UND</td><td><input value="100" /></td><td><input value="1,450" /></td><td class="num">145,000</td><td class="num texto-tenue">4,515</td><td class="num">1,495</td><td class="num texto-tenue">1,500</td></tr>
+                    <tr class="documento__nueva-linea"><td class="num">5</td><td><input value="" placeholder="Código" style="outline: 2px solid var(--color-foco); outline-offset: 1px; text-align: left" /></td><td class="texto-tenue" colspan="8">Escriba el código y Enter, o parte del nombre para buscar…</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="documento__pie">
+                <div class="documento__avisos">
+                  <p class="aviso aviso--alerta"><svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2zM12 10v5M12 18v.01" /></svg><span>Línea 3 · 108 SALCHICHA RANCHERA X 12: con el costo nuevo ($ 11,549) el precio mínimo ($ 11,000) queda por debajo del costo. Los precios no cambian; revíselos en Productos.</span></p>
+                  <p class="aviso aviso--alerta"><svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2zM12 10v5M12 18v.01" /></svg><span>Línea 4 · 101 CAJA PIZZA 35*35 FD pertenece a 10003 - AGRINA S.A.S. Se puede comprar; el producto no cambia de proveedor.</span></p>
+                  <fieldset class="grupo documento__contado">
+                    <legend><label class="casilla"><input type="checkbox" /> Pagada de contado</label></legend>
+                    <label class="campo"><span>Forma de pago</span><select disabled><option>— Marque «Pagada de contado» —</option></select></label>
+                    <span class="campo__ayuda">Al guardar se registra también un abono por el total a pagar.</span>
+                  </fieldset>
+                </div>
+
+                <table class="totales">
+                  <tbody>
+                    <tr><th>Subtotal (4 líneas)</th><td class="num">963,550</td></tr>
+                    <tr>
+                      <th>Flete a distribuir en costo</th>
+                      <td><input value="30,000" /></td>
+                    </tr>
+                    <tr>
+                      <th>
+                        Descuento
+                        <span class="segmentado segmentado--mini"><button type="button" aria-pressed="false">$</button><button type="button" aria-pressed="true">%</button></span>
+                      </th>
+                      <td><input value="2" /><span class="totales__detalle">− 19,271</span></td>
+                    </tr>
+                    <tr>
+                      <td colspan="2" class="totales__casilla"><label class="casilla"><input type="checkbox" /> Repartir el descuento en el costo de los productos</label></td>
+                    </tr>
+                    <tr class="totales__total"><th>Total a pagar</th><td class="num">$ 944,279</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <footer class="barra-estado">
+          <span>Versión 0.1.0</span>
+          <span>Último respaldo: 02/10/2026 1:40 a. m.</span>
+          <span class="barra-estado__atajos">Enter agregar producto · ↑↓ moverse en las líneas · Supr quitar línea · Av. Pág guardar · Esc cerrar</span>
+        </footer>
+      </div>
+    </div>
+  </body>
+</html>

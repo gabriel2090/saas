@@ -138,6 +138,9 @@ function leerStockInicial(f: FormularioProducto): Resultado<StockInicialNuevo | 
         : 'La cantidad del stock inicial no es válida: use hasta tres decimales separados por punto (12.5).',
     );
   }
+  if (cantidad < 0) {
+    return fallo('VALIDACION', 'El stock inicial no puede ser negativo.');
+  }
   const bodegaId = Number(f.stockBodega);
   if (f.stockBodega === '' || !Number.isSafeInteger(bodegaId)) {
     return fallo('VALIDACION', 'Seleccione la bodega del stock inicial.');

@@ -178,14 +178,14 @@ export function Importador(): ReactNode {
       return;
     }
     const conErrores = validacion.total - validacion.validas;
-    const reemplazos = validacion.avisos.length;
+    const conAviso = new Set(validacion.avisos.map((a) => a.fila)).size;
     const confirmado = await confirmar({
       titulo: 'Importar',
       mensaje:
         `Se importarán ${validacion.validas} ${NOMBRES_IMPORTACION[tipo].toLowerCase()} en una sola operación` +
         (conErrores > 0 ? ` y se omitirán ${conErrores} filas con errores.` : '.') +
-        (reemplazos > 0
-          ? ` ${reemplazos === 1 ? 'Una fila reemplaza' : `${reemplazos} filas reemplazan`} el stock inicial cargado antes.`
+        (conAviso > 0
+          ? ` ${conAviso === 1 ? 'Una fila tiene' : `${conAviso} filas tienen`} avisos en ámbar (stock inicial negativo o que reemplaza uno cargado antes).`
           : '') +
         ' ¿Continuar?',
       textoAceptar: 'Importar',

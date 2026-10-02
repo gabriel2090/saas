@@ -607,12 +607,28 @@ function validarFilaStock(
       cantidad,
       cantidadAnterior: anterior ?? 0,
       tieneOtrosMovimientos: contexto.productosConOtrosMovimientos.has(productoCodigo),
+      permitirNegativo: true,
     }),
   );
   if (diferencia === null) {
     return { registro: null, errores: errores.lista };
   }
   vistos.set(par, fila.numero);
+  const avisos: ErrorFila[] = [];
+  if (cantidad < 0) {
+    avisos.push({
+      fila: fila.numero,
+      campo: 'cantidad',
+      mensaje: 'Cantidad negativa: el producto quedará con stock inicial negativo.',
+    });
+  }
+  if (anterior !== undefined) {
+    avisos.push({
+      fila: fila.numero,
+      campo: 'cantidad',
+      mensaje: `Reemplaza el stock inicial cargado antes (${formatearCantidad(anterior, producto.unidad)}).`,
+    });
+  }
   return {
     registro: {
       tipo: 'stock',
@@ -624,16 +640,7 @@ function validarFilaStock(
       costoUnitario: producto.costo,
     },
     errores: [],
-    avisos:
-      anterior === undefined
-        ? []
-        : [
-            {
-              fila: fila.numero,
-              campo: 'cantidad',
-              mensaje: `Reemplaza el stock inicial cargado antes (${formatearCantidad(anterior, producto.unidad)}).`,
-            },
-          ],
+    avisos,
   };
 }
 
@@ -644,7 +651,7 @@ function validarFilaStock(
  * ya existe, o que se repite dentro del archivo, es error de esa fila: nunca
  * se actualiza el registro existente. La excepción es el stock inicial, que
  * se puede volver a cargar mientras el producto no tenga otros movimientos
- * (D-39); esas filas llevan un aviso.
+ * (D-39); esas filas llevan un aviso, igual que las de stock inicial negativo.
  *
  * @param tipo - Qué se importa.
  * @param filas - Filas con los campos asignados.

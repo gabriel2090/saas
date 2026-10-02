@@ -230,7 +230,7 @@ export function crearServicioImportador(
             filas: resultado.total,
             importadas: resultado.registros.length,
             omitidas: filasConError,
-            stockInicialReemplazado: resultado.avisos.length,
+            filasConAviso: new Set(resultado.avisos.map((a) => a.fila)).size,
           },
           motivo: MOTIVO_IMPORTACION,
         });

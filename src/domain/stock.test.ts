@@ -40,7 +40,15 @@ describe('diferenciaStockInicial (D-39, D-45)', () => {
     cantidad: 12_500,
     cantidadAnterior: 0,
     tieneOtrosMovimientos: false,
+    permitirNegativo: true,
   };
+
+  it('el negativo solo se acepta donde se permite (importador sí, ficha no)', () => {
+    expect(diferenciaStockInicial({ ...base, cantidad: -2_000 })).toBe(-2_000);
+    expect(() =>
+      diferenciaStockInicial({ ...base, cantidad: -2_000, permitirNegativo: false }),
+    ).toThrow('El stock inicial no puede ser negativo.');
+  });
 
   it('la primera carga registra la cantidad completa', () => {
     expect(diferenciaStockInicial(base)).toBe(12_500);

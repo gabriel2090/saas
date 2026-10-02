@@ -213,6 +213,9 @@ describe('productos', () => {
     expect(() =>
       productos.crear(producto(10001, { unidad: 'UND' }), { bodegaId: 1, cantidad: 1_500 }),
     ).toThrow(/sin decimales/);
+    expect(() => productos.crear(producto(10001), { bodegaId: 1, cantidad: -1_000 })).toThrow(
+      'El stock inicial no puede ser negativo.',
+    );
     const sur = catalogos.crear('bodega', { nombre: 'Sur', calculaCambio: false });
     catalogos.cambiarEstado('bodega', sur.id, false);
     expect(() => productos.crear(producto(10001), { bodegaId: sur.id, cantidad: 1_000 })).toThrow(

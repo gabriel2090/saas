@@ -301,6 +301,20 @@ describe('validarFilasImportacion: stock inicial', () => {
     ]);
   });
 
+  it('acepta stock inicial negativo con aviso ámbar', () => {
+    const r = validarFilasImportacion(
+      'stock',
+      [fila(0, { producto: '101', cantidad: '-3' })],
+      CONTEXTO,
+      'punto-decimal',
+    );
+    expect(r.errores).toEqual([]);
+    expect(r.registros[0]).toMatchObject({ cantidad: -3_000, diferencia: -3_000 });
+    expect(r.avisos.map((a) => a.mensaje)).toEqual([
+      'Cantidad negativa: el producto quedará con stock inicial negativo.',
+    ]);
+  });
+
   it('no admite stock inicial si el producto ya tiene otros movimientos (D-39)', () => {
     const r = validarFilasImportacion(
       'stock',
