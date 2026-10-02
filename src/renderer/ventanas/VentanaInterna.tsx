@@ -21,8 +21,9 @@ interface PropiedadesVentanaInterna {
 
 /**
  * Ventana interna apilable (estilo MDI) dentro del escritorio: se arrastra
- * por la barra de título, se trae al frente con un clic y se cierra con su
- * botón o con Esc (ambos piden confirmación).
+ * por la barra de título, se agranda desde la esquina inferior derecha, se
+ * trae al frente con un clic y se cierra con su botón o con Esc (ambos
+ * piden confirmación).
  *
  * @param props - Propiedades del componente.
  * @returns La ventana.
@@ -33,9 +34,11 @@ export function VentanaInterna({
   activa,
   children,
 }: PropiedadesVentanaInterna): ReactNode {
-  const { enfocar, mover, marcarCambios, solicitarCerrar } = useVentanas();
+  const { enfocar, mover, redimensionar, marcarCambios, solicitarCerrar } = useVentanas();
+  const marco = useRef<HTMLElement>(null);
   const contenido = useRef<HTMLDivElement>(null);
   const arrastre = useRef<{ dx: number; dy: number } | null>(null);
+  const cambioTamano = useRef<{ x: number; y: number; ancho: number; alto: number } | null>(null);
   const titulo = obtenerProceso(ventana.id).titulo;
 
   useNavegacionFlechas(contenido, activa);
@@ -79,10 +82,45 @@ export function VentanaInterna({
     arrastre.current = null;
   };
 
+  const iniciarCambioTamano = (evento: PointerEvent<HTMLDivElement>): void => {
+    const elemento = marco.current;
+    if (evento.button !== 0 || !elemento) {
+      return;
+    }
+    evento.currentTarget.setPointerCapture(evento.pointerId);
+    // Parte del tamaño real en pantalla, también si la ventana se ajustaba a su contenido.
+    cambioTamano.current = {
+      x: evento.clientX,
+      y: evento.clientY,
+      ancho: elemento.offsetWidth,
+      alto: elemento.offsetHeight,
+    };
+  };
+
+  const cambiarTamano = (evento: PointerEvent<HTMLDivElement>): void => {
+    const inicio = cambioTamano.current;
+    if (inicio) {
+      redimensionar(ventana.id, {
+        ancho: inicio.ancho + evento.clientX - inicio.x,
+        alto: inicio.alto + evento.clientY - inicio.y,
+      });
+    }
+  };
+
+  const terminarCambioTamano = (): void => {
+    cambioTamano.current = null;
+  };
+
   return (
     <section
+      ref={marco}
       className={`ventana${activa ? ' ventana--activa' : ''}`}
-      style={{ left: ventana.x, top: ventana.y, zIndex: 10 + indice }}
+      style={{
+        left: ventana.x,
+        top: ventana.y,
+        zIndex: 10 + indice,
+        ...(ventana.tamano ? { width: ventana.tamano.ancho, height: ventana.tamano.alto } : {}),
+      }}
       onPointerDownCapture={() => enfocar(ventana.id)}
       aria-label={titulo}
     >
@@ -110,6 +148,14 @@ export function VentanaInterna({
       <div className="ventana__contenido" ref={contenido} tabIndex={-1}>
         <ContextoVentana.Provider value={datos}>{children}</ContextoVentana.Provider>
       </div>
+      <div
+        className="ventana__redimensionar"
+        title="Arrastre para cambiar el tamaño"
+        onPointerDown={iniciarCambioTamano}
+        onPointerMove={cambiarTamano}
+        onPointerUp={terminarCambioTamano}
+        onPointerCancel={terminarCambioTamano}
+      />
     </section>
   );
 }

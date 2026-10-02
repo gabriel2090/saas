@@ -14,6 +14,10 @@
   --color-error: #b42318;
   --color-exito: #1d7a3a;
   --color-foco: #f2b01e;
+  --color-alerta: #9a5b00;
+  --color-alerta-fondo: #fff4dc;
+  --color-solo-lectura: #eef1f5;
+  --color-fila-par: #f5f7fa;
   font-family: 'Segoe UI', Tahoma, sans-serif;
   font-size: 14px;
   color: var(--color-texto);
@@ -116,10 +120,20 @@ textarea {
 }
 
 .aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
   margin: 0;
   padding: 6px 8px;
   border-radius: 3px;
   font-size: 13px;
+}
+
+.aviso__icono {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
 }
 
 .aviso--error {
@@ -130,6 +144,11 @@ textarea {
 .aviso--exito {
   background: #e7f6ec;
   color: var(--color-exito);
+}
+
+.aviso--alerta {
+  background: var(--color-alerta-fondo);
+  color: var(--color-alerta);
 }
 
 /* ---------- Pantalla de acceso ---------- */
@@ -237,6 +256,8 @@ textarea {
 
 .ventana {
   position: absolute;
+  display: flex;
+  flex-direction: column;
   min-width: 360px;
   border: 1px solid var(--color-borde);
   border-radius: 4px 4px 2px 2px;
@@ -288,8 +309,35 @@ textarea {
 }
 
 .ventana__contenido {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
   padding: 16px;
+  overflow: auto;
   outline: none;
+}
+
+/* Asa para agrandar la ventana desde la esquina inferior derecha. */
+.ventana__redimensionar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  background: linear-gradient(
+    135deg,
+    transparent 50%,
+    var(--color-borde) 50%,
+    var(--color-borde) 60%,
+    transparent 60%,
+    transparent 75%,
+    var(--color-borde) 75%,
+    var(--color-borde) 85%,
+    transparent 85%
+  );
+  cursor: nwse-resize;
+  touch-action: none;
 }
 
 .pendiente p {
@@ -392,4 +440,384 @@ textarea {
   gap: 8px;
   height: 100%;
   text-align: center;
+}
+
+/* ---------- Barra de herramientas de una ventana ---------- */
+
+.barra-herramientas {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #d5dce5;
+}
+
+.barra-herramientas__separador {
+  width: 1px;
+  height: 22px;
+  margin: 0 4px;
+  background: #d5dce5;
+}
+
+.barra-herramientas__busqueda {
+  width: 260px;
+  padding: 5px 7px;
+  border: 1px solid var(--color-borde);
+  border-radius: 2px;
+}
+
+.barra-herramientas__resumen {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--color-tenue);
+}
+
+/* Atajo dentro de un botón: «Nuevo F2». */
+.atajo {
+  margin-left: 6px;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.casilla {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+}
+
+/* ---------- Maestro: lista + ficha ---------- */
+
+.maestro {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 1fr 380px;
+  gap: 14px;
+  min-height: 0;
+}
+
+.maestro__lista {
+  container-type: inline-size;
+  min-width: 0;
+}
+
+/* Columnas que solo aparecen si la ventana se agranda. */
+.col-extra {
+  display: none;
+}
+
+@container (min-width: 780px) {
+  .col-extra {
+    display: table-cell;
+  }
+}
+
+/* ---------- Tablas ---------- */
+
+.tabla-contenedor {
+  height: 100%;
+  overflow: auto;
+  border: 1px solid var(--color-borde);
+  background: #fff;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.tabla th {
+  position: sticky;
+  top: 0;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--color-borde);
+  background: #e9edf2;
+  color: var(--color-titulo);
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.tabla td {
+  padding: 4px 8px;
+  border-bottom: 1px solid #e6eaef;
+  white-space: nowrap;
+}
+
+.tabla tbody tr:nth-child(even) {
+  background: var(--color-fila-par);
+}
+
+.tabla--seleccionable tbody tr {
+  cursor: default;
+}
+
+/* Cifras alineadas a la derecha y con dígitos del mismo ancho. */
+.num {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.col-nombre {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tabla tr.fila--seleccionada,
+.tabla tr.fila--seleccionada:nth-child(even) {
+  background: var(--color-primario);
+  color: #fff;
+}
+
+.tabla tr.fila--seleccionada .texto-error {
+  color: #ffd2cc;
+}
+
+.tabla tr.fila--inactiva {
+  color: var(--color-tenue);
+  font-style: italic;
+}
+
+.tabla tr.fila--alerta td {
+  background: var(--color-alerta-fondo);
+}
+
+.tabla tr.fila--error td {
+  background: #fdecea;
+}
+
+.tabla__vacia {
+  padding: 16px !important;
+  color: var(--color-tenue);
+  text-align: center;
+}
+
+.texto-alerta {
+  color: var(--color-alerta);
+  font-weight: 600;
+}
+
+.texto-error {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+/* ---------- Etiquetas de estado ---------- */
+
+.etiqueta {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.etiqueta--activo {
+  background: #e7f6ec;
+  color: var(--color-exito);
+}
+
+.etiqueta--inactivo {
+  background: #e6e9ee;
+  color: var(--color-tenue);
+}
+
+/* ---------- Ficha (formulario de detalle) ---------- */
+
+.ficha {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 12px;
+  border: 1px solid var(--color-borde);
+  background: #fbfcfd;
+}
+
+.ficha__encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  font-size: 15px;
+  color: var(--color-titulo);
+}
+
+.ficha__fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.ficha__vacia {
+  margin: auto;
+  color: var(--color-tenue);
+  text-align: center;
+}
+
+.grupo {
+  margin: 0;
+  padding: 6px 10px 10px;
+  border: 1px solid #d5dce5;
+  border-radius: 3px;
+}
+
+.grupo > legend {
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-titulo);
+}
+
+.grupo__acciones {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.campo input[readonly],
+.campo textarea[readonly] {
+  background: var(--color-solo-lectura);
+  color: var(--color-tenue);
+}
+
+.campo textarea {
+  padding: 5px 7px;
+  border: 1px solid var(--color-borde);
+  border-radius: 2px;
+  resize: vertical;
+}
+
+.campo__ayuda {
+  font-size: 11px;
+  color: var(--color-tenue);
+}
+
+.campo--num input {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.campo--error input,
+.campo--error select {
+  border-color: var(--color-error);
+}
+
+/* Opciones excluyentes cortas (UND / KG). */
+.segmentado {
+  display: flex;
+}
+
+.segmentado button {
+  flex: 1;
+  padding: 5px 0;
+  border: 1px solid var(--color-borde);
+  background: #fff;
+  cursor: pointer;
+}
+
+.segmentado button + button {
+  border-left: none;
+}
+
+.segmentado button[aria-pressed='true'] {
+  background: var(--color-primario);
+  border-color: var(--color-primario-oscuro);
+  color: #fff;
+}
+
+.segmentado button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* Tabla de precios dentro de la ficha: los campos ocupan la celda. */
+.tabla--precios td {
+  padding: 3px 6px;
+}
+
+.tabla--precios input {
+  width: 100%;
+  padding: 3px 6px;
+  border: 1px solid var(--color-borde);
+  border-radius: 2px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabla--precios input[readonly] {
+  background: var(--color-solo-lectura);
+  color: var(--color-tenue);
+}
+
+/* ---------- Diálogos con formulario ---------- */
+
+.dialogo--formulario {
+  width: 460px;
+}
+
+.dialogo__cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+}
+
+.clave-recuperacion {
+  padding: 10px;
+  border: 1px dashed var(--color-borde);
+  border-radius: 3px;
+  background: var(--color-solo-lectura);
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 18px;
+  letter-spacing: 1px;
+  text-align: center;
+  user-select: text;
+}
+
+.enlace {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-primario);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ---------- Importador ---------- */
+
+.pasos {
+  display: flex;
+  flex: none;
+  gap: 4px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.pasos li {
+  padding: 3px 10px;
+  border-radius: 10px;
+  background: #e6e9ee;
+  color: var(--color-tenue);
+}
+
+.pasos li.pasos__actual {
+  background: var(--color-primario);
+  color: #fff;
+}
+
+.mapeo {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 6px 12px;
+  align-items: center;
 }

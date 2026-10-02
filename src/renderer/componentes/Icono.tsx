@@ -37,9 +37,63 @@ interface PropiedadesIcono {
  * @returns El SVG del ícono.
  */
 export function Icono({ proceso }: PropiedadesIcono): ReactNode {
+  return <TrazoLineal trazo={TRAZOS[proceso] ?? TRAZO_GENERICO} clase="icono" />;
+}
+
+/**
+ * Íconos de interfaz (avisos y estados), del mismo set lineal que los de la barra.
+ */
+export type NombreIconoInterfaz = 'alerta' | 'error' | 'exito';
+
+/**
+ * Trazos SVG (lienzo de 24×24) de los íconos de interfaz.
+ */
+const TRAZOS_INTERFAZ: Readonly<Record<NombreIconoInterfaz, string>> = {
+  alerta: 'M12 3l10 18H2zM12 10v5M12 18v.01',
+  error: 'M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0M9 9l6 6M15 9l-6 6',
+  exito: 'M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0M8 12l3 3 5-6',
+};
+
+/**
+ * Propiedades de {@link IconoInterfaz}.
+ */
+interface PropiedadesIconoInterfaz {
+  /** Ícono a dibujar. */
+  nombre: NombreIconoInterfaz;
+  /** Clase CSS (define el tamaño). */
+  clase?: string;
+}
+
+/**
+ * Ícono lineal de interfaz (p. ej. el triángulo de alerta de los avisos).
+ *
+ * @param props - Propiedades del componente.
+ * @returns El SVG del ícono.
+ */
+export function IconoInterfaz({ nombre, clase = 'icono' }: PropiedadesIconoInterfaz): ReactNode {
+  return <TrazoLineal trazo={TRAZOS_INTERFAZ[nombre]} clase={clase} />;
+}
+
+/**
+ * Propiedades de {@link TrazoLineal}.
+ */
+interface PropiedadesTrazoLineal {
+  /** Trazo SVG en un lienzo de 24×24. */
+  trazo: string;
+  /** Clase CSS del SVG. */
+  clase: string;
+}
+
+/**
+ * Dibuja un trazo con el estilo común de todos los íconos (línea de 1.7, puntas redondeadas).
+ *
+ * @param props - Propiedades del componente.
+ * @returns El SVG.
+ */
+function TrazoLineal({ trazo, clase }: PropiedadesTrazoLineal): ReactNode {
   return (
     <svg
-      className="icono"
+      className={clase}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -48,7 +102,7 @@ export function Icono({ proceso }: PropiedadesIcono): ReactNode {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path d={TRAZOS[proceso] ?? TRAZO_GENERICO} />
+      <path d={trazo} />
     </svg>
   );
 }

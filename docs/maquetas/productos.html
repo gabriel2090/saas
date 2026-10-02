@@ -3,17 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <title>Maqueta: ventana de Productos</title>
-    <!-- Estilo real de la app (Fase 0) + componentes nuevos propuestos. -->
+    <!-- Estilo real de la app. -->
     <link rel="stylesheet" href="../../src/renderer/estilos/global.css" />
-    <link rel="stylesheet" href="componentes-propuestos.css" />
-    <style>
-      /* Solo para la maqueta: nombres largos se recortan en la lista. */
-      .col-nombre {
-        max-width: 250px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-    </style>
   </head>
   <body>
     <div id="raiz">
@@ -47,8 +38,8 @@
                 <span class="barra-herramientas__resumen">12 productos · 1 inactivo</span>
               </div>
 
-              <div class="maestro">
-                <div class="tabla-contenedor">
+              <div class="maestro" style="height: 540px">
+                <div class="maestro__lista"><div class="tabla-contenedor">
                   <table class="tabla">
                     <thead>
                       <tr>
@@ -75,7 +66,7 @@
                       <tr><td class="num">112</td><td class="col-nombre">PAN PERRO X 10</td><td>UND</td><td class="num">3,200</td><td class="num">4,000</td><td class="num">60</td></tr>
                     </tbody>
                   </table>
-                </div>
+                </div></div>
 
                 <form class="ficha">
                   <h2 class="ficha__encabezado">
@@ -116,7 +107,8 @@
                     </table>
                   </fieldset>
 
-                  <p class="aviso aviso--alerta">⚠ El precio mínimo está por debajo del costo ($ 13,200).</p>
+                  <div class="grupo__acciones" style="margin-top: -4px"><button type="button" class="boton">Corregir costo…</button></div>
+                  <p class="aviso aviso--alerta"><svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2zM12 10v5M12 18v.01" /></svg><span>El precio mínimo está por debajo del costo ($ 13,200). Se puede guardar, pero al facturar no se podrá vender por debajo del costo.</span></p>
 
                   <fieldset class="grupo">
                     <legend>Stock por bodega</legend>

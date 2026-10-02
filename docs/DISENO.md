@@ -1,12 +1,12 @@
-# Guía de diseño de la interfaz
+﻿# Guía de diseño de la interfaz
 
 Documenta el estilo visual que ya tiene la aplicación (construido en la Fase 0, en `src/renderer/estilos/global.css`) y las reglas que debe seguir toda pantalla nueva. No hay capturas del sistema anterior; lo único que se copia de él es la factura impresa (ver `DECISIONES.md`, F-01 a F-09).
 
-Los componentes marcados **(propuesto)** aún no están en la app: viven en `docs/maquetas/componentes-propuestos.css` y pasan a `global.css` cuando se aprueba la maqueta correspondiente.
+Todos los componentes de esta guía están en `global.css` (los de la maqueta de productos se aprobaron el 02/10/2026). Un componente nuevo se propone primero en una maqueta y solo pasa a `global.css` cuando se aprueba.
 
 ## 1. Principios
 
-1. **Aplicación de escritorio clásica, no página web.** Ventanas con barra de título, bordes finos, degradados suaves en botones y barras, sin animaciones ni tarjetas flotantes.
+1. **Aplicación de escritorio clásica, no página web.** Ventanas con barra de título, bordes finos, sin animaciones ni tarjetas flotantes. Los **degradados son sutiles** (dos tonos muy cercanos) y **solo van en botones y barras** (barra de iconos, botones); ventanas, campos, tablas y avisos usan colores planos.
 2. **Pensada para el teclado.** Todo se puede hacer sin ratón; el foco siempre se ve (borde ámbar) y cada acción frecuente tiene atajo, que se muestra en el propio botón.
 3. **Densa pero legible.** Se ven muchas filas a la vez: letra de 13–14 px, filas compactas, cifras alineadas a la derecha.
 4. **Sin sorpresas.** Lo que no se puede editar se ve gris; las alertas usan siempre los mismos colores; las confirmaciones usan el mismo diálogo.
@@ -31,10 +31,10 @@ Definida como variables CSS en `:root`. No se usan colores sueltos fuera de esta
 | `--color-error`           | `#b42318` | Errores, stock en cero, acciones destructivas.            |
 | `--color-exito`           | `#1d7a3a` | Confirmaciones, estado «Activo».                          |
 | `--color-foco`            | `#f2b01e` | Contorno del elemento con foco.                           |
-| `--color-alerta`          | `#9a5b00` | Texto de advertencia (propuesto).                         |
-| `--color-alerta-fondo`    | `#fff4dc` | Fondo de advertencias y filas con alerta (propuesto).     |
-| `--color-solo-lectura`    | `#eef1f5` | Fondo de campos no editables (propuesto).                 |
-| `--color-fila-par`        | `#f5f7fa` | Filas pares de las tablas (propuesto).                    |
+| `--color-alerta`          | `#9a5b00` | Texto de advertencia.                                     |
+| `--color-alerta-fondo`    | `#fff4dc` | Fondo de advertencias y filas con alerta.                 |
+| `--color-solo-lectura`    | `#eef1f5` | Fondo de campos no editables.                             |
+| `--color-fila-par`        | `#f5f7fa` | Filas pares de las tablas.                                |
 
 **Error vs. alerta:** rojo = no se puede continuar o algo está mal (stock en cero, dato inválido). Ámbar = se puede continuar, pero conviene revisar (precio bajo el costo).
 
@@ -69,17 +69,18 @@ Definida como variables CSS en `:root`. No se usan colores sueltos fuera de esta
 - Botón × a la derecha (rojo al pasar el ratón). Cerrar siempre pide confirmación.
 - Contenido con 16 px de margen interno.
 - Una instancia por proceso (D-04).
+- **Se pueden agrandar** arrastrando el asa de la esquina inferior derecha (mínimo 360×200 px). Cada proceso abre con un tamaño inicial (`src/renderer/ventanas/tamanos.ts`); los maestros, con 1040×640 px. Las listas aprovechan el espacio extra mostrando columnas adicionales (§6.4).
 
 ## 6. Componentes
 
 ### 6.1 Botones (`.boton`)
 
-- Normal: degradado blanco a gris claro, borde `--color-borde`, esquinas de 3 px.
+- Normal: degradado sutil de blanco a gris muy claro, borde `--color-borde`, esquinas de 3 px.
 - Principal (`.boton--primario`): fondo azul, texto blanco. **Uno solo por ventana o diálogo** (la acción de guardar o aceptar).
 - Deshabilitado: 60 % de opacidad.
-- Si tiene atajo, se muestra dentro del botón con `.atajo` (propuesto): «Guardar Ctrl+S».
+- Si tiene atajo, se muestra dentro del botón con `.atajo`: «Guardar Ctrl+S».
 
-### 6.2 Barra de herramientas de ventana (`.barra-herramientas`, propuesto)
+### 6.2 Barra de herramientas de ventana (`.barra-herramientas`)
 
 Fila superior de la ventana: acciones (Nuevo, Guardar, Inactivar…), separador, búsqueda, filtros y, a la derecha, un resumen en gris («12 productos · 1 inactivo»). Una línea fina la separa del contenido.
 
@@ -87,28 +88,29 @@ Fila superior de la ventana: acciones (Nuevo, Guardar, Inactivar…), separador,
 
 - Etiqueta arriba, 12 px, gris. Los obligatorios llevan « *».
 - Campo con borde de 1 px, esquinas de 2 px y relleno de 5×7 px.
-- Solo lectura: fondo `--color-solo-lectura` y texto gris (propuesto).
-- Numéricos (`.campo--num`): alineados a la derecha (propuesto).
-- Ayuda debajo con `.campo__ayuda`, 11 px gris (propuesto).
-- Opciones cortas excluyentes (UND/KG) con `.segmentado`: la elegida va en azul (propuesto).
-- Grupos de campos relacionados en `.grupo` (fieldset con título pequeño en negrita, propuesto).
+- Solo lectura: fondo `--color-solo-lectura` y texto gris.
+- Numéricos (`.campo--num`): alineados a la derecha.
+- Ayuda debajo con `.campo__ayuda`, 11 px gris.
+- Opciones cortas excluyentes (UND/KG) con `.segmentado`: la elegida va en azul.
+- Grupos de campos relacionados en `.grupo` (fieldset con título pequeño en negrita).
 
-### 6.4 Tablas (`.tabla`, propuesto)
+### 6.4 Tablas (`.tabla`)
 
 - Encabezado fijo al desplazar, fondo `#e9edf2`, texto `--color-titulo` en negrita.
 - Filas de 13 px, compactas, con línea divisoria tenue y filas pares en `--color-fila-par`.
 - Columnas de cifras con `.num`: a la derecha y con dígitos del mismo ancho.
 - Fila seleccionada: fondo azul, texto blanco (`.fila--seleccionada`).
 - Registro inactivo: texto gris en cursiva y etiqueta «Inactivo» (`.fila--inactiva`).
-- Fila con advertencia: fondo ámbar (`.fila--alerta`).
+- Fila con advertencia: fondo ámbar (`.fila--alerta`); fila con error: fondo rojo claro (`.fila--error`, vista previa del importador).
+- **Columnas extra** (`.col-extra`): la lista (`.maestro__lista`) es un contenedor CSS; las columnas marcadas `.col-extra` solo aparecen si la lista mide 780 px o más, es decir, cuando el usuario agranda la ventana. En productos, las columnas extra son «P. menor» y «P. mínimo».
 
-### 6.5 Etiquetas de estado (`.etiqueta`, propuesto)
+### 6.5 Etiquetas de estado (`.etiqueta`)
 
 Píldora de 11 px: «Activo» en verde (`.etiqueta--activo`) e «Inactivo» en gris (`.etiqueta--inactivo`).
 
 ### 6.6 Avisos (`.aviso`)
 
-Recuadro de 13 px con esquinas de 3 px dentro del formulario: `.aviso--error` (rojo), `.aviso--exito` (verde) y `.aviso--alerta` (ámbar, con «⚠» al inicio, propuesto). Los mensajes dicen qué pasa y, si aplica, qué hacer.
+Recuadro de 13 px con esquinas de 3 px dentro del formulario: `.aviso--error` (rojo), `.aviso--exito` (verde) y `.aviso--alerta` (ámbar). Todos llevan al inicio un ícono lineal del mismo set de la barra (`IconoInterfaz`: triángulo de alerta, círculo con equis, círculo con visto); no se usan emojis ni símbolos de texto. Se usan con el componente `Aviso`. Los mensajes dicen qué pasa y, si aplica, qué hacer.
 
 ### 6.7 Diálogos y buscador
 
@@ -143,9 +145,15 @@ La factura impresa tiene su propio formato, copiado de la actual (F-03 a F-06).
 Maqueta de referencia: `docs/maquetas/productos.html` → `docs/maquetas/productos.png`.
 
 - **Barra de herramientas:** Nuevo (F2), Guardar (Ctrl+S, botón principal), Inactivar/Reactivar (F8), búsqueda por código o nombre, casilla «Mostrar inactivos» y resumen.
-- **Izquierda, lista:** tabla con las columnas clave, ordenada por código. ↑/↓ cambia la selección y la ficha se actualiza.
+- **Izquierda, lista:** tabla con las columnas clave, ordenada por código. ↑/↓ cambia la selección y la ficha se actualiza. Si la ventana se agranda, aparecen columnas extra.
 - **Derecha, ficha:** título «Producto 105» con su etiqueta de estado, campos agrupados, datos calculados o derivados en solo lectura (código existente, costo, stock por bodega).
 - Si la ficha tiene cambios sin guardar, la barra de título lo indica y cambiar de fila o cerrar pide confirmación.
+
+### 9.2 Ficha del producto
+
+- La lista muestra solo el precio mayor; **las tres escalas se ven en la ficha**, cada una con su % de ganancia.
+- Precio por debajo del costo: la fila de la escala se marca en ámbar y aparece el aviso «El precio … está por debajo del costo ($ …). Se puede guardar, pero al facturar no se podrá vender por debajo del costo.» (D-34).
+- **Costo:** al crear el producto se escribe a mano; después es de solo lectura y lo cambian las facturas de proveedor. Debajo de la tabla de precios está el botón **«Corregir costo…»**, que abre un diálogo con el costo nuevo y un **motivo obligatorio**; la corrección queda en el historial de cambios (D-35).
 
 ## 10. Maquetas
 

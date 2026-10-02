@@ -11,9 +11,26 @@ export interface VentanaAbierta {
   x: number;
   /** Posición vertical en píxeles dentro del escritorio. */
   y: number;
+  /** Tamaño fijado, o `null` para que se ajuste a su contenido. */
+  tamano: TamanoVentana | null;
   /** Si tiene cambios sin guardar (se pide confirmación al cerrarla). */
   conCambios: boolean;
 }
+
+/**
+ * Tamaño de una ventana interna en píxeles.
+ */
+export interface TamanoVentana {
+  /** Ancho. */
+  ancho: number;
+  /** Alto. */
+  alto: number;
+}
+
+/**
+ * Tamaño mínimo al agrandar o achicar una ventana con el asa.
+ */
+export const TAMANO_MINIMO: TamanoVentana = { ancho: 360, alto: 200 };
 
 /**
  * Estado del gestor. El orden del arreglo es el orden de apilado: la última
@@ -28,12 +45,13 @@ export interface EstadoVentanas {
  * Acciones que modifican el estado del gestor.
  */
 export type AccionVentanas =
-  | { tipo: 'abrir'; id: IdProceso }
+  | { tipo: 'abrir'; id: IdProceso; tamano?: TamanoVentana | null }
   | { tipo: 'enfocar'; id: IdProceso }
   | { tipo: 'cerrar'; id: IdProceso }
   | { tipo: 'cerrarTodas' }
   | { tipo: 'siguiente' }
   | { tipo: 'mover'; id: IdProceso; x: number; y: number }
+  | { tipo: 'redimensionar'; id: IdProceso; tamano: TamanoVentana }
   | { tipo: 'marcarCambios'; id: IdProceso; conCambios: boolean };
 
 /**
@@ -94,6 +112,7 @@ export function reducirVentanas(estado: EstadoVentanas, accion: AccionVentanas):
         id: accion.id,
         x: MARGEN_INICIAL + desplazamiento,
         y: MARGEN_INICIAL + desplazamiento,
+        tamano: accion.tamano ?? null,
         conCambios: false,
       };
       return { ventanas: [...estado.ventanas, nueva] };
@@ -122,6 +141,20 @@ export function reducirVentanas(estado: EstadoVentanas, accion: AccionVentanas):
       return {
         ventanas: estado.ventanas.map((v) =>
           v.id === accion.id ? { ...v, x: Math.max(0, accion.x), y: Math.max(0, accion.y) } : v,
+        ),
+      };
+    case 'redimensionar':
+      return {
+        ventanas: estado.ventanas.map((v) =>
+          v.id === accion.id
+            ? {
+                ...v,
+                tamano: {
+                  ancho: Math.max(TAMANO_MINIMO.ancho, Math.round(accion.tamano.ancho)),
+                  alto: Math.max(TAMANO_MINIMO.alto, Math.round(accion.tamano.alto)),
+                },
+              }
+            : v,
         ),
       };
     case 'marcarCambios': {

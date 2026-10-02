@@ -3,6 +3,7 @@ import type { IdProceso } from '../../shared/procesos';
 import {
   ESTADO_INICIAL_VENTANAS,
   reducirVentanas,
+  TAMANO_MINIMO,
   ventanaActiva,
   ventanasConCambios,
   type AccionVentanas,
@@ -106,6 +107,23 @@ describe('reducirVentanas', () => {
       { tipo: 'mover', id: 'productos', x: -50, y: 120 },
     );
     expect(estado.ventanas[0]).toMatchObject({ x: 0, y: 120 });
+  });
+
+  it('abre con el tamaño inicial indicado o ajustada al contenido', () => {
+    const estado = aplicar(
+      { tipo: 'abrir', id: 'productos', tamano: { ancho: 1040, alto: 640 } },
+      { tipo: 'abrir', id: 'cambiar-contrasena' },
+    );
+    expect(estado.ventanas[0]?.tamano).toEqual({ ancho: 1040, alto: 640 });
+    expect(estado.ventanas[1]?.tamano).toBeNull();
+  });
+
+  it('redimensiona respetando el tamaño mínimo', () => {
+    const estado = aplicar(
+      { tipo: 'abrir', id: 'productos' },
+      { tipo: 'redimensionar', id: 'productos', tamano: { ancho: 100, alto: 900.6 } },
+    );
+    expect(estado.ventanas[0]?.tamano).toEqual({ ancho: TAMANO_MINIMO.ancho, alto: 901 });
   });
 
   it('marca y desmarca cambios sin guardar', () => {

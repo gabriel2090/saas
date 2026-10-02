@@ -10,11 +10,13 @@ import {
 } from 'react';
 import { obtenerProceso, type IdProceso } from '../../shared/procesos';
 import { useConfirmar } from '../componentes/Dialogos';
+import { tamanoInicialDeProceso } from './tamanos';
 import {
   ESTADO_INICIAL_VENTANAS,
   reducirVentanas,
   ventanasConCambios,
   type EstadoVentanas,
+  type TamanoVentana,
 } from './gestor';
 
 /**
@@ -45,6 +47,13 @@ export interface ApiVentanas {
    * @param y - Nueva posición vertical.
    */
   mover: (id: IdProceso, x: number, y: number) => void;
+  /**
+   * Cambia el tamaño de una ventana (asa de la esquina inferior derecha).
+   *
+   * @param id - Ventana a redimensionar.
+   * @param tamano - Tamaño nuevo.
+   */
+  redimensionar: (id: IdProceso, tamano: TamanoVentana) => void;
   /**
    * Marca si una ventana tiene cambios sin guardar.
    *
@@ -162,10 +171,11 @@ export function ProveedorVentanas({ children }: PropiedadesProveedorVentanas): R
   const api = useMemo<ApiVentanas>(
     () => ({
       estado,
-      abrir: (id) => despachar({ tipo: 'abrir', id }),
+      abrir: (id) => despachar({ tipo: 'abrir', id, tamano: tamanoInicialDeProceso(id) }),
       enfocar: (id) => despachar({ tipo: 'enfocar', id }),
       siguiente: () => despachar({ tipo: 'siguiente' }),
       mover: (id, x, y) => despachar({ tipo: 'mover', id, x, y }),
+      redimensionar: (id, tamano) => despachar({ tipo: 'redimensionar', id, tamano }),
       marcarCambios: (id, conCambios) => despachar({ tipo: 'marcarCambios', id, conCambios }),
       solicitarCerrar,
       solicitarCerrarTodas,

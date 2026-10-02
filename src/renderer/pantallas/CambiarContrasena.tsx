@@ -1,4 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
+import { Aviso } from '../componentes/Aviso';
 import { invocar } from '../servicios/api';
 import { useVentana } from '../ventanas/ContextoVentana';
 
@@ -76,14 +77,7 @@ export function CambiarContrasena(): ReactNode {
           onChange={(e) => actualizar(setConfirmacion, e.target.value, [actual, nueva])}
         />
       </label>
-      {aviso && (
-        <p
-          className={aviso.tipo === 'error' ? 'aviso aviso--error' : 'aviso aviso--exito'}
-          role="status"
-        >
-          {aviso.texto}
-        </p>
-      )}
+      {aviso && <Aviso tipo={aviso.tipo}>{aviso.texto}</Aviso>}
       <div className="formulario__acciones">
         <button type="submit" className="boton boton--primario" disabled={guardando}>
           Guardar
