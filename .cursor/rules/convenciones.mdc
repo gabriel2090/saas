@@ -1,0 +1,13 @@
+---
+description: Convenciones del proyecto de inventario y facturación
+alwaysApply: true
+---
+- Todo el texto de la interfaz, errores, reportes y comentarios va en español.
+- TypeScript estricto, sin `any`.
+- Documenta con TSDoc en español cada función, método, clase, interfaz, tipo y constante: para qué sirve, con @param, @returns, @throws y @example en reglas complejas.
+- Dinero en pesos enteros y cantidades en milésimas (enteros). Nunca float para dinero.
+- Nunca borrar documentos: se anulan. Todo cambio queda en el historial de cambios.
+- Las reglas de negocio viven en src/domain/, sin depender de Electron ni de la base de datos, y llevan pruebas con Vitest.
+- Toda operación que toque factura, inventario y cartera va en una sola transacción.
+- Trabaja por fases según docs/ESPECIFICACION.md y no avances a la siguiente sin mi confirmación.
+- No inventes requisitos: ante dudas, pregunta o registra el supuesto en docs/DECISIONES.md.

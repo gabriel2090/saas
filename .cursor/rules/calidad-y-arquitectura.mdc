@@ -1,0 +1,15 @@
+---
+description: Reglas de calidad, arquitectura por capas y manejo de errores (sección 12 de la especificación)
+alwaysApply: true
+---
+- Respeta las capas de `docs/ESPECIFICACION.md` §2 sin saltarte ninguna: `renderer` → `preload` → `main` → `data` / `domain`. El renderer nunca toca Node, SQLite ni el sistema de archivos.
+- Seguridad de Electron: `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`, CSP estricta, sin `window.open` ni navegación externa. El preload solo expone funciones tipadas por `contextBridge`.
+- Los contratos IPC (canales, peticiones y respuestas) viven en `src/shared/` y se tipan una sola vez. Las respuestas IPC usan `Resultado<T>` (`{ ok: true, datos }` | `{ ok: false, error }`), nunca excepciones crudas.
+- Errores: mensaje claro en español para el usuario; el detalle técnico (stack, SQL, contexto) va al log local. Nunca muestres un stack al usuario.
+- Comentarios en línea solo para explicar el **porqué** de la lógica no obvia; el **qué** lo dice el TSDoc.
+- Stock = suma de movimientos de kardex; nunca un número editable suelto.
+- Fechas en ISO 8601 en la base de datos; en pantalla `dd/mm/aaaa` y hora en 12 horas.
+- Todo cambio de esquema va en una migración SQL nueva y versionada; nunca se edita una migración ya publicada.
+- Pruebas: unitarias con Vitest para `src/domain/` (obligatorias) y de integración para migraciones y repositorios con SQLite en memoria.
+- ESLint y Prettier deben pasar sin errores ni advertencias antes de dar una fase por terminada.
+- Todos los atajos de teclado se definen únicamente en el archivo `keymap`; ningún componente declara combinaciones de teclas a mano.

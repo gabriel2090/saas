@@ -1,0 +1,30 @@
+# Dependencias
+node_modules/
+
+# Compilados y empaquetado
+out/
+dist/
+release/
+*.tsbuildinfo
+coverage/
+
+# Bases de datos locales (nunca se versionan datos del negocio)
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Respaldos
+respaldos/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Entorno y sistema
+.env
+.env.*
+.DS_Store
+Thumbs.db
