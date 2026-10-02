@@ -28,6 +28,37 @@ const TAMANOS_INICIALES: Partial<Record<IdProceso, TamanoVentana>> = {
 };
 
 /**
+ * Mínimo de los maestros: por debajo de 680 px de ancho pasan a modo angosto
+ * (la ficha debajo de la lista, D-109), que necesita más alto.
+ */
+const MINIMO_MAESTRO: TamanoVentana = { ancho: 440, alto: 420 };
+
+/**
+ * Tamaño mínimo de las ventanas que no tienen uno propio (D-111).
+ */
+export const MINIMO_GENERAL: TamanoVentana = { ancho: 480, alto: 320 };
+
+/**
+ * Tamaño mínimo de cada proceso (ventana completa, con su barra de título),
+ * medido sobre el contenido de cada pantalla (`DISENO.md` §11.2, D-111).
+ */
+const MINIMOS: Partial<Record<IdProceso, TamanoVentana>> = {
+  facturar: { ancho: 760, alto: 480 },
+  'factura-proveedor': { ancho: 720, alto: 460 },
+  'abono-cliente': { ancho: 560, alto: 440 },
+  'abono-proveedor': { ancho: 560, alto: 440 },
+  'ajustes-inventario': { ancho: 560, alto: 420 },
+  productos: MINIMO_MAESTRO,
+  clientes: MINIMO_MAESTRO,
+  proveedores: MINIMO_MAESTRO,
+  bodegas: { ancho: 440, alto: 300 },
+  'formas-pago': { ancho: 440, alto: 300 },
+  importador: { ancho: 560, alto: 400 },
+  'datos-negocio': { ancho: 420, alto: 360 },
+  'cambiar-contrasena': { ancho: 420, alto: 300 },
+};
+
+/**
  * Devuelve el tamaño con que abre la ventana de un proceso.
  *
  * @param id - Proceso.
@@ -35,4 +66,14 @@ const TAMANOS_INICIALES: Partial<Record<IdProceso, TamanoVentana>> = {
  */
 export function tamanoInicialDeProceso(id: IdProceso): TamanoVentana | null {
   return TAMANOS_INICIALES[id] ?? null;
+}
+
+/**
+ * Devuelve el tamaño mínimo de la ventana de un proceso (D-111).
+ *
+ * @param id - Proceso.
+ * @returns Tamaño mínimo.
+ */
+export function minimoDeProceso(id: IdProceso): TamanoVentana {
+  return MINIMOS[id] ?? MINIMO_GENERAL;
 }

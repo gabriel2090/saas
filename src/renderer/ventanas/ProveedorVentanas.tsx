@@ -191,7 +191,12 @@ export function ProveedorVentanas({ children }: PropiedadesProveedorVentanas): R
       enfocar: (id) => despachar({ tipo: 'enfocar', id }),
       siguiente: () => despachar({ tipo: 'siguiente' }),
       mover: (id, x, y) => despachar({ tipo: 'mover', id, x, y }),
-      redimensionar: (id, tamano) => despachar({ tipo: 'redimensionar', id, tamano }),
+      redimensionar: (id, tamano) => {
+        const v = estadoRef.current.ventanas.find((w) => w.id === id);
+        if (v) {
+          despachar({ tipo: 'redimensionar', id, rect: { x: v.x, y: v.y, ...tamano } });
+        }
+      },
       marcarCambios: (id, conCambios) => despachar({ tipo: 'marcarCambios', id, conCambios }),
       marcarConservados: (id, aviso) => despachar({ tipo: 'marcarConservados', id, aviso }),
       solicitarCerrar,
