@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { CAMPOS_IMPORTACION, type FilaImportacion } from '../shared/importacion';
 import {
   leerCodigo,
-  leerPesos,
   leerTipoIdentificacion,
   leerTipoPersona,
   leerUnidad,
@@ -70,18 +69,6 @@ const CLIENTE = {
 };
 
 describe('lectura de celdas', () => {
-  it('lee pesos con o sin comas, signo y centavos en cero', () => {
-    expect(leerPesos('13200')).toBe(13200);
-    expect(leerPesos('$ 1,250,000')).toBe(1250000);
-    expect(leerPesos('13200.00')).toBe(13200);
-    expect(leerPesos('13200.50')).toBeNull();
-    expect(leerPesos('15.000')).toBeNull();
-    expect(leerPesos('13,2')).toBeNull();
-    expect(leerPesos('15,000.000')).toBe(15000);
-    expect(leerPesos('-500')).toBeNull();
-    expect(leerPesos('abc')).toBeNull();
-  });
-
   it('lee códigos enteros, también con «.0» de hoja de cálculo', () => {
     expect(leerCodigo('101')).toBe(101);
     expect(leerCodigo('101.0')).toBe(101);

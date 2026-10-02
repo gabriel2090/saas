@@ -19,9 +19,11 @@ import type { IdProceso } from './procesos';
  * Dónde aplica un atajo:
  * - `global`: en toda la aplicación.
  * - `formulario`: navegación entre campos dentro de una ventana.
+ * - `maestro`: ventanas de maestros (productos, clientes, proveedores, bodegas, formas de pago).
  * - `facturar`, `correccion`, `reimpresiones`: solo dentro de esas ventanas.
  */
-export type AmbitoAtajo = 'global' | 'formulario' | 'facturar' | 'correccion' | 'reimpresiones';
+export type AmbitoAtajo =
+  'global' | 'formulario' | 'maestro' | 'facturar' | 'correccion' | 'reimpresiones';
 
 /**
  * Definición de un atajo de teclado.
@@ -100,6 +102,26 @@ export const ATAJOS = {
     combinacion: 'Enter',
     descripcion: 'Aceptar la opción seleccionada',
     ambito: 'formulario',
+    permitirEnCampoTexto: true,
+  },
+
+  // --- Maestros (D-31) ---
+  nuevoRegistro: {
+    combinacion: 'F2',
+    descripcion: 'Nuevo registro',
+    ambito: 'maestro',
+    permitirEnCampoTexto: true,
+  },
+  guardarRegistro: {
+    combinacion: 'Ctrl+S',
+    descripcion: 'Guardar el registro',
+    ambito: 'maestro',
+    permitirEnCampoTexto: true,
+  },
+  cambiarEstadoRegistro: {
+    combinacion: 'F8',
+    descripcion: 'Inactivar o reactivar el registro',
+    ambito: 'maestro',
     permitirEnCampoTexto: true,
   },
 

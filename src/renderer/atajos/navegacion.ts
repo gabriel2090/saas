@@ -13,6 +13,13 @@ const SELECTOR_ENFOCABLES = [
 ].join(',');
 
 /**
+ * Atributo HTML que marca un elemento con su propio manejo de flechas (p. ej.
+ * la lista de un maestro, donde mueven la fila seleccionada). Dentro de él la
+ * navegación entre campos no actúa.
+ */
+export const ATRIBUTO_FLECHAS_PROPIAS = 'data-flechas-propias';
+
+/**
  * Calcula el índice del elemento que debe recibir el foco.
  *
  * @param total - Cantidad de elementos enfocables.
@@ -58,7 +65,9 @@ function moverFoco(contenedor: HTMLElement | null, direccion: 1 | -1): boolean {
   if (
     activo &&
     contenedor.contains(activo) &&
-    (activo.tagName === 'SELECT' || activo.tagName === 'TEXTAREA')
+    (activo.tagName === 'SELECT' ||
+      activo.tagName === 'TEXTAREA' ||
+      activo.closest(`[${ATRIBUTO_FLECHAS_PROPIAS}]`))
   ) {
     return false;
   }

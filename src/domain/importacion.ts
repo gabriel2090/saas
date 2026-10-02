@@ -1,4 +1,5 @@
-import { comasDeMilesValidas, leerCantidad, type UnidadMedida } from '../shared/formato/cantidades';
+import { leerCantidad, type UnidadMedida } from '../shared/formato/cantidades';
+import { leerPesos } from '../shared/formato/moneda';
 import type {
   CampoImportacion,
   ErrorFila,
@@ -98,42 +99,6 @@ export function sugerirMapeo(
     }
   }
   return mapeo;
-}
-
-/**
- * Lee un valor en pesos escrito en un archivo. Acepta `13200`, `13,200`,
- * `$ 13,200` y `13200.00`; rechaza centavos distintos de cero porque el
- * dinero se guarda en pesos enteros (§3). La coma es separador de miles (D-02).
- *
- * @param texto - Texto de la celda.
- * @returns Pesos enteros, o `null` si no es un valor válido.
- *
- * @example
- * leerPesos('$ 13,200');  // 13200
- * leerPesos('13200.00');  // 13200
- * leerPesos('13200.50');  // null
- * leerPesos('15.000');    // null (ambiguo: ¿quince mil o quince?)
- */
-export function leerPesos(texto: string): number | null {
-  const sinSimbolos = texto.replace(/[$\s]/g, '');
-  if (!comasDeMilesValidas(sinSimbolos)) {
-    return null;
-  }
-  const coincidencia = /^(\d+)(?:\.(\d+))?$/.exec(sinSimbolos.replace(/,/g, ''));
-  if (!coincidencia) {
-    return null;
-  }
-  const [, enteros = '', decimales = ''] = coincidencia;
-  // «15.000» puede ser quince mil (punto de miles) o quince pesos: se rechaza
-  // en lugar de adivinar y guardar un valor mil veces menor (D-40).
-  if (decimales.length === 3 && !texto.includes(',')) {
-    return null;
-  }
-  if (decimales !== '' && Number(decimales) !== 0) {
-    return null;
-  }
-  const valor = Number(enteros);
-  return Number.isSafeInteger(valor) ? valor : null;
 }
 
 /**

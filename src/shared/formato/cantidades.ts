@@ -1,4 +1,4 @@
-import { agruparMiles } from './moneda';
+import { agruparMiles, comasDeMilesValidas } from './moneda';
 
 /**
  * Unidades de medida de los productos.
@@ -39,22 +39,6 @@ export function formatearCantidad(milesimas: number, unidad: UnidadMedida): stri
   }
   const decimales = String(absoluto % MILESIMAS_POR_UNIDAD).padStart(3, '0');
   return `${signo}${agruparMiles(enteros)}.${decimales}`;
-}
-
-/**
- * Verifica que las comas de un número escrito sean separadores de miles bien
- * puestos (`1,250,000.5`). Así «12,5» (coma decimal) se rechaza en lugar de
- * leerse como 125.
- *
- * @param texto - Número escrito, sin espacios ni signo de pesos.
- * @returns `true` si no tiene comas o si todas agrupan de a tres cifras.
- *
- * @example
- * comasDeMilesValidas('1,250.5'); // true
- * comasDeMilesValidas('12,5');    // false
- */
-export function comasDeMilesValidas(texto: string): boolean {
-  return !texto.includes(',') || /^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(texto);
 }
 
 /**

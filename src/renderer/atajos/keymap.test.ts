@@ -56,6 +56,9 @@ describe('keymap', () => {
     expect(ATAJOS.anularFactura.combinacion).toBe('Ctrl+X');
     expect(ATAJOS.anularFactura.permitirEnCampoTexto).toBe(false);
     expect(ATAJOS.imprimirDocumento.combinacion).toBe('Ctrl+P');
+    expect(ATAJOS.nuevoRegistro.combinacion).toBe('F2');
+    expect(ATAJOS.guardarRegistro.combinacion).toBe('Ctrl+S');
+    expect(ATAJOS.cambiarEstadoRegistro.combinacion).toBe('F8');
   });
 
   it('intercepta los atajos de Chromium que usa el sistema', () => {
