@@ -2,6 +2,7 @@
 description: Convenciones del proyecto de inventario y facturación
 alwaysApply: true
 ---
+- Responde siempre en español en el chat.
 - Todo el texto de la interfaz, errores, reportes y comentarios va en español.
 - TypeScript estricto, sin `any`.
 - Documenta con TSDoc en español cada función, método, clase, interfaz, tipo y constante: para qué sirve, con @param, @returns, @throws y @example en reglas complejas.

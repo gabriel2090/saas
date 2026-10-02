@@ -116,11 +116,11 @@ Lo que muestra la tirilla del sistema actual y cómo se usará. Regla general (c
 | D-72 | Impresión: la vista previa se muestra dentro de la app en un marco aislado (sin scripts); «Imprimir» abre el diálogo de impresión de Windows en hoja carta y «Guardar PDF» usa `printToPDF` en tamaño carta. El HTML lo arma el proceso principal a partir del documento guardado, no del que envía la pantalla. | Supuesto (técnico) |
 | D-73 | Un ajuste de inventario es de un producto en una bodega, con su propio consecutivo. Su anulación llega con las demás anulaciones en la Fase 4. | Supuesto |
 | D-74 | Consecutivos nuevos desde 1: compra, abono a proveedor y ajuste de inventario. El inicio se puede cambiar en la base de datos al instalar (como F-02); la pantalla para configurarlo llega en la Fase 6. | Supuesto |
-| D-75 | Al agregar un producto a la compra se propone como costo unitario el **costo actual del producto**; el usuario lo cambia por el de la factura. | Supuesto |
-| D-76 | «Imprimir recibo» en «Abono N guardado» abre directamente el diálogo de impresión de Windows (que ya tiene su vista previa y «Microsoft Print to PDF»). La vista previa con «Imprimir» y «Guardar PDF» se abre desde «Ver recibo». | Supuesto |
-| D-77 | Un ajuste por merma, daño o conteo puede dejar el stock negativo (§5.1 permite vender con stock negativo); la pantalla lo advierte en ámbar antes de guardar. | Supuesto |
-| D-78 | El campo para agregar productos a la compra va justo debajo de la tabla de líneas (no dentro de ella) y su lista de sugerencias se abre hacia arriba, para que no la recorte el desplazamiento de la tabla. Las líneas ocupan el alto que sobra en la ventana, así el total y «Pagada de contado» siempre se ven (D-68). | Supuesto (diseño) |
-| D-79 | Después de guardar un abono se conservan el proveedor y la forma de pago (para abonar a varias compras seguidas); el proveedor solo no cuenta como «cambios sin guardar». | Supuesto |
+| D-75 | Al agregar un producto a la compra se propone como costo unitario el **costo actual del producto**; el usuario lo cambia por el de la factura. | Confirmado |
+| D-76 | «Imprimir recibo» en «Abono N guardado» abre directamente el diálogo de impresión de Windows (que ya tiene su vista previa y «Microsoft Print to PDF»). La vista previa con «Imprimir» y «Guardar PDF» se abre desde «Ver recibo». | Confirmado |
+| D-77 | Un ajuste por merma, daño o conteo puede dejar el stock negativo (§5.1 permite vender con stock negativo); la pantalla lo advierte en ámbar antes de guardar. | Confirmado |
+| D-78 | El campo para agregar productos a la compra va justo debajo de la tabla de líneas (no dentro de ella) y su lista de sugerencias se abre hacia arriba, para que no la recorte el desplazamiento de la tabla. Las líneas ocupan el alto que sobra en la ventana, así el total y «Pagada de contado» siempre se ven (D-68). | Confirmado |
+| D-79 | Después de guardar un abono se conservan el proveedor y la forma de pago (para abonar a varias compras seguidas); el proveedor solo no cuenta como «cambios sin guardar». | Confirmado |
 
 ## Sistema actual: factura de proveedor (referencia: `docs/referencias/factura-proveedor-actual.jpg`)
 
@@ -130,7 +130,7 @@ La foto se usa solo como referencia de campos y flujo, no de aspecto.
 | ---- | ----------- | ------ |
 | P-01 | Campos que coinciden con el diseño: bodega, proveedor con su deuda, número, fecha, plazo en días, orden de compra, líneas con stock, cantidad, costo y total, valor a distribuir en costo (flete), descuento y total a pagar. | Confirmado |
 | P-02 | No se incluyen IVA, CUFE, «NoRespIVA / Documento soporte / Normal», «Totalizar impuestos únicamente» ni «Omitir impto al costo»: el negocio no maneja IVA y las facturas no son electrónicas (§1). | Confirmado (§1) |
-| P-03 | El sistema actual reparte el flete a «ambos costos», al «costo sistema» o al «costo factura». Este sistema tiene un solo costo por producto (§5.1), así que el flete se aplica a ese costo. | Pendiente de confirmar con el cliente |
-| P-04 | No se incluye la opción «Redondear» del total (No, Decimal, Arriba, Abajo): el dinero va en pesos enteros y las líneas se redondean al peso (D-16). | Pendiente de confirmar con el cliente |
-| P-05 | Significado desconocido, no se incluyen por ahora: columnas «Tip», «Cont» y «B»; teclas **F4** «Calcula multiplicación» y **F6** «Calcula descuento»; casilla «El archivo a importar no contiene costos» (importar la compra desde un archivo); «Marcar servicios»; «Aplicar %Descuento antes de IVA». Dan lo consulta con el cliente. | Pendiente |
+| P-03 | El sistema actual reparte el flete a «ambos costos», al «costo sistema» o al «costo factura». Este sistema tiene un solo costo por producto (§5.1), así que el flete se aplica a ese costo. | No aplica (confirmado) |
+| P-04 | No se incluye la opción «Redondear» del total (No, Decimal, Arriba, Abajo): el dinero va en pesos enteros y las líneas se redondean al peso (D-16). | No aplica (confirmado) |
+| P-05 | Significado desconocido, no se incluyen por ahora: columnas «Tip», «Cont» y «B»; teclas **F4** «Calcula multiplicación» y **F6** «Calcula descuento»; casilla «El archivo a importar no contiene costos» (importar la compra desde un archivo); «Marcar servicios»; «Aplicar %Descuento antes de IVA». | Segunda fase (§15) |
 | P-06 | Búsqueda de productos por código o nombre; no hay código de barras ni referencia (§5.1). | Confirmado (§5.1) |

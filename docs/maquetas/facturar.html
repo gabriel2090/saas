@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Maqueta: facturar (6 borradores)</title>
+    <!-- Estilo real de la app. -->
+    <link rel="stylesheet" href="../../src/renderer/estilos/global.css" />
+    <style>
+      /* Estilos nuevos de la maqueta; al aprobarse pasan a global.css. */
+      .borradores {
+        display: flex;
+        gap: 3px;
+        margin: -2px 0 0;
+        border-bottom: 1px solid var(--color-borde);
+      }
+      .borradores__pestana {
+        display: flex;
+        flex: 1;
+        gap: 8px;
+        align-items: baseline;
+        min-width: 0;
+        margin-bottom: -1px;
+        padding: 6px 10px;
+        border: 1px solid var(--color-borde);
+        border-bottom: none;
+        border-radius: 4px 4px 0 0;
+        background: linear-gradient(#f3f5f8, #e1e6ed);
+        color: var(--color-tenue);
+        font-size: 13px;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+      .borradores__pestana--activa {
+        border-top: 3px solid var(--color-primario);
+        padding-top: 4px;
+        background: var(--color-panel);
+        color: var(--color-texto);
+      }
+      .borradores__atajo {
+        padding: 0 5px;
+        border: 1px solid currentColor;
+        border-radius: 3px;
+        font-size: 11px;
+      }
+      .borradores__nombre {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-weight: 600;
+      }
+      /* Los vacíos ocupan lo justo: el espacio es para el cliente y el total de los escritos. */
+      .borradores__pestana--vacia {
+        flex: 0 0 120px;
+      }
+      .borradores__pestana--vacia .borradores__nombre {
+        font-weight: normal;
+        font-style: italic;
+      }
+      .borradores__total {
+        margin-left: auto;
+        font-variant-numeric: tabular-nums;
+      }
+      .borradores__cambios {
+        color: var(--color-primario);
+        font-size: 16px;
+        line-height: 0;
+      }
+      .credito {
+        grid-column: span 3;
+        display: grid;
+        grid-template-columns: repeat(4, auto);
+        gap: 0 14px;
+        justify-content: end;
+        padding: 4px 10px;
+        border: 1px solid var(--color-borde);
+        border-radius: 4px;
+        background: var(--color-solo-lectura);
+        font-size: 12px;
+        color: var(--color-tenue);
+      }
+      .credito strong {
+        color: var(--color-texto);
+        font-size: 15px;
+        text-align: right;
+      }
+      .credito .texto-exito {
+        color: var(--color-exito);
+      }
+      .documento__cliente {
+        grid-column: span 4;
+      }
+      .documento__encabezado .segmentado button {
+        padding: 5px 14px;
+      }
+      .tabla .precio-escala {
+        margin-right: 6px;
+        font-size: 12px;
+        color: var(--color-tenue);
+        text-decoration: line-through;
+      }
+      .tabla--precios select {
+        padding: 2px 4px;
+      }
+      .en-letras {
+        margin: 0;
+        padding: 6px 10px;
+        border: 1px dashed var(--color-borde);
+        border-radius: 4px;
+        font-size: 13px;
+      }
+      .facturar__cajas {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+        align-items: center;
+      }
+      .facturar__cajas input {
+        width: 70px;
+      }
+      /* Contado o crédito: cada condición muestra sus filas de totales. */
+      .solo-contado {
+        display: none;
+      }
+      .facturar--contado .solo-contado {
+        display: table-row;
+      }
+      .facturar--contado .solo-credito {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="raiz">
+      <div class="aplicacion">
+        <nav class="barra-iconos">
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2zM9 7h6M9 11h6M9 15h4" /></svg><span>Facturar</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h13v10H3zM16 10h3l2 3v4h-5zM7 19a2 2 0 1 0 0-.01M17 19a2 2 0 1 0 0-.01" /></svg><span>Factura de proveedor</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h20v10H2zM12 12m-2.5 0a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0M5 10v4M19 10v4" /></svg><span>Abono de cliente</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h20v10H2zM8 12h8M13 9l3 3-3 3" /></svg><span>Abono a proveedor</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7zM3 7l9 5 9-5M12 12v10" /></svg><span>Productos</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8m-4 0a4 4 0 1 0 8 0a4 4 0 1 0-8 0M4 21c0-4 4-6 8-6s8 2 8 6" /></svg><span>Clientes</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l6-4v4l6-4v4l6-4v16zM7 17h2M11 17h2M15 17h2" /></svg><span>Proveedores</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z" /></svg><span>Reimpresiones</span></button>
+          <button class="barra-iconos__boton barra-iconos__buscar"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10 10m-6 0a6 6 0 1 0 12 0a6 6 0 1 0-12 0M15 15l6 6" /></svg><span>Buscar (Ctrl+K)</span></button>
+        </nav>
+
+        <main class="escritorio">
+          <section class="ventana ventana--activa" style="left: 12px; top: 6px; width: 1236px">
+            <div class="ventana__titulo">
+              <span>Facturar<span class="ventana__cambios"> • 2 borradores sin guardar</span></span>
+              <button class="ventana__cerrar">×</button>
+            </div>
+            <div class="ventana__contenido documento" id="facturar">
+              <div class="borradores" role="tablist">
+                <button class="borradores__pestana borradores__pestana--activa" role="tab" aria-selected="true"><span class="borradores__atajo">Alt+1</span><span class="borradores__nombre">10065 - JUAN JJ FERTILIA</span><span class="borradores__total">$ 79,250</span><span class="borradores__cambios">•</span></button>
+                <button class="borradores__pestana" role="tab"><span class="borradores__atajo">Alt+2</span><span class="borradores__nombre">CONSUMIDOR FINAL</span><span class="borradores__total">$ 23,400</span><span class="borradores__cambios">•</span></button>
+                <button class="borradores__pestana borradores__pestana--vacia" role="tab"><span class="borradores__atajo">Alt+3</span><span class="borradores__nombre">Vacío</span></button>
+                <button class="borradores__pestana borradores__pestana--vacia" role="tab"><span class="borradores__atajo">Alt+4</span><span class="borradores__nombre">Vacío</span></button>
+                <button class="borradores__pestana borradores__pestana--vacia" role="tab"><span class="borradores__atajo">Alt+5</span><span class="borradores__nombre">Vacío</span></button>
+                <button class="borradores__pestana borradores__pestana--vacia" role="tab"><span class="borradores__atajo">Alt+6</span><span class="borradores__nombre">Vacío</span></button>
+              </div>
+
+              <div class="barra-herramientas">
+                <button class="boton boton--primario">Guardar e imprimir<span class="atajo">Av. Pág</span></button>
+                <button class="boton">Limpiar borrador</button>
+                <span class="barra-herramientas__separador"></span>
+                <span class="texto-tenue">Factura No. <strong>84772</strong> (número y fecha se asignan al guardar) · Borrador guardado en disco 3:15 p. m.</span>
+              </div>
+
+              <div class="documento__encabezado">
+                <label class="campo documento__cliente">
+                  <span>Cliente (código, nombre o identificación)</span>
+                  <input value="10065 - JUAN JJ FERTILIA · NIT 212121354" />
+                </label>
+                <div class="credito">
+                  <span>Tope de crédito</span><span>Deuda actual</span><span>Vencido</span><span>Disponible</span>
+                  <strong>$ 500,000</strong><strong>$ 120,000</strong><strong>$ 0</strong><strong class="texto-exito">$ 380,000</strong>
+                </div>
+                <div class="campo">
+                  <span>Condición de pago</span>
+                  <span class="segmentado"><button type="button" class="boton-contado" aria-pressed="false">Contado</button><button type="button" class="boton-credito" aria-pressed="true">Crédito</button></span>
+                </div>
+                <label class="campo campo--num"><span>Plazo (días)</span><input class="campo-plazo" value="8" /></label>
+                <label class="campo campo--num"><span>Vence</span><input class="campo-vence" value="10/10/2026" readonly /></label>
+                <label class="campo"><span>Bodega</span><select><option>Principal</option></select></label>
+              </div>
+
+              <div class="tabla-contenedor documento__lineas">
+                <table class="tabla tabla--precios">
+                  <thead>
+                    <tr>
+                      <th class="num">#</th>
+                      <th class="num">Código</th>
+                      <th>Producto</th>
+                      <th>Und</th>
+                      <th class="num">Stock</th>
+                      <th>Escala</th>
+                      <th class="num">Cantidad</th>
+                      <th class="num">Precio</th>
+                      <th class="num">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td class="num">1</td><td class="num">231</td><td>PAPA FRANCESA AGRINA PREMIUM *2.5 KG <span class="etiqueta etiqueta--alerta">precio alterado (F7)</span></td><td>UND</td><td class="num">42</td><td><select><option>Menor · 17,500</option></select></td><td><input value="4" /></td><td class="num"><span class="precio-escala">17,500</span><input value="14,500" /></td><td class="num">58,000</td></tr>
+                    <tr><td class="num">2</td><td class="num">101</td><td>CAJA PIZZA 35*35 FD</td><td>UND</td><td class="num">380</td><td><select><option>Mayor · 1,950</option></select></td><td><input value="5" /></td><td class="num"><input value="1,950" readonly /></td><td class="num">9,750</td></tr>
+                    <tr class="fila--alerta"><td class="num">3</td><td class="num">102</td><td>CAJA PIZZA 40*40 FD</td><td>UND</td><td class="num texto-alerta">2</td><td><select><option>Mayor · 2,300</option></select></td><td><input value="5" /></td><td class="num"><input value="2,300" readonly /></td><td class="num">11,500</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="documento__agregar">
+                <span>Línea 4</span>
+                <span class="sugerencias"><input value="" placeholder="Escriba el código y Enter, o parte del nombre para buscar…" style="outline: 2px solid var(--color-foco); outline-offset: 1px" /></span>
+              </div>
+
+              <div class="documento__pie">
+                <div class="documento__avisos">
+                  <p class="en-letras"><strong>Son:</strong> SETENTA Y NUEVE MIL DOSCIENTOS CINCUENTA PESOS M/L</p>
+                  <p class="aviso aviso--alerta"><svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2zM12 10v5M12 18v.01" /></svg><span>Línea 3 · 102 CAJA PIZZA 40*40 FD: en Principal quedan 2 UND; el stock quedará en −3. Se puede vender igual (§5.1).</span></p>
+                  <div class="facturar__cajas"><span>No. cajas de empaque</span><input value="" placeholder="Opcional" /></div>
+                </div>
+
+                <table class="totales">
+                  <tbody>
+                    <tr><th>Líneas</th><td class="num">3</td></tr>
+                    <tr><th>Su ahorro fue de</th><td class="num">12,000</td></tr>
+                    <tr class="totales__total"><th>Total</th><td class="num">$ 79,250</td></tr>
+                    <tr class="solo-credito"><th>Saldo crédito</th><td class="num">79,250</td></tr>
+                    <tr class="solo-credito"><th class="texto-tenue">Disponible después de esta venta</th><td class="num texto-tenue">$ 300,750</td></tr>
+                    <tr class="solo-contado"><th>Forma de pago</th><td><select style="width: 160px"><option>Efectivo</option></select></td></tr>
+                    <tr class="solo-contado"><th>Recibido</th><td><input value="100,000" /></td></tr>
+                    <tr class="solo-contado"><th>Cambio</th><td class="num"><strong>20,750</strong></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <footer class="barra-estado">
+          <span>Versión 0.1.0</span>
+          <span>Último respaldo: 02/10/2026 3:10 p. m.</span>
+          <span class="barra-estado__atajos">Alt+1…6 borradores · Ctrl+Tab siguiente · F7 alterar precio · Supr quitar línea · Av. Pág guardar e imprimir · Esc cerrar</span>
+        </footer>
+      </div>
+    </div>
+    <script>
+      // Variante «contado» de la misma maqueta: capturar.mjs ... contado
+      if (location.hash === '#contado') {
+        document.getElementById('facturar').classList.add('facturar--contado');
+        document.querySelector('.boton-contado').setAttribute('aria-pressed', 'true');
+        document.querySelector('.boton-credito').setAttribute('aria-pressed', 'false');
+        document.querySelector('.campo-plazo').disabled = true;
+        document.querySelector('.campo-plazo').value = '';
+        document.querySelector('.campo-vence').value = '';
+      }
+    </script>
+  </body>
+</html>

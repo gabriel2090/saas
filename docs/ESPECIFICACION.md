@@ -196,7 +196,7 @@ Hay **dos ventanas separadas:** corrección de factura de proveedor y correcció
 
 ## 15. Fuera de alcance de esta versión (segunda fase)
 
-Panel de inicio con indicadores, alertas de stock mínimo, reporte de utilidades y productos más vendidos, traslados entre bodegas, cotizaciones y pedidos, roles de usuario, exportación de reportes a Excel, respaldo automático a unidad USB.
+Panel de inicio con indicadores, alertas de stock mínimo, reporte de utilidades y productos más vendidos, traslados entre bodegas, cotizaciones y pedidos, roles de usuario, exportación de reportes a Excel, respaldo automático a unidad USB. Funciones del sistema actual en la factura de proveedor cuyo significado falta confirmar (P-05 en `docs/DECISIONES.md`): columnas «Tip», «Cont» y «B», F4 «Calcula multiplicación», F6 «Calcula descuento», importar la compra desde un archivo y «Marcar servicios».
 
 ---
 
