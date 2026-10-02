@@ -16,6 +16,8 @@ import type {
   StockProducto,
 } from '../compras';
 import type { DocumentoImprimible } from '../impresion';
+import type { ModoBarra, PeticionGuardarVentana, PreferenciasInterfaz } from '../interfaz';
+import type { IdProceso } from '../procesos';
 import type {
   PeticionGuardarReporte,
   PeticionImportacion,
@@ -205,6 +207,11 @@ export interface ContratoIpc {
   'impresion:html': { peticion: DocumentoImprimible; respuesta: string };
   'impresion:imprimir': { peticion: DocumentoImprimible; respuesta: boolean };
   'impresion:pdf': { peticion: DocumentoImprimible; respuesta: boolean };
+
+  'interfaz:preferencias': { peticion: void; respuesta: PreferenciasInterfaz };
+  'interfaz:guardarBarra': { peticion: ModoBarra; respuesta: void };
+  'interfaz:guardarVentana': { peticion: PeticionGuardarVentana; respuesta: void };
+  'interfaz:restablecerVentanas': { peticion: IdProceso | null; respuesta: void };
 }
 
 /**
@@ -291,6 +298,10 @@ export const CANALES_IPC: readonly CanalIpc[] = [
   'impresion:html',
   'impresion:imprimir',
   'impresion:pdf',
+  'interfaz:preferencias',
+  'interfaz:guardarBarra',
+  'interfaz:guardarVentana',
+  'interfaz:restablecerVentanas',
 ];
 
 /**

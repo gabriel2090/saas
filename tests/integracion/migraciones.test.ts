@@ -28,7 +28,7 @@ describe('migraciones del proyecto', () => {
   it('crean el esquema con sus datos iniciales', () => {
     const db = abrirBaseDeDatos(':memory:');
     expect(aplicarMigraciones(db, migracionesDelProyecto(), () => FECHA_PRUEBA)).toEqual([
-      1, 2, 3, 4, 5,
+      1, 2, 3, 4, 5, 6,
     ]);
     expect(tablas(db)).toEqual([
       'abonos',
@@ -48,6 +48,7 @@ describe('migraciones del proyecto', () => {
       'formas_pago',
       'historial_cambios',
       'movimientos_inventario',
+      'preferencias_interfaz',
       'productos',
       'proveedores',
       'schema_migraciones',

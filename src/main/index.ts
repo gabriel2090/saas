@@ -16,6 +16,7 @@ import { registrarIpcAutenticacion } from './ipc/autenticacion.ipc';
 import { registrarIpcCompras } from './ipc/compras.ipc';
 import { registrarIpcImportador } from './ipc/importador.ipc';
 import { registrarIpcImpresion } from './ipc/impresion.ipc';
+import { registrarIpcInterfaz } from './ipc/interfaz.ipc';
 import { registrarIpcMaestros } from './ipc/maestros.ipc';
 import { crearRegistradorIpc } from './ipc/registrar';
 import { registrarIpcSistema } from './ipc/sistema.ipc';
@@ -28,6 +29,7 @@ import { crearServicioCatalogos } from './servicios/catalogos';
 import { crearServicioCompras } from './servicios/compras';
 import { crearServicioImportador } from './servicios/importador';
 import { crearServicioImpresion } from './servicios/impresion';
+import { crearServicioInterfaz } from './servicios/interfaz';
 import { crearServicioNegocio } from './servicios/negocio';
 import { crearServicioProductos } from './servicios/productos';
 import { crearServicioTerceros } from './servicios/terceros';
@@ -163,6 +165,7 @@ function iniciar(): void {
     guardarPdf: async (html, nombreSugerido) =>
       guardarArchivoElegido(ventana, nombreSugerido, await generarPdf(html), ARCHIVO_PDF),
   });
+  registrarIpcInterfaz(registrar, crearServicioInterfaz(db));
 
   recursos = { db, respaldos, ventana };
 }

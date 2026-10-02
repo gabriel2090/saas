@@ -60,6 +60,10 @@ const TODOS_LOS_CANALES = {
   'impresion:html': true,
   'impresion:imprimir': true,
   'impresion:pdf': true,
+  'interfaz:preferencias': true,
+  'interfaz:guardarBarra': true,
+  'interfaz:guardarVentana': true,
+  'interfaz:restablecerVentanas': true,
 } as const satisfies Record<CanalIpc, true>;
 
 describe('lista blanca de canales IPC', () => {
