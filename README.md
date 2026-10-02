@@ -2,7 +2,7 @@
 
 Aplicación de escritorio para Windows (100 % offline) de inventario, facturación, cuentas por cobrar y cuentas por pagar. La especificación completa está en [`docs/ESPECIFICACION.md`](docs/ESPECIFICACION.md), las decisiones tomadas en [`docs/DECISIONES.md`](docs/DECISIONES.md) y la arquitectura en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
 
-**Estado:** Fase 3b (abonos de cliente e importador de saldos iniciales) en revisión; la 3a queda pendiente de la prueba con la impresora térmica real. Guía de uso: [`docs/MANUAL_USUARIO.md`](docs/MANUAL_USUARIO.md). Incluye:
+**Estado:** Fase 3c (espacio y ventanas) en revisión; la 3b está aprobada y la 3a queda pendiente de la prueba con la impresora térmica real. Guía de uso: [`docs/MANUAL_USUARIO.md`](docs/MANUAL_USUARIO.md). Incluye:
 
 - **Fase 0:** estructura, migraciones, contraseña, ventanas internas, barra de iconos, buscador de procesos, `keymap`, historial de cambios y respaldos automáticos.
 - **Fase 1:**
@@ -22,6 +22,11 @@ Aplicación de escritorio para Windows (100 % offline) de inventario, facturaci�
 - **Fase 3b:**
   - Abono de cliente: la misma ventana del abono a proveedor (reparto a las facturas más antiguas, abonos anteriores y anulación), con su propio consecutivo y recibo en tirilla de 80 mm o en hoja carta (vista previa y PDF).
   - Importador de saldos iniciales de clientes y de proveedores: cada documento pendiente del sistema anterior entra como factura «Saldo inicial» que se abona y cuenta en el crédito como las demás.
+- **Fase 3c:**
+  - Ventanas con maximizar, cambio de tamaño por los cuatro bordes y esquinas, y tamaño mínimo por proceso.
+  - Encaje al arrastrar (mitades, cuartos y la tira «Suelte sobre una zona» para tercios), asistente que llena la zona libre, borde compartido y menú «Organizar» (Ctrl+Shift+O o clic derecho en el título).
+  - Barra superior delgada (ícono y nombre; solo íconos como preferencia), barra de estado de 19 px y modo angosto de los maestros.
+  - Tamaño, posición y modo de la barra se recuerdan entre sesiones (migración `0006_interfaz`).
 
 ## Requisitos
 
@@ -102,14 +107,15 @@ tests/integracion/  pruebas con SQLite en memoria
 
 Todos los atajos están en un único archivo: [`src/shared/keymap.ts`](src/shared/keymap.ts). Los atajos de los íconos se definen en `ATAJOS_PROCESOS` de ese mismo archivo.
 
-| Atajo   | Acción                                                                  |
-| ------- | ----------------------------------------------------------------------- |
-| Ctrl+K  | Buscar un proceso por nombre («abono», «factura»…) y abrirlo con Enter. |
-| Esc     | Retroceder; si cierra una ventana, pide confirmación.                   |
-| Ctrl+0  | Cerrar todas las ventanas (con confirmación).                           |
-| Ctrl+F6 | Pasar a la siguiente ventana abierta.                                   |
-| ↑ / ↓   | Navegar entre campos, listas y opciones.                                |
-| ← / →   | Cambiar de botón en los diálogos.                                       |
+| Atajo        | Acción                                                                  |
+| ------------ | ----------------------------------------------------------------------- |
+| Ctrl+K       | Buscar un proceso por nombre («abono», «factura»…) y abrirlo con Enter. |
+| Esc          | Retroceder; si cierra una ventana, pide confirmación.                   |
+| Ctrl+0       | Cerrar todas las ventanas (con confirmación).                           |
+| Ctrl+F6      | Pasar a la siguiente ventana abierta.                                   |
+| Ctrl+Shift+O | Menú «Organizar»: 1–4 diseños, M/I/D/R/T ventana activa, B barra.       |
+| ↑ / ↓        | Navegar entre campos, listas y opciones.                                |
+| ← / →        | Cambiar de botón en los diálogos.                                       |
 
 En las ventanas de maestros (productos, clientes, proveedores, bodegas y formas de pago):
 

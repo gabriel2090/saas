@@ -59,6 +59,15 @@ describe('keymap', () => {
     expect(ATAJOS.nuevoRegistro.combinacion).toBe('F2');
     expect(ATAJOS.guardarRegistro.combinacion).toBe('Ctrl+S');
     expect(ATAJOS.cambiarEstadoRegistro.combinacion).toBe('F8');
+    expect(ATAJOS.organizarVentanas.combinacion).toBe('Ctrl+Shift+O');
+  });
+
+  it('el atajo de «Organizar» no choca con los de Chromium ni con los de las ventanas', () => {
+    expect(COMBINACIONES_BLOQUEADAS).not.toContain(ATAJOS.organizarVentanas.combinacion);
+    const otros = Object.entries(ATAJOS).filter(([id]) => id !== 'organizarVentanas');
+    for (const [id, atajo] of otros) {
+      expect(atajo.combinacion, id).not.toBe(ATAJOS.organizarVentanas.combinacion);
+    }
   });
 
   it('intercepta los atajos de Chromium que usa el sistema', () => {

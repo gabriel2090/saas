@@ -23,9 +23,17 @@ import type { IdProceso } from './procesos';
  * - `documento`: ventanas de documentos con líneas o reparto (factura de
  *   proveedor, abono, ajuste de inventario).
  * - `facturar`, `correccion`, `reimpresiones`: solo dentro de esas ventanas.
+ * - `organizar`: teclas del menú «Organizar» mientras está abierto (D-110).
  */
 export type AmbitoAtajo =
-  'global' | 'formulario' | 'maestro' | 'documento' | 'facturar' | 'correccion' | 'reimpresiones';
+  | 'global'
+  | 'formulario'
+  | 'maestro'
+  | 'documento'
+  | 'facturar'
+  | 'correccion'
+  | 'reimpresiones'
+  | 'organizar';
 
 /**
  * Definición de un atajo de teclado.
@@ -71,6 +79,74 @@ export const ATAJOS = {
     combinacion: 'Ctrl+F6',
     descripcion: 'Pasar a la siguiente ventana abierta',
     ambito: 'global',
+    permitirEnCampoTexto: true,
+  },
+  organizarVentanas: {
+    combinacion: 'Ctrl+Shift+O',
+    descripcion: 'Organizar las ventanas (columnas, 2 × 2, cascada…)',
+    ambito: 'global',
+    permitirEnCampoTexto: true,
+  },
+
+  // --- Menú «Organizar» (D-110): teclas sueltas mientras el menú está abierto ---
+  organizarDosColumnas: {
+    combinacion: '1',
+    descripcion: 'Organizar en 2 columnas',
+    ambito: 'organizar',
+    permitirEnCampoTexto: true,
+  },
+  organizarTresColumnas: {
+    combinacion: '2',
+    descripcion: 'Organizar en 3 columnas',
+    ambito: 'organizar',
+    permitirEnCampoTexto: true,
+  },
+  organizarDosPorDos: {
+    combinacion: '3',
+    descripcion: 'Organizar en 2 × 2',
+    ambito: 'organizar',
+    permitirEnCampoTexto: true,
+  },
+  organizarCascada: {
+    combinacion: '4',
+    descripcion: 'Organizar en cascada',
+    ambito: 'organizar',
+    permitirEnCampoTexto: true,
+  },
+  organizarMaximizar: {
+    combinacion: 'M',
+    descripcion: 'Maximizar o restaurar la ventana activa',
+    ambito: 'organizar',
+    permitirEnCampoTexto: true,
+  },
+  organizarMitadIzquierda: {
+    combinacion: 'I',
+    descripcion: 'Llevar la ventana activa a la mitad izquierda',
+    ambito: 'organizar',
+    permitirEnCampoTexto: true,
+  },
+  organizarMitadDerecha: {
+    combinacion: 'D',
+    descripcion: 'Llevar la ventana activa a la mitad derecha',
+    ambito: 'organizar',
+    permitirEnCampoTexto: true,
+  },
+  organizarRestablecer: {
+    combinacion: 'R',
+    descripcion: 'Restablecer el tamaño y la posición de la ventana activa',
+    ambito: 'organizar',
+    permitirEnCampoTexto: true,
+  },
+  organizarRestablecerTodas: {
+    combinacion: 'T',
+    descripcion: 'Restablecer todas las ventanas',
+    ambito: 'organizar',
+    permitirEnCampoTexto: true,
+  },
+  organizarBarra: {
+    combinacion: 'B',
+    descripcion: 'Cambiar la barra superior (ícono y nombre o solo íconos)',
+    ambito: 'organizar',
     permitirEnCampoTexto: true,
   },
 

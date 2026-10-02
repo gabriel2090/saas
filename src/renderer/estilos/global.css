@@ -192,42 +192,90 @@ textarea {
   height: 100%;
 }
 
+/* Barra superior (D-108): ícono y nombre en una línea, 36 px de alto. Por
+   encima de las ventanas para que la ayuda emergente no quede tapada. */
 .barra-iconos {
+  position: relative;
+  z-index: 900;
   display: flex;
+  align-items: center;
   gap: 2px;
-  padding: 4px 6px;
+  height: 36px;
+  padding: 0 6px;
   border-bottom: 1px solid var(--color-borde);
   background: linear-gradient(#f7f9fb, #e3e8ee);
 }
 
 .barra-iconos__boton {
+  position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
-  width: 92px;
-  padding: 4px 2px;
+  gap: 6px;
+  padding: 4px 9px;
   border: 1px solid transparent;
   border-radius: 3px;
   background: transparent;
   color: var(--color-titulo);
-  font-size: 11px;
-  text-align: center;
+  font-size: 12px;
+  white-space: nowrap;
   cursor: pointer;
 }
 
-.barra-iconos__boton:hover {
+.barra-iconos__boton:hover,
+.barra-iconos__boton--abierto {
   border-color: var(--color-borde);
   background: #fff;
 }
 
-.barra-iconos__buscar {
+.barra-iconos__organizar {
   margin-left: auto;
 }
 
 .icono {
   width: 26px;
   height: 26px;
+}
+
+.barra-iconos .icono {
+  width: 20px;
+  height: 20px;
+}
+
+/* Preferencia «solo íconos»: el nombre y el atajo salen en la ayuda emergente. */
+.barra-iconos--iconos {
+  height: 34px;
+}
+
+.barra-iconos--iconos .barra-iconos__boton {
+  justify-content: center;
+  width: 38px;
+  padding: 4px 0;
+}
+
+.barra-iconos--iconos .barra-iconos__boton > span {
+  display: none;
+}
+
+.barra-iconos--iconos .barra-iconos__boton:hover::after {
+  content: attr(data-ayuda);
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--color-borde);
+  border-radius: 3px;
+  background: #fffef5;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 18%);
+  color: var(--color-texto);
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.barra-iconos--iconos .barra-iconos__buscar:hover::after,
+.barra-iconos--iconos .barra-iconos__organizar:hover::after {
+  right: 0;
+  left: auto;
 }
 
 .escritorio {
@@ -245,13 +293,16 @@ textarea {
   color: var(--color-tenue);
 }
 
+/* Barra de estado delgada (19 px, `DISENO.md` §11.4). */
 .barra-estado {
   display: flex;
+  align-items: center;
   gap: 24px;
-  padding: 3px 10px;
+  height: 19px;
+  padding: 0 10px;
   border-top: 1px solid var(--color-borde);
   background: #eef1f5;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-tenue);
 }
 
@@ -345,6 +396,418 @@ textarea {
   );
   cursor: nwse-resize;
   touch-action: none;
+}
+
+.ventana__nombre {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ventana__botones {
+  display: flex;
+  flex-shrink: 0;
+  gap: 2px;
+}
+
+.ventana__maximizar {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 22px;
+  border: none;
+  border-radius: 2px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+
+.ventana__maximizar:hover {
+  background: rgb(255 255 255 / 18%);
+}
+
+/* Bordes sensibles para redimensionar: 6 px en los lados y 12 px en las esquinas (§11.2). */
+.ventana__borde {
+  position: absolute;
+  z-index: 2;
+  touch-action: none;
+}
+
+.ventana__borde--n,
+.ventana__borde--s {
+  right: 12px;
+  left: 12px;
+  height: 6px;
+  cursor: ns-resize;
+}
+
+.ventana__borde--e,
+.ventana__borde--o {
+  top: 12px;
+  bottom: 12px;
+  width: 6px;
+  cursor: ew-resize;
+}
+
+.ventana__borde--n {
+  top: -3px;
+}
+
+.ventana__borde--s {
+  bottom: -3px;
+}
+
+.ventana__borde--e {
+  right: -3px;
+}
+
+.ventana__borde--o {
+  left: -3px;
+}
+
+.ventana__borde--ne,
+.ventana__borde--no,
+.ventana__borde--se,
+.ventana__borde--so {
+  width: 12px;
+  height: 12px;
+}
+
+.ventana__borde--ne {
+  top: -3px;
+  right: -3px;
+  cursor: nesw-resize;
+}
+
+.ventana__borde--no {
+  top: -3px;
+  left: -3px;
+  cursor: nwse-resize;
+}
+
+.ventana__borde--se {
+  right: -3px;
+  bottom: -3px;
+  cursor: nwse-resize;
+}
+
+.ventana__borde--so {
+  bottom: -3px;
+  left: -3px;
+  cursor: nesw-resize;
+}
+
+/* Encajada o maximizada: sin sombra ni esquinas redondeadas; la activa lleva contorno. */
+.ventana--encajada {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.ventana--encajada .ventana__titulo {
+  border-radius: 0;
+}
+
+.ventana--encajada.ventana--activa {
+  outline: 2px solid var(--color-titulo);
+  outline-offset: -1px;
+}
+
+/* Modo angosto de los maestros (D-109): con la ventana de menos de 680 px
+   (646 px de contenido), la ficha pasa debajo de la lista. Solo en ventanas
+   de tamaño fijo: en las que se ajustan a su contenido el contenedor no
+   tendría ancho propio. */
+.ventana--con-tamano > .ventana__contenido {
+  container: ventana / inline-size;
+}
+
+@container ventana (width < 646px) {
+  /* Más específico que el .maestro de base, que aparece después en la hoja. */
+  .ventana__contenido .maestro {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(120px, 42%) 1fr;
+  }
+
+  .ventana__contenido .barra-herramientas {
+    flex-wrap: wrap;
+  }
+
+  .ventana__contenido .barra-herramientas__busqueda {
+    flex: 1 1 160px;
+    width: auto;
+    min-width: 0;
+  }
+}
+
+/* ---------- Encaje al arrastrar, asistente y menú «Organizar» (§11.3) ---------- */
+
+.zona-encaje {
+  position: absolute;
+  z-index: 800;
+  border: 2px solid var(--color-primario);
+  border-radius: 4px;
+  background: rgb(37 99 168 / 16%);
+  pointer-events: none;
+}
+
+.zona-encaje--ajuste {
+  border-color: var(--color-alerta);
+  background: rgb(242 176 30 / 18%);
+}
+
+.zona-encaje__medida {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  padding: 2px 8px;
+  border-radius: 3px;
+  background: var(--color-primario);
+  color: #fff;
+  font-size: 12px;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.zona-encaje--ajuste .zona-encaje__medida {
+  background: var(--color-alerta);
+}
+
+.zona-encaje__texto {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  left: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-alerta);
+  border-radius: 3px;
+  background: var(--color-alerta-fondo);
+  color: var(--color-alerta);
+  font-size: 13px;
+}
+
+/* Tira «Suelte sobre una zona»: por encima de la ventana arrastrada. */
+.disenos-encaje {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  z-index: 850;
+  display: flex;
+  gap: 14px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-borde);
+  border-radius: 4px;
+  background: var(--color-panel);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 18%);
+  transform: translateX(-50%);
+}
+
+.disenos-encaje__titulo {
+  align-self: center;
+  color: var(--color-tenue);
+  font-size: 12px;
+}
+
+.miniatura {
+  display: grid;
+  gap: 2px;
+  width: 54px;
+  height: 34px;
+}
+
+.miniatura i {
+  border: 1px solid var(--color-borde);
+  border-radius: 2px;
+  background: #eef1f5;
+}
+
+.miniatura i.miniatura__elegida {
+  border-color: var(--color-primario);
+  background: var(--color-primario);
+}
+
+.miniatura--menu {
+  width: 30px;
+  height: 19px;
+}
+
+.miniatura--cascada {
+  position: relative;
+  display: block;
+}
+
+.miniatura--cascada i {
+  position: absolute;
+  width: 60%;
+  height: 60%;
+}
+
+.miniatura--cascada i:nth-child(2) {
+  top: 20%;
+  left: 20%;
+}
+
+.miniatura--cascada i:nth-child(3) {
+  top: 40%;
+  left: 40%;
+}
+
+/* Capa transparente de los menús: un clic fuera los cierra. */
+.capa-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.menu-organizar {
+  position: absolute;
+  width: 330px;
+  padding: 4px 0;
+  border: 1px solid var(--color-borde);
+  border-radius: 3px;
+  background: var(--color-panel);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 25%);
+  color: var(--color-texto);
+  font-size: 13px;
+  outline: none;
+}
+
+.menu-organizar--chico {
+  width: 200px;
+}
+
+.menu-organizar__titulo {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 12px 6px;
+  color: var(--color-titulo);
+  font-weight: 600;
+}
+
+.menu-organizar__titulo .texto-tenue {
+  font-weight: 400;
+}
+
+.menu-organizar__seccion {
+  padding: 6px 12px 2px;
+  border-top: 1px solid #dde3ea;
+  color: var(--color-tenue);
+  font-size: 11px;
+}
+
+.menu-organizar__opcion {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+
+.menu-organizar__opcion--activa {
+  background: var(--color-primario);
+  color: #fff;
+}
+
+.menu-organizar__opcion--activa .texto-tenue {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.menu-organizar__opcion--activa .miniatura i {
+  border-color: #fff;
+}
+
+.menu-organizar__opcion--inactiva {
+  color: #9aa5b3;
+  cursor: default;
+}
+
+.menu-organizar__razon {
+  display: block;
+  color: var(--color-alerta);
+  font-size: 11px;
+}
+
+.menu-organizar__tecla {
+  min-width: 16px;
+  padding: 0 4px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  font-size: 11px;
+  text-align: center;
+  opacity: 0.8;
+}
+
+/* Asistente de encaje: ocupa la zona libre; el fondo transparente cierra al hacer clic fuera. */
+.asistente-encaje__fondo {
+  position: absolute;
+  inset: 0;
+  z-index: 799;
+}
+
+.asistente-encaje {
+  position: absolute;
+  z-index: 800;
+  display: grid;
+  place-items: center;
+  background: rgb(201 211 222 / 65%);
+  outline: 2px dashed var(--color-borde);
+  outline-offset: -8px;
+}
+
+.asistente-encaje__panel {
+  width: min(330px, calc(100% - 24px));
+  border: 1px solid var(--color-borde);
+  border-radius: 4px;
+  background: var(--color-panel);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 18%);
+  outline: none;
+}
+
+.asistente-encaje__titulo {
+  padding: 6px 10px;
+  border-radius: 3px 3px 0 0;
+  background: var(--color-titulo);
+  color: #fff;
+  font-weight: 600;
+}
+
+.asistente-encaje__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.asistente-encaje__opcion {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.asistente-encaje__opcion--activa {
+  background: var(--color-primario);
+  color: #fff;
+}
+
+.asistente-encaje__opcion--inactiva {
+  color: #9aa5b3;
+  cursor: default;
+}
+
+.asistente-encaje__razon {
+  display: block;
+  color: var(--color-alerta);
+  font-size: 11px;
+}
+
+.asistente-encaje__ayuda {
+  padding: 6px 12px 8px;
+  border-top: 1px solid #dde3ea;
+  color: var(--color-tenue);
+  font-size: 12px;
 }
 
 .pendiente p {
@@ -1259,7 +1722,8 @@ textarea {
 
 /* Los vacíos ocupan lo justo: el espacio es para el cliente y el total de los escritos. */
 .borradores__pestana--vacia {
-  flex: 0 0 120px;
+  flex: 0 1 120px;
+  overflow: hidden;
 }
 
 .borradores__pestana--vacia .borradores__nombre {

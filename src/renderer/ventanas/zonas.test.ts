@@ -6,6 +6,7 @@ import {
   celdaLibre,
   celdasDeDiseno,
   limitarMinimo,
+  nombreCelda,
   organizar,
   ordenDeLectura,
   rectDeRelativa,
@@ -283,6 +284,20 @@ describe('asistente de encaje', () => {
     expect(
       recortarZona({ x: 0, y: 0, ancho: 960, alto: 946 }, [{ x: 0, y: 0, ancho: 960, alto: 480 }]),
     ).toEqual({ x: 0, y: 480, ancho: 960, alto: 466 });
+  });
+});
+
+describe('nombreCelda', () => {
+  it('nombra cada celda con y sin artículo', () => {
+    expect(nombreCelda('dos-columnas', 1)).toEqual({
+      nombre: 'Mitad derecha',
+      conArticulo: 'la mitad derecha',
+    });
+    expect(nombreCelda('tres-columnas', 1).conArticulo).toBe('la columna del centro');
+    expect(nombreCelda('dos-por-dos', 2)).toEqual({
+      nombre: 'Cuadrante inferior izquierdo',
+      conArticulo: 'el cuadrante inferior izquierdo',
+    });
   });
 });
 

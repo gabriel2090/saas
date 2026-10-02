@@ -46,6 +46,7 @@ export function BarraEstado(): ReactNode {
       <span className="barra-estado__atajos">
         {textoCombinacion(ATAJOS.buscarProceso.combinacion)} buscar ·{' '}
         {textoCombinacion(ATAJOS.siguienteVentana.combinacion)} cambiar ventana ·{' '}
+        {textoCombinacion(ATAJOS.organizarVentanas.combinacion)} organizar ·{' '}
         {textoCombinacion(ATAJOS.retroceder.combinacion)} cerrar ·{' '}
         {textoCombinacion(ATAJOS.cerrarTodas.combinacion)} cerrar todas
       </span>

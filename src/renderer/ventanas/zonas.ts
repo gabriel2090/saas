@@ -192,6 +192,51 @@ export function celdasDeDiseno(diseno: DisenoCeldas, cantidad = 4): RectRelativo
 }
 
 /**
+ * Nombre de una celda para la vista previa, el aviso y el asistente.
+ */
+export interface NombreCelda {
+  /** Nombre con mayúscula inicial, p. ej. «Mitad izquierda». */
+  nombre: string;
+  /** Nombre con su artículo, para usarlo en una frase: «la mitad izquierda». */
+  conArticulo: string;
+}
+
+/**
+ * Devuelve el nombre de una celda de un diseño.
+ *
+ * @param diseno - Diseño.
+ * @param indice - Celda (orden de {@link celdasDeDiseno} con 4 ventanas).
+ * @returns Nombre y nombre con artículo.
+ *
+ * @example
+ * nombreCelda('tres-columnas', 1); // { nombre: 'Columna del centro', conArticulo: 'la columna del centro' }
+ */
+export function nombreCelda(diseno: DisenoCeldas, indice: number): NombreCelda {
+  const nombres: Record<DisenoCeldas, readonly [string, string][]> = {
+    'dos-columnas': [
+      ['la', 'mitad izquierda'],
+      ['la', 'mitad derecha'],
+    ],
+    'tres-columnas': [
+      ['la', 'columna izquierda'],
+      ['la', 'columna del centro'],
+      ['la', 'columna derecha'],
+    ],
+    'dos-por-dos': [
+      ['el', 'cuadrante superior izquierdo'],
+      ['el', 'cuadrante superior derecho'],
+      ['el', 'cuadrante inferior izquierdo'],
+      ['el', 'cuadrante inferior derecho'],
+    ],
+  };
+  const [articulo, texto] = nombres[diseno][indice] ?? ['la', 'zona'];
+  return {
+    nombre: texto.charAt(0).toUpperCase() + texto.slice(1),
+    conArticulo: `${articulo} ${texto}`,
+  };
+}
+
+/**
  * Convierte un rectángulo relativo a píxeles del escritorio.
  *
  * @param relativa - Rectángulo en diezmilésimas.
@@ -417,7 +462,6 @@ export function zonaDeArrastre(
   const arriba = punto.y <= MARGEN_ENCAJE;
   if (izquierda || derecha) {
     const lado = izquierda ? 0 : 1;
-    const nombreLado = izquierda ? 'izquierdo' : 'derecho';
     if (punto.y <= FRANJA_ESQUINA || punto.y >= escritorio.alto - FRANJA_ESQUINA) {
       const abajo = punto.y > FRANJA_ESQUINA ? 1 : 0;
       const indice = abajo * 2 + lado;
@@ -426,7 +470,7 @@ export function zonaDeArrastre(
         diseno: 'dos-por-dos',
         indice,
         relativa: celdasDeDiseno('dos-por-dos', 4)[indice] ?? { x: 0, y: 0, ancho: 0, alto: 0 },
-        etiqueta: `Cuadrante ${abajo ? 'inferior' : 'superior'} ${nombreLado}`,
+        etiqueta: nombreCelda('dos-por-dos', indice).nombre,
       };
     }
     return {
@@ -434,7 +478,7 @@ export function zonaDeArrastre(
       diseno: 'dos-columnas',
       indice: lado,
       relativa: celdasDeDiseno('dos-columnas')[lado] ?? { x: 0, y: 0, ancho: 0, alto: 0 },
-      etiqueta: izquierda ? 'Mitad izquierda' : 'Mitad derecha',
+      etiqueta: nombreCelda('dos-columnas', lado).nombre,
     };
   }
   if (arriba) {

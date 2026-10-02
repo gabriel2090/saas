@@ -435,9 +435,26 @@ function geometriaInicial(
 }
 
 /**
+ * Indica si dos zonas se pisan (compartir un borde no cuenta).
+ *
+ * @param a - Primera zona.
+ * @param b - Segunda zona.
+ * @returns `true` si se enciman más allá de la tolerancia del borde.
+ */
+function seEnciman(a: Rect, b: Rect): boolean {
+  return (
+    a.x < b.x + b.ancho - TOLERANCIA_BORDE &&
+    b.x < a.x + a.ancho - TOLERANCIA_BORDE &&
+    a.y < b.y + b.alto - TOLERANCIA_BORDE &&
+    b.y < a.y + a.alto - TOLERANCIA_BORDE
+  );
+}
+
+/**
  * Siguiente ventana para Ctrl+F6. Con el escritorio organizado (todas
- * encajadas o maximizadas, al menos dos encajadas) sigue el orden de
- * lectura (D-115); si no, rota la pila: la de más atrás pasa al frente.
+ * encajadas o maximizadas, al menos dos encajadas y sin zonas encimadas)
+ * sigue el orden de lectura (D-115); si no, rota la pila: la de más atrás
+ * pasa al frente.
  *
  * @param estado - Estado del gestor.
  * @returns Id de la ventana a enfocar, o `null` si no hay a cuál pasar.
@@ -448,8 +465,11 @@ function siguienteVentana(estado: EstadoVentanas): IdProceso | null {
     return null;
   }
   const encajadas = zonasEncajadas(estado);
+  // Con zonas encimadas (p. ej. sobrantes de otro diseño, tapadas) el orden de lectura no se ve: se rota la pila.
   const organizado =
-    encajadas.length >= 2 && ventanas.every((v) => v.maximizada || v.encaje !== null);
+    encajadas.length >= 2 &&
+    ventanas.every((v) => v.maximizada || v.encaje !== null) &&
+    !encajadas.some((a, i) => encajadas.slice(i + 1).some((b) => seEnciman(a.rect, b.rect)));
   if (!organizado) {
     return ventanas[0]?.id ?? null;
   }

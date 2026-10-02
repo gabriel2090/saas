@@ -340,6 +340,25 @@ describe('reducirVentanas: organizar', () => {
     expect(visitadas).toEqual(['abono-cliente', 'productos', 'clientes', 'facturar']);
   });
 
+  it('Ctrl+F6 rota la pila si quedan zonas encimadas de otro diseño', () => {
+    let estado = aplicar(
+      { tipo: 'escritorio', tamano: E1920 },
+      abrir('clientes'),
+      abrir('productos'),
+      { tipo: 'organizar', diseno: 'dos-columnas' },
+      abrir('bodegas'),
+      abrir('abono-cliente'),
+      { tipo: 'organizar', diseno: 'dos-columnas' },
+    );
+    expect(estado.ventanas.every((v) => v.encaje !== null)).toBe(true);
+    const visitadas: (IdProceso | undefined)[] = [];
+    for (let i = 0; i < 4; i++) {
+      estado = reducirVentanas(estado, { tipo: 'siguiente' });
+      visitadas.push(ventanaActiva(estado)?.id);
+    }
+    expect(visitadas).toEqual(['clientes', 'productos', 'bodegas', 'abono-cliente']);
+  });
+
   it('Ctrl+F6 sin organizar rota por todas las ventanas', () => {
     let estado = aplicar(
       { tipo: 'abrir', id: 'productos' },

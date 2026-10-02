@@ -165,11 +165,11 @@ npx electron docs/maquetas/capturar.mjs docs/maquetas/productos.html docs/maquet
 
 No abre la aplicación ni toca sus datos. Las maquetas con varios estados reciben la variante como quinto parámetro (por ejemplo `espacio-ventanas.html` con `dos-columnas`).
 
-## 11. Espacio y ventanas (Fase 3c) — propuesta pendiente de aprobación
+## 11. Espacio y ventanas (Fase 3c)
 
-Decidido el 02/10/2026 (D-108 a D-110): barra con **ícono y nombre en una línea** por defecto (solo íconos queda como preferencia), **modo angosto de los maestros** incluido en la 3c y **Ctrl+Shift+O** para Organizar.
+Aprobado el 02/10/2026 (D-108 a D-110): barra con **ícono y nombre en una línea** por defecto (solo íconos queda como preferencia), **modo angosto de los maestros** incluido en la 3c y **Ctrl+Shift+O** para Organizar.
 
-Maqueta: `docs/maquetas/espacio-ventanas.html`, con una imagen por variante (`docs/maquetas/espacio-*.png`). Los componentes nuevos están en el bloque de estilos de la maqueta y pasan a `global.css` solo cuando se aprueben.
+Maqueta: `docs/maquetas/espacio-ventanas.html`, con una imagen por variante (`docs/maquetas/espacio-*.png`). Implementado en `src/renderer/ventanas/` (`zonas.ts` con el cálculo de zonas y mínimos, `gestor.ts`, `tamanos.ts`, `MenuOrganizar.tsx`, `AsistenteEncaje.tsx`) y en `global.css`.
 
 ### 11.1 Espacio disponible
 
@@ -199,7 +199,8 @@ Medido en la app: hoy la barra de iconos mide 75 px y la de estado 23 px. Con la
 | Datos del negocio                        | 420 × 360             |
 | Procesos de fases futuras                | 480 × 320 hasta que tengan el suyo |
 
-- **Se recuerdan tamaño y posición por proceso** entre sesiones (también si quedó maximizada o encajada). Al abrir, si no cabe en el escritorio actual (otra pantalla u otra escala), se ajusta para que la barra de título quede visible y respetando el mínimo. «Restablecer su tamaño y posición» (menú Organizar o clic derecho en el título) vuelve al tamaño inicial de `tamanos.ts`; «Restablecer todas las ventanas» lo hace con todas.
+- **Se recuerdan tamaño y posición por proceso** entre sesiones (también si quedó maximizada o encajada). Al abrir, si no cabe en el escritorio actual (otra pantalla u otra escala), se ajusta para que la barra de título quede visible y respetando el mínimo. «Restablecer su tamaño y posición» (menú Organizar o clic derecho en el título) vuelve al tamaño inicial de `tamanos.ts`; «Restablecer todas las ventanas» lo hace con todas. El clic derecho en el título abre el mismo menú Organizar junto al puntero.
+- Las ventanas que se ajustan a su contenido (sin tamaño fijo, como Datos del negocio) no pasan del borde inferior del escritorio: su contenido se desplaza.
 - La ventana principal ya abre maximizada; se mantiene.
 
 ### 11.3 Dividir el escritorio
@@ -214,7 +215,7 @@ Hasta 4 ventanas a la vez, cada una de un proceso distinto (D-04). Una ventana *
 - **Borde compartido:** arrastrar el borde entre dos ventanas encajadas cambia el tamaño de ambas, sin bajar de sus mínimos.
 - **Al cambiar el tamaño del escritorio** (otra pantalla, ventana principal restaurada), las ventanas encajadas siguen su zona en proporción y las sueltas se ajustan para seguir visibles.
 - **Modo angosto de los maestros** (maqueta `#tres-columnas`): por debajo de 680 px de ancho, la ficha pasa debajo de la lista (como las columnas extra de §6.4, con una consulta de contenedor). Así Productos, Clientes y Proveedores caben en tercios.
-- **Teclado:** la ventana activa recibe el teclado y sus atajos; Ctrl+F6 pasa a la siguiente (con el escritorio organizado, en orden de lectura: de izquierda a derecha y de arriba abajo); un clic en cualquier parte de una ventana la activa; Esc cierra la activa. La barra de estado muestra los atajos de la activa.
+- **Teclado:** la ventana activa recibe el teclado y sus atajos; Ctrl+F6 pasa a la siguiente (con el escritorio organizado —todas encajadas o maximizadas y sin zonas encimadas—, en orden de lectura: de izquierda a derecha y de arriba abajo; si no, rota la pila); un clic en cualquier parte de una ventana la activa; Esc cierra la activa. La barra de estado muestra los atajos de la activa.
 
 Qué cabe con los mínimos propuestos (barra adelgazada):
 
@@ -228,9 +229,9 @@ Qué cabe con los mínimos propuestos (barra adelgazada):
 
 Maqueta `#barra`, con las dos opciones frente a la barra actual:
 
-- **Opción 1 — ícono y nombre en una línea** (`.barra-iconos--linea`): ícono de 20 px y nombre de 12 px al lado; 36 px de alto. Los nombres largos («Factura de proveedor») caben en una línea.
-- **Opción 2 — solo íconos** (`.barra-iconos--iconos`): botones de 38 px con ícono de 20 px; 34 px de alto. Al pasar el ratón o llegar con el teclado aparece la **ayuda emergente** (`.ayuda-emergente`) con el nombre y el atajo del proceso, si lo tiene (hoy solo «Buscar», Ctrl+K; los atajos de los íconos se definen en `ATAJOS_PROCESOS` del `keymap`).
-- **Barra de estado delgada** (`.barra-estado--delgada`): 11 px de letra y 1 px de relleno; 19 px de alto.
+- **Opción 1 — ícono y nombre en una línea** (por defecto, `.barra-iconos`): ícono de 20 px y nombre de 12 px al lado; 36 px de alto. Los nombres largos («Factura de proveedor») caben en una línea.
+- **Opción 2 — solo íconos** (`.barra-iconos--iconos`): botones de 38 px con ícono de 20 px; 34 px de alto. Al pasar el ratón aparece la **ayuda emergente** con el nombre y el atajo del proceso, si lo tiene (hoy solo «Buscar», Ctrl+K; los atajos de los íconos se definen en `ATAJOS_PROCESOS` del `keymap`).
+- **Barra de estado delgada** (`.barra-estado`): 11 px de letra; 19 px de alto.
 - La preferencia se cambia en el menú Organizar (B) o con clic derecho sobre la barra, y se recuerda entre sesiones.
 
 ### 11.5 Dónde se guardan las preferencias

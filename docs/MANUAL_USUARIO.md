@@ -1,6 +1,21 @@
 # Manual de usuario
 
-Guía de uso diario de Inventario y Facturación. Se completa fase a fase; por ahora cubre la configuración de la facturación, la ventana Facturar, el abono de cliente y la importación de saldos iniciales.
+Guía de uso diario de Inventario y Facturación. Se completa fase a fase; por ahora cubre las ventanas y cómo organizarlas, la configuración de la facturación, la ventana Facturar, el abono de cliente y la importación de saldos iniciales.
+
+## Ventanas y «Organizar»
+
+Cada proceso abre su ventana dentro del escritorio. Puede tener varias a la vez y verlas lado a lado.
+
+- **Mover y cambiar el tamaño:** arrastre la ventana por su título. Para cambiar el tamaño, arrastre cualquier borde o esquina. Cada ventana tiene un tamaño mínimo para que su contenido se pueda usar.
+- **Maximizar:** doble clic en el título o el botón □. Otro doble clic la devuelve a como estaba.
+- **Encajar arrastrando:** lleve la ventana al borde izquierdo o derecho para ocupar la mitad, a una esquina para un cuarto o al borde de arriba para maximizarla. Arriba al centro aparece «Suelte sobre una zona» con los diseños de 2 columnas, 3 columnas y 2 × 2: suelte sobre una casilla para ponerla ahí. Si la zona es más angosta que el mínimo de la ventana, la vista previa sale en ámbar y dice cómo quedará.
+- **Llenar el resto:** al encajar una ventana, la zona libre pregunta qué ventana va ahí. Elija con ↑/↓ y Enter, o deje la zona libre con Esc.
+- **Organizar (Ctrl+Shift+O)** o el botón «Organizar» de la barra: reparte las ventanas en 2 columnas (1), 3 columnas (2), 2 × 2 (3) o cascada (4). Para la ventana activa: maximizar (M), mitad izquierda (I), mitad derecha (D) y restablecer su tamaño y posición (R). «Restablecer todas» (T) devuelve todas a su tamaño inicial. Las opciones que no caben en la pantalla salen en gris con la razón. El clic derecho en el título de una ventana abre el mismo menú.
+- **Borde compartido:** con dos ventanas encajadas lado a lado, arrastrar el borde entre ellas cambia el tamaño de las dos.
+- **Teclado:** Ctrl+F6 pasa a la siguiente ventana; con el escritorio organizado, va de izquierda a derecha y de arriba abajo.
+- **Barra superior:** por defecto muestra ícono y nombre. Con clic derecho sobre la barra, o con «B» en Organizar, se cambia a solo íconos (al pasar el ratón se ve el nombre).
+- La aplicación **recuerda** el tamaño y la posición de cada ventana y el modo de la barra para la próxima vez.
+- En Productos, Clientes y Proveedores, si la ventana es angosta (por ejemplo en tercios), la ficha pasa debajo de la lista.
 
 ## Configurar la facturación
 
