@@ -1,6 +1,6 @@
 import type { ComponentType, ReactNode } from 'react';
 import type { IdProceso } from '../../shared/procesos';
-import { AbonoProveedor } from '../pantallas/AbonoProveedor';
+import { AbonoCliente, AbonoProveedor } from '../pantallas/Abono';
 import { AjustesInventario } from '../pantallas/AjustesInventario';
 import { CambiarContrasena } from '../pantallas/CambiarContrasena';
 import { Catalogos } from '../pantallas/Catalogos';
@@ -27,6 +27,7 @@ const CONTENIDOS: Partial<Record<IdProceso, ComponentType>> = {
   'cambiar-contrasena': CambiarContrasena,
   'factura-proveedor': FacturaProveedor,
   'abono-proveedor': AbonoProveedor,
+  'abono-cliente': AbonoCliente,
   'ajustes-inventario': AjustesInventario,
   facturar: Facturar,
 };

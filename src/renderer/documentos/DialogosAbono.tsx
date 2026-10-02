@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { LARGO_MAXIMO_OBSERVACION } from '../../domain/abonos';
-import type { AbonoResumen } from '../../shared/abonos';
+import type { AbonoResumen, AplicacionAbonoDetalle, TipoAbono } from '../../shared/abonos';
 import { formatearFecha } from '../../shared/formato/fechas';
 import { formatearPesos } from '../../shared/formato/moneda';
 import { useAtajos } from '../atajos/useAtajos';
@@ -26,9 +26,32 @@ function useFocoDialogo(enfocar: () => HTMLElement | null): void {
 }
 
 /**
+ * Describe la factura a la que se aplicó un abono, como se lista en los
+ * abonos anteriores y al anular.
+ *
+ * @param tipo - Cliente o proveedor.
+ * @param a - Aplicación del abono.
+ * @returns Texto como `Factura 84650 (saldo inicial)` o `Compra 3 (FV-100)`.
+ *
+ * @example
+ * textoFacturaAbonada('proveedor', { facturaNumero: 3, referencia: 'FV-100', saldoInicial: false, … });
+ * // 'Compra 3 (FV-100)'
+ */
+export function textoFacturaAbonada(tipo: TipoAbono, a: AplicacionAbonoDetalle): string {
+  const inicial = a.saldoInicial ? 'saldo inicial' : '';
+  if (tipo === 'cliente') {
+    return `Factura ${a.facturaNumero}${inicial ? ` (${inicial})` : ''}`;
+  }
+  const detalle = [a.referencia, inicial].filter((t) => t !== '').join(', ');
+  return `Compra ${a.facturaNumero}${detalle ? ` (${detalle})` : ''}`;
+}
+
+/**
  * Propiedades de {@link DialogoAbonoGuardado}.
  */
 interface PropiedadesAbonoGuardado {
+  /** Cliente o proveedor. */
+  tipo: TipoAbono;
   /** Número del abono. */
   numero: number;
   /** Valor del abono. */
@@ -41,12 +64,15 @@ interface PropiedadesAbonoGuardado {
 
 /**
  * Diálogo «Abono N guardado» con «Imprimir recibo» y «Cerrar» (D-63). El
- * recibo que se imprime desde aquí es el original. Esc cierra.
+ * recibo que se imprime desde aquí es el original (en tirilla si es de
+ * cliente, D-93). Si la impresión falla, el botón sirve para reintentar.
+ * Esc cierra.
  *
  * @param props - Propiedades del componente.
  * @returns El diálogo modal.
  */
 export function DialogoAbonoGuardado({
+  tipo,
   numero,
   valor,
   alImprimir,
@@ -77,8 +103,8 @@ export function DialogoAbonoGuardado({
           Abono {numero} guardado
         </div>
         <p className="dialogo__mensaje">
-          Se registró el abono {numero} por {formatearPesos(valor)} y se descontó de la deuda del
-          proveedor.
+          Se registró el abono {numero} por {formatearPesos(valor)} y se descontó de la deuda{' '}
+          {tipo === 'cliente' ? 'del cliente' : 'con el proveedor'}.
         </p>
         {error && <Aviso tipo="error">{error}</Aviso>}
         <div className="dialogo__botones">
@@ -114,7 +140,7 @@ interface PropiedadesAnularAbono {
 
 /**
  * Diálogo para anular un abono (D-62): dice cómo queda el saldo de cada
- * compra afectada y pide un motivo opcional. Esc cancela; el foco inicial
+ * factura afectada y pide un motivo opcional. Esc cancela; el foco inicial
  * queda en «Cancelar» para que un Enter accidental no anule.
  *
  * @param props - Propiedades del componente.
@@ -165,7 +191,7 @@ export function DialogoAnularAbono({
           <ul className="dialogo__lista">
             {abono.aplicaciones.map((a) => (
               <li key={a.facturaId}>
-                Compra {a.compraNumero} ({a.numeroProveedor}): el saldo pasa de{' '}
+                {textoFacturaAbonada(abono.tipo, a)}: el saldo pasa de{' '}
                 {formatearPesos(a.saldoActual)} a{' '}
                 <strong>{formatearPesos(a.saldoActual + a.valor)}</strong>.
               </li>

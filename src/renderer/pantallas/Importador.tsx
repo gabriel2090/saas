@@ -19,10 +19,18 @@ import { invocar, registrarErrorRenderer } from '../servicios/api';
 import { useVentana } from '../ventanas/ContextoVentana';
 
 /**
- * Orden sugerido de importación: los productos necesitan a sus proveedores
- * y el stock inicial necesita a los productos.
+ * Orden sugerido de importación: los productos necesitan a sus proveedores,
+ * el stock inicial necesita a los productos y los saldos iniciales, a los
+ * clientes y proveedores.
  */
-const ORDEN_TIPOS: readonly TipoImportacion[] = ['proveedores', 'clientes', 'productos', 'stock'];
+const ORDEN_TIPOS: readonly TipoImportacion[] = [
+  'proveedores',
+  'clientes',
+  'productos',
+  'stock',
+  'saldos-clientes',
+  'saldos-proveedores',
+];
 
 /**
  * Máximo de filas que se dibujan en la vista previa (el resto se valida e

@@ -1,5 +1,7 @@
 import { resumenDeuda } from '../../domain/abonos';
 import type { ValorJson } from '../../domain/auditoria';
+import type { FacturaPendiente } from '../../shared/abonos';
+import type { ResumenDeuda } from '../../shared/compras';
 import type { UnidadMedida } from '../../shared/formato/cantidades';
 import type { EscalaPrecio } from '../../shared/maestros';
 import type {
@@ -238,7 +240,7 @@ export function ultimoNumeroFactura(db: BaseDeDatos): number | null {
  * aplicado por abonos activos). Las de contado no generan cartera.
  */
 const CONSULTA_SALDOS = `
-  SELECT f.id, f.numero, f.dia, f.vence, f.total,
+  SELECT f.id, f.numero, f.dia, f.vence, f.total, f.origen = 'saldo_inicial' AS saldoInicial,
          f.total - COALESCE((
            SELECT SUM(ap.valor) FROM abonos_aplicaciones ap
            JOIN abonos a ON a.id = ap.abono_id
@@ -261,8 +263,62 @@ interface FilaSaldo {
   vence: string;
   /** Total. */
   total: number;
+  /** 1 si es un saldo inicial importado. */
+  saldoInicial: number;
   /** Saldo pendiente. */
   saldo: number;
+}
+
+/**
+ * Facturas a crédito del cliente con saldo pendiente, de la más antigua a la
+ * más reciente (día y luego número), que es el orden en que se reparte un
+ * abono (D-51).
+ *
+ * @param db - Conexión abierta.
+ * @param clienteCodigo - Cliente.
+ * @returns Facturas con saldo mayor que cero.
+ */
+export function facturasPendientesCliente(
+  db: BaseDeDatos,
+  clienteCodigo: number,
+): FacturaPendiente[] {
+  const filas = db
+    .prepare(`SELECT * FROM (${CONSULTA_SALDOS}) WHERE saldo > 0 ORDER BY dia, numero`)
+    .all(clienteCodigo) as FilaSaldo[];
+  return filas.map((f) => ({
+    id: f.id,
+    numero: f.numero,
+    referencia: '',
+    saldoInicial: f.saldoInicial === 1,
+    fecha: f.dia,
+    vence: f.vence,
+    total: f.total,
+    saldo: f.saldo,
+  }));
+}
+
+/**
+ * Saldo actual de cada factura a crédito activa del cliente (también las pagadas).
+ *
+ * @param db - Conexión abierta.
+ * @param clienteCodigo - Cliente.
+ * @returns Id de la factura → saldo.
+ */
+export function saldosFacturasCliente(db: BaseDeDatos, clienteCodigo: number): Map<number, number> {
+  const filas = db.prepare(CONSULTA_SALDOS).all(clienteCodigo) as FilaSaldo[];
+  return new Map(filas.map((f) => [f.id, f.saldo]));
+}
+
+/**
+ * Deuda actual del cliente, total y vencida (§5.2).
+ *
+ * @param db - Conexión abierta.
+ * @param clienteCodigo - Cliente.
+ * @param hoy - Día de hoy, `AAAA-MM-DD`.
+ * @returns Deuda.
+ */
+export function deudaCliente(db: BaseDeDatos, clienteCodigo: number, hoy: string): ResumenDeuda {
+  return resumenDeuda(facturasPendientesCliente(db, clienteCodigo), hoy);
 }
 
 /**

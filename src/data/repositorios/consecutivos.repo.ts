@@ -12,6 +12,7 @@ export type ClaveConsecutivo =
   | 'proveedor'
   | 'compra'
   | 'abono_proveedor'
+  | 'abono_cliente'
   | 'ajuste'
   | 'factura_cliente';
 

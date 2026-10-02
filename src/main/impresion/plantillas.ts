@@ -1,4 +1,4 @@
-import type { AbonoProveedorDetalle } from '../../data/repositorios/abonos.repo';
+import type { AbonoDetalle } from '../../data/repositorios/abonos.repo';
 import { formatearFecha, formatearFechaHora } from '../../shared/formato/fechas';
 import { agruparMiles, formatearPesos } from '../../shared/formato/moneda';
 import type { DatosNegocio } from '../../shared/maestros';
@@ -85,13 +85,13 @@ export function encabezadoNegocio(negocio: DatosNegocio): string {
 }
 
 /**
- * Datos para el recibo de un abono a proveedor.
+ * Datos para el recibo de un abono.
  */
 export interface DatosReciboAbono {
   /** Datos del negocio. */
   negocio: DatosNegocio;
   /** Abono con su reparto. */
-  abono: AbonoProveedorDetalle;
+  abono: AbonoDetalle;
   /** Si es una reimpresión (§9.3, D-63). */
   reimpresion: boolean;
   /** Fecha ISO de la impresión. */
@@ -99,24 +99,39 @@ export interface DatosReciboAbono {
 }
 
 /**
- * Arma el recibo de un abono a proveedor en hoja carta (§8, D-52). Lleva la
- * leyenda REIMPRESION cuando corresponde (§9.3) y ANULADO si el abono se anuló.
+ * Marca que acompaña al número de una factura que es saldo inicial (D-86).
+ */
+export const MARCA_SALDO_INICIAL = 'Saldo inicial';
+
+/**
+ * Arma el recibo de un abono (de cliente o de proveedor) en hoja carta (§8,
+ * D-52, D-93). Lleva la leyenda REIMPRESION cuando corresponde (§9.3) y
+ * ANULADO si el abono se anuló.
  *
  * @param datos - Negocio, abono y tipo de impresión.
  * @returns Documento HTML.
  */
-export function reciboAbonoProveedor(datos: DatosReciboAbono): string {
+export function reciboAbono(datos: DatosReciboAbono): string {
   const { negocio, abono } = datos;
+  const cliente = abono.tipo === 'cliente';
   const leyendas = [
     datos.reimpresion ? '<div class="leyenda">REIMPRESION</div>' : '',
     abono.estado === 'anulado' ? '<div class="leyenda">ANULADO</div>' : '',
   ].join('');
+  const marca = (saldoInicial: boolean): string =>
+    saldoInicial ? ` (${MARCA_SALDO_INICIAL})` : '';
   const filas = abono.aplicaciones
-    .map(
-      (a) =>
-        `<tr><td>${a.compraNumero}</td><td>${escaparHtml(a.numeroProveedor)}</td><td class="num">${agruparMiles(a.valor)}</td></tr>`,
+    .map((a) =>
+      cliente
+        ? `<tr><td>${a.facturaNumero}${marca(a.saldoInicial)}</td><td class="num">${agruparMiles(a.valor)}</td></tr>`
+        : `<tr><td>${a.facturaNumero}</td><td>${escaparHtml(a.referencia)}${marca(a.saldoInicial)}</td><td class="num">${agruparMiles(a.valor)}</td></tr>`,
     )
     .join('');
+  const encabezadoTabla = cliente
+    ? '<th>Factura</th><th class="num">Valor aplicado</th>'
+    : '<th>Compra</th><th>Factura del proveedor</th><th class="num">Valor aplicado</th>';
+  const columnasTotal = cliente ? 1 : 2;
+  const tercero = cliente ? 'Cliente' : 'Proveedor';
   const observacion = abono.observacion
     ? `<tr><th>Observación</th><td>${escaparHtml(abono.observacion)}</td></tr>`
     : '';
@@ -128,20 +143,20 @@ export function reciboAbonoProveedor(datos: DatosReciboAbono): string {
       : '';
   const cuerpo = `
     ${encabezadoNegocio(negocio)}
-    <div class="titulo">RECIBO DE ABONO A PROVEEDOR No. ${abono.numero}</div>
+    <div class="titulo">RECIBO DE ABONO ${cliente ? 'DE CLIENTE' : 'A PROVEEDOR'} No. ${abono.numero}</div>
     ${leyendas}
     <table class="datos">
       <tr><th>Fecha del abono</th><td>${formatearFecha(abono.fecha)}</td></tr>
-      <tr><th>Proveedor</th><td>${abono.proveedorCodigo} - ${escaparHtml(abono.proveedorNombre)}</td></tr>
-      <tr><th>Identificación</th><td>${escaparHtml(abono.proveedorIdentificacion)}</td></tr>
+      <tr><th>${tercero}</th><td>${abono.terceroCodigo} - ${escaparHtml(abono.terceroNombre)}</td></tr>
+      <tr><th>Identificación</th><td>${escaparHtml(abono.terceroIdentificacion)}</td></tr>
       <tr><th>Forma de pago</th><td>${escaparHtml(abono.formaPagoNombre)}</td></tr>
       ${observacion}
       ${anulacion}
     </table>
     <table class="tabla">
-      <thead><tr><th>Compra</th><th>Factura del proveedor</th><th class="num">Valor aplicado</th></tr></thead>
+      <thead><tr>${encabezadoTabla}</tr></thead>
       <tbody>${filas}</tbody>
-      <tfoot><tr class="total"><td colspan="2">TOTAL DEL ABONO</td><td class="num">${formatearPesos(abono.valor)}</td></tr></tfoot>
+      <tfoot><tr class="total"><td colspan="${columnasTotal}">TOTAL DEL ABONO</td><td class="num">${formatearPesos(abono.valor)}</td></tr></tfoot>
     </table>
     <div class="pie">Registrado: ${formatearFechaHora(abono.registradoEn)} · Impreso: ${formatearFechaHora(datos.impresoEn)}</div>`;
   return documentoCarta(`Recibo de abono ${abono.numero}`, cuerpo);

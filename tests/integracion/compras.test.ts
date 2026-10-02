@@ -237,7 +237,7 @@ describe('factura de proveedor', () => {
     );
     expect(guardada.total).toBe(647_550);
     expect(guardada.abonoNumero).toBe(1);
-    const contexto = abonos.contextoProveedor(prov);
+    const contexto = abonos.contextoTercero('proveedor', prov);
     expect(contexto.deuda.total).toBe(0);
     expect(contexto.facturas).toEqual([]);
     expect(contexto.abonos[0]).toMatchObject({
@@ -302,21 +302,22 @@ describe('abonos a proveedor', () => {
 
   it('lista las facturas pendientes de la más antigua a la más reciente con la deuda vencida', () => {
     const { abonos, prov } = conTresCompras();
-    const contexto = abonos.contextoProveedor(prov);
-    expect(contexto.facturas.map((f) => [f.numeroProveedor, f.saldo, f.vence])).toEqual([
+    const contexto = abonos.contextoTercero('proveedor', prov);
+    expect(contexto.facturas.map((f) => [f.referencia, f.saldo, f.vence])).toEqual([
       ['A', 100_000, '2026-09-19'],
       ['B', 200_000, '2026-10-05'],
       ['C', 300_000, '2026-10-22'],
     ]);
     expect(contexto.deuda).toEqual({ total: 600_000, vencido: 100_000 });
-    expect(abonos.contexto()).toEqual({ siguienteNumero: 1, hoy: HOY });
+    expect(abonos.contexto('proveedor')).toEqual({ siguienteNumero: 1, hoy: HOY });
   });
 
   it('guarda un abono repartido entre varias facturas y baja sus saldos', () => {
     const { db, abonos, prov, ids } = conTresCompras();
     const [a, b] = ids;
     const guardado = abonos.guardar({
-      proveedorCodigo: prov,
+      tipo: 'proveedor' as const,
+      terceroCodigo: prov,
       fecha: HOY,
       formaPagoId: 2,
       valor: 250_000,
@@ -329,7 +330,7 @@ describe('abonos a proveedor', () => {
     });
     expect(guardado.numero).toBe(1);
     expect(contar(db, 'abonos_aplicaciones')).toBe(2);
-    const contexto = abonos.contextoProveedor(prov);
+    const contexto = abonos.contextoTercero('proveedor', prov);
     expect(contexto.facturas.map((f) => f.saldo)).toEqual([50_000, 300_000]);
     expect(contexto.deuda.total).toBe(350_000);
     expect(contexto.abonos[0]).toMatchObject({
@@ -339,7 +340,7 @@ describe('abonos a proveedor', () => {
       estado: 'activo',
     });
     expect(
-      contexto.abonos[0]?.aplicaciones.map((x) => [x.compraNumero, x.valor, x.saldoActual]),
+      contexto.abonos[0]?.aplicaciones.map((x) => [x.facturaNumero, x.valor, x.saldoActual]),
     ).toEqual([
       [1, 100_000, 0],
       [2, 150_000, 50_000],
@@ -349,7 +350,8 @@ describe('abonos a proveedor', () => {
   it('rechaza repartos inválidos sin gastar el consecutivo', () => {
     const { abonos, prov, ids } = conTresCompras();
     const base = {
-      proveedorCodigo: prov,
+      tipo: 'proveedor' as const,
+      terceroCodigo: prov,
       fecha: HOY,
       formaPagoId: 1,
       observacion: '',
@@ -374,13 +376,14 @@ describe('abonos a proveedor', () => {
     expect(() => abonos.guardar({ ...base, formaPagoId: 99, valor: 1, aplicaciones: [] })).toThrow(
       /forma de pago/,
     );
-    expect(abonos.contexto().siguienteNumero).toBe(1);
+    expect(abonos.contexto('proveedor').siguienteNumero).toBe(1);
   });
 
   it('anular devuelve el saldo a las facturas y queda en el historial (§8, D-62)', () => {
     const { db, abonos, prov, ids } = conTresCompras();
     const { id } = abonos.guardar({
-      proveedorCodigo: prov,
+      tipo: 'proveedor' as const,
+      terceroCodigo: prov,
       fecha: HOY,
       formaPagoId: 1,
       valor: 100_000,
@@ -388,7 +391,7 @@ describe('abonos a proveedor', () => {
       aplicaciones: [{ facturaId: ids[0] ?? 0, valor: 100_000 }],
     });
     abonos.anular({ id, motivo: ' Error de digitación ' });
-    const contexto = abonos.contextoProveedor(prov);
+    const contexto = abonos.contextoTercero('proveedor', prov);
     expect(contexto.deuda.total).toBe(600_000);
     expect(contexto.abonos[0]).toMatchObject({
       estado: 'anulado',
@@ -407,7 +410,8 @@ describe('abonos a proveedor', () => {
   it('un abono no se modifica ni se borra: solo se anula', () => {
     const { db, abonos, prov, ids } = conTresCompras();
     abonos.guardar({
-      proveedorCodigo: prov,
+      tipo: 'proveedor' as const,
+      terceroCodigo: prov,
       fecha: HOY,
       formaPagoId: 1,
       valor: 1000,
@@ -424,7 +428,8 @@ describe('abonos a proveedor', () => {
   it('el detalle del abono trae los datos del recibo', () => {
     const { abonos, prov, ids } = conTresCompras();
     const { id } = abonos.guardar({
-      proveedorCodigo: prov,
+      tipo: 'proveedor' as const,
+      terceroCodigo: prov,
       fecha: HOY,
       formaPagoId: 1,
       valor: 1000,
@@ -432,8 +437,9 @@ describe('abonos a proveedor', () => {
       aplicaciones: [{ facturaId: ids[0] ?? 0, valor: 1000 }],
     });
     expect(abonos.obtener(id)).toMatchObject({
-      proveedorNombre: 'CÁRNICOS DEL VALLE',
-      proveedorIdentificacion: 'NIT 900000001',
+      tipo: 'proveedor',
+      terceroNombre: 'CÁRNICOS DEL VALLE',
+      terceroIdentificacion: 'NIT 900000001',
       formaPagoNombre: 'Efectivo',
     });
     expect(() => abonos.obtener(999)).toThrow(/no existe/);

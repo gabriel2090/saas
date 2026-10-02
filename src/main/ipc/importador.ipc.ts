@@ -12,7 +12,14 @@ import { exigirArreglo, exigirEntero, exigirObjeto, exigirOpcion, exigirTexto } 
 /**
  * Tipos de importación aceptados.
  */
-const TIPOS: readonly TipoImportacion[] = ['productos', 'clientes', 'proveedores', 'stock'];
+const TIPOS: readonly TipoImportacion[] = [
+  'productos',
+  'clientes',
+  'proveedores',
+  'stock',
+  'saldos-clientes',
+  'saldos-proveedores',
+];
 
 /**
  * Máximo de filas por archivo: protege la memoria del proceso principal

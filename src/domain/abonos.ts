@@ -145,7 +145,7 @@ export function validarAplicaciones(
     const saldo = saldos.get(facturaId);
     if (saldo === undefined || saldo <= 0) {
       invalido(
-        'Una de las facturas del reparto ya no tiene saldo pendiente. Vuelva a cargar el proveedor.',
+        'Una de las facturas del reparto ya no tiene saldo pendiente. Vuelva a elegir el cliente o el proveedor para ver los saldos actuales.',
       );
     }
     if (aplicado > saldo) {

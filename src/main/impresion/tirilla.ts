@@ -1,10 +1,11 @@
+import type { AbonoDetalle } from '../../data/repositorios/abonos.repo';
 import type { FacturaClienteDetalle } from '../../data/repositorios/ventas.repo';
 import { formatearCantidad } from '../../shared/formato/cantidades';
 import { formatearFecha, formatearFechaHoraTirilla } from '../../shared/formato/fechas';
 import { pesosEnLetras } from '../../shared/formato/letras';
 import { agruparMiles } from '../../shared/formato/moneda';
 import type { DatosNegocio } from '../../shared/maestros';
-import { encabezadoNegocio, escaparHtml } from './plantillas';
+import { encabezadoNegocio, escaparHtml, MARCA_SALDO_INICIAL } from './plantillas';
 
 /**
  * Ancho del papel de la impresora térmica, en milímetros (§11.1).
@@ -154,14 +155,96 @@ export function tirillaFactura(datos: DatosTirillaFactura): string {
     ${ahorro}
     <div class="bloque centro negrita">GRACIAS POR SU COMPRA</div>
     <div class="bloque">No.Cajas Empaque: ${cajas}</div>`;
+  return documentoTirilla(`Factura ${factura.numero}`, cuerpo);
+}
+
+/**
+ * Arma un documento HTML completo de tirilla.
+ *
+ * @param titulo - Título del documento.
+ * @param cuerpo - HTML del contenido, ya escapado.
+ * @returns Documento HTML.
+ */
+function documentoTirilla(titulo: string, cuerpo: string): string {
   return `<!doctype html>
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'" />
-<title>Factura ${factura.numero}</title>
+<title>${escaparHtml(titulo)}</title>
 <style>${ESTILO_TIRILLA}</style>
 </head>
 <body><div class="tirilla">${cuerpo}</div></body>
 </html>`;
+}
+
+/**
+ * Datos para la tirilla del recibo de un abono de cliente.
+ */
+export interface DatosTirillaAbono {
+  /** Datos del negocio. */
+  negocio: DatosNegocio;
+  /** Abono de cliente con su reparto. */
+  abono: AbonoDetalle;
+  /** Lo que el cliente sigue debiendo en total al imprimir. */
+  deudaActual: number;
+  /** Si es una reimpresión (§9.3). */
+  reimpresion: boolean;
+  /** Fecha ISO de la impresión. */
+  impresoEn: string;
+}
+
+/**
+ * Arma la tirilla de 80 mm del recibo de un abono de cliente (D-93): número,
+ * fecha, cliente, forma de pago, facturas abonadas con el saldo que les queda,
+ * total en números y letras, y lo que el cliente sigue debiendo. Lleva
+ * REIMPRESION o ANULADO cuando corresponde.
+ *
+ * @param datos - Negocio, abono, deuda actual y si es reimpresión.
+ * @returns Documento HTML completo.
+ */
+export function tirillaReciboAbono(datos: DatosTirillaAbono): string {
+  const { negocio, abono } = datos;
+  const leyendas = [
+    datos.reimpresion ? '<div class="leyenda">REIMPRESION</div>' : '',
+    abono.estado === 'anulado' ? '<div class="leyenda">ANULADO</div>' : '',
+  ].join('');
+  const filas = abono.aplicaciones
+    .map(
+      (a) => `<tr>
+        <td>${a.facturaNumero}${a.saldoInicial ? `<div class="detalle">${MARCA_SALDO_INICIAL.toUpperCase()}</div>` : ''}</td>
+        <td class="num">${agruparMiles(a.valor)}</td>
+        <td class="num">${agruparMiles(a.saldoActual)}</td>
+      </tr>`,
+    )
+    .join('');
+  const observacion = abono.observacion
+    ? `<div class="bloque">OBS: ${escaparHtml(abono.observacion)}</div>`
+    : '';
+  const cuerpo = `
+    ${encabezadoNegocio(negocio)}
+    <div class="titulo">RECIBO DE ABONO</div>
+    <div class="numero">${abono.numero}</div>
+    <div class="bloque">
+      <div>Fecha: ${formatearFecha(abono.fecha)}</div>
+      <div>Registrado: ${formatearFechaHoraTirilla(abono.registradoEn)}</div>
+    </div>
+    ${leyendas}
+    <div class="bloque">
+      <div class="negrita">CLIENTE: ${abono.terceroCodigo}-${escaparHtml(abono.terceroNombre)}</div>
+      <div>${escaparHtml(abono.terceroIdentificacion)}</div>
+    </div>
+    <div class="bloque negrita">FORMA DE PAGO: ${escaparHtml(abono.formaPagoNombre.toUpperCase())}</div>
+    <table class="lineas">
+      <thead><tr><th>Factura</th><th class="num">Abono</th><th class="num">Saldo</th></tr></thead>
+      <tbody>${filas}</tbody>
+    </table>
+    <div class="separador"></div>
+    <div class="bloque negrita">SON: ${pesosEnLetras(abono.valor)}</div>
+    <div class="bloque fila total"><span>TOTAL ABONO</span><span>${agruparMiles(abono.valor)}</span></div>
+    <div class="fila"><span>SALDO PENDIENTE</span><span>${agruparMiles(datos.deudaActual)}</span></div>
+    ${observacion}
+    <div class="bloque centro negrita">GRACIAS POR SU PAGO</div>
+    <div class="bloque detalle">Impreso: ${formatearFechaHoraTirilla(datos.impresoEn)}</div>`;
+  return documentoTirilla(`Recibo de abono ${abono.numero}`, cuerpo);
 }

@@ -109,7 +109,7 @@ export const PROCESOS: readonly DefinicionProceso[] = [
   {
     id: 'importador',
     titulo: 'Importar datos',
-    palabrasClave: ['excel', 'csv', 'xlsx', 'cargar'],
+    palabrasClave: ['excel', 'csv', 'xlsx', 'cargar', 'saldos iniciales'],
     fase: 1,
     anclado: false,
   },

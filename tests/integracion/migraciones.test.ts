@@ -28,7 +28,7 @@ describe('migraciones del proyecto', () => {
   it('crean el esquema con sus datos iniciales', () => {
     const db = abrirBaseDeDatos(':memory:');
     expect(aplicarMigraciones(db, migracionesDelProyecto(), () => FECHA_PRUEBA)).toEqual([
-      1, 2, 3, 4,
+      1, 2, 3, 4, 5,
     ]);
     expect(tablas(db)).toEqual([
       'abonos',
@@ -67,6 +67,7 @@ describe('migraciones del proyecto', () => {
       .prepare('SELECT clave, siguiente FROM consecutivos ORDER BY clave')
       .all();
     expect(consecutivos).toEqual([
+      { clave: 'abono_cliente', siguiente: 1 },
       { clave: 'abono_proveedor', siguiente: 1 },
       { clave: 'ajuste', siguiente: 1 },
       { clave: 'cliente', siguiente: 10001 },

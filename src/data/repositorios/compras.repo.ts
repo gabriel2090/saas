@@ -217,7 +217,8 @@ export function ultimoPlazoProveedor(db: BaseDeDatos, proveedorCodigo: number): 
  * lo aplicado por abonos activos). El saldo no se guarda: siempre se deriva.
  */
 const CONSULTA_SALDOS = `
-  SELECT f.id, f.numero, f.numero_proveedor AS numeroProveedor, f.fecha, f.vence, f.total,
+  SELECT f.id, f.numero, f.numero_proveedor AS referencia, f.origen = 'saldo_inicial' AS saldoInicial,
+         f.fecha, f.vence, f.total,
          f.total - COALESCE((
            SELECT SUM(ap.valor) FROM abonos_aplicaciones ap
            JOIN abonos a ON a.id = ap.abono_id
@@ -225,6 +226,22 @@ const CONSULTA_SALDOS = `
          ), 0) AS saldo
   FROM facturas_proveedor f
   WHERE f.proveedor_codigo = ? AND f.estado = 'activa'`;
+
+/**
+ * Fila de {@link CONSULTA_SALDOS}: SQLite devuelve el indicador de saldo
+ * inicial como 0 o 1.
+ */
+type FilaSaldoCompra = Omit<FacturaPendiente, 'saldoInicial'> & { saldoInicial: number };
+
+/**
+ * Convierte una fila de saldos en la factura pendiente.
+ *
+ * @param fila - Fila leída.
+ * @returns La factura con su indicador booleano.
+ */
+function aPendiente(fila: FilaSaldoCompra): FacturaPendiente {
+  return { ...fila, saldoInicial: fila.saldoInicial === 1 };
+}
 
 /**
  * Facturas del proveedor con saldo pendiente, de la más antigua a la más
@@ -239,9 +256,11 @@ export function facturasPendientesProveedor(
   db: BaseDeDatos,
   proveedorCodigo: number,
 ): FacturaPendiente[] {
-  return db
-    .prepare(`SELECT * FROM (${CONSULTA_SALDOS}) WHERE saldo > 0 ORDER BY fecha, numero`)
-    .all(proveedorCodigo) as FacturaPendiente[];
+  return (
+    db
+      .prepare(`SELECT * FROM (${CONSULTA_SALDOS}) WHERE saldo > 0 ORDER BY fecha, numero`)
+      .all(proveedorCodigo) as FilaSaldoCompra[]
+  ).map(aPendiente);
 }
 
 /**
@@ -255,7 +274,7 @@ export function saldosFacturasProveedor(
   db: BaseDeDatos,
   proveedorCodigo: number,
 ): Map<number, number> {
-  const filas = db.prepare(CONSULTA_SALDOS).all(proveedorCodigo) as FacturaPendiente[];
+  const filas = db.prepare(CONSULTA_SALDOS).all(proveedorCodigo) as FilaSaldoCompra[];
   return new Map(filas.map((f) => [f.id, f.saldo]));
 }
 

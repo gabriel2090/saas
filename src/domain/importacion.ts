@@ -1,4 +1,5 @@
 import { formatearCantidad, leerCantidad, type UnidadMedida } from '../shared/formato/cantidades';
+import { leerFecha } from '../shared/formato/fechas';
 import { leerPesos } from '../shared/formato/moneda';
 import type {
   CampoImportacion,
@@ -13,6 +14,14 @@ import type {
   TipoIdentificacion,
   TipoPersona,
 } from '../shared/maestros';
+import {
+  calcularVencimiento,
+  diasEntre,
+  esFechaValida,
+  PLAZO_MAXIMO_DIAS,
+  sumarDias,
+} from './calendario';
+import { claveNumeroProveedor, validarNumeroProveedor } from './compras';
 import { esErrorDeNegocio } from './errores';
 import { claveIdentificacion, validarDatosProducto, validarDatosTercero } from './maestros';
 import { diferenciaStockInicial } from './stock';
@@ -38,6 +47,40 @@ export interface ContextoImportacion {
   stockInicial: ReadonlyMap<string, number>;
   /** Productos con movimientos distintos del stock inicial (ya no admiten stock inicial). */
   productosConOtrosMovimientos: ReadonlySet<number>;
+  /** Lo que se necesita para los saldos iniciales de cartera (solo en esos tipos). */
+  saldos?: ContextoSaldosIniciales;
+}
+
+/**
+ * Datos existentes para validar saldos iniciales de cartera (D-86).
+ */
+export interface ContextoSaldosIniciales {
+  /** Día de hoy, `AAAA-MM-DD` (la fecha de la factura no puede ser futura). */
+  hoy: string;
+  /** Códigos de clientes existentes (activos e inactivos). */
+  clientes: ReadonlySet<number>;
+  /** Números de factura de cliente ya usados (también las anuladas). */
+  numerosFacturaCliente: ReadonlySet<number>;
+  /** Próximo número de factura de venta configurado. */
+  siguienteFacturaCliente: number;
+  /** Facturas de proveedor activas: `código|número normalizado` (D-49). */
+  facturasProveedor: ReadonlySet<string>;
+}
+
+/**
+ * Datos comunes de un saldo inicial ya validado.
+ */
+export interface SaldoInicialValidado {
+  /** Código del cliente o del proveedor. */
+  terceroCodigo: number;
+  /** Fecha de la factura, `AAAA-MM-DD`. */
+  fecha: string;
+  /** Plazo en días. */
+  plazoDias: number;
+  /** Vencimiento, `AAAA-MM-DD`. */
+  vence: string;
+  /** Saldo pendiente en pesos. */
+  saldo: number;
 }
 
 /**
@@ -46,6 +89,22 @@ export interface ContextoImportacion {
 export type RegistroImportable =
   | { tipo: 'productos'; fila: number; datos: DatosProductoNuevo }
   | { tipo: 'clientes' | 'proveedores'; fila: number; datos: DatosTerceroNuevo }
+  | {
+      tipo: 'saldos-clientes';
+      fila: number;
+      /** Número de la factura de venta en el sistema anterior. */
+      numero: number;
+      datos: SaldoInicialValidado;
+    }
+  | {
+      tipo: 'saldos-proveedores';
+      fila: number;
+      /** Número de la factura del proveedor, limpio. */
+      numeroProveedor: string;
+      /** Número normalizado para detectar duplicados (D-49). */
+      numeroProveedorClave: string;
+      datos: SaldoInicialValidado;
+    }
   | {
       tipo: 'stock';
       fila: number;
@@ -645,6 +704,344 @@ function validarFilaStock(
 }
 
 /**
+ * Día 0 de las fechas de Excel (sistema 1900): el número 1 es el 1/1/1900 y
+ * Excel cuenta un 29 de febrero de 1900 que no existió, por eso se parte del
+ * 30 de diciembre de 1899.
+ */
+const ORIGEN_FECHAS_EXCEL = '1899-12-30';
+
+/**
+ * Rango de números de fecha de Excel que se aceptan (1954 a 2119): fuera de
+ * él, un número en la columna de fecha es casi seguro otro dato.
+ */
+const RANGO_FECHAS_EXCEL = { desde: 20_000, hasta: 80_000 } as const;
+
+/**
+ * Lee una fecha escrita en un archivo: `dd/mm/aaaa` (o con guiones),
+ * `AAAA-MM-DD`, o el número de fecha con que Excel guarda las celdas de
+ * fecha (las horas se ignoran).
+ *
+ * @param texto - Texto de la celda.
+ * @returns Fecha `AAAA-MM-DD`, o `null` si no se reconoce o no existe.
+ *
+ * @example
+ * leerFechaArchivo('15/09/2026'); // '2026-09-15'
+ * leerFechaArchivo('2026-09-15'); // '2026-09-15'
+ * leerFechaArchivo('46280');      // '2026-09-15' (celda de fecha de Excel)
+ * leerFechaArchivo('31/02/2026'); // null
+ */
+export function leerFechaArchivo(texto: string): string | null {
+  const t = texto.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) {
+    return esFechaValida(t) ? t : null;
+  }
+  if (/^\d{1,2}[/-]\d{1,2}[/-]\d{4}$/.test(t)) {
+    return leerFecha(t.replace(/-/g, '/'));
+  }
+  const serial = /^(\d{5})(?:[.,]\d+)?$/.exec(t);
+  if (serial) {
+    const dias = Number(serial[1]);
+    if (dias >= RANGO_FECHAS_EXCEL.desde && dias <= RANGO_FECHAS_EXCEL.hasta) {
+      return sumarDias(ORIGEN_FECHAS_EXCEL, dias);
+    }
+  }
+  return null;
+}
+
+/**
+ * Lee la fecha de la factura de un saldo inicial (obligatoria, no futura).
+ *
+ * @param fila - Fila del archivo.
+ * @param errores - Acumulador de la fila.
+ * @param hoy - Día de hoy.
+ * @returns Fecha, o `null` si falta o es inválida.
+ */
+function leerFechaSaldo(fila: FilaImportacion, errores: ErroresDeFila, hoy: string): string | null {
+  const texto = valor(fila, 'fecha');
+  if (texto === '') {
+    errores.agregar('fecha', 'Falta la fecha de la factura.');
+    return null;
+  }
+  const fecha = leerFechaArchivo(texto);
+  if (fecha === null) {
+    errores.agregar('fecha', `La fecha «${texto}» no es válida: use dd/mm/aaaa.`);
+    return null;
+  }
+  if (diasEntre(hoy, fecha) > 0) {
+    errores.agregar('fecha', 'La fecha de la factura no puede ser posterior a hoy.');
+    return null;
+  }
+  return fecha;
+}
+
+/**
+ * Lee el vencimiento y el plazo de un saldo inicial: basta con uno de los
+ * dos; si vienen ambos, deben coincidir.
+ *
+ * @param fila - Fila del archivo.
+ * @param errores - Acumulador de la fila.
+ * @param fecha - Fecha de la factura ya leída (o `null` si fue inválida).
+ * @returns Plazo y vencimiento, o `null` si falta alguno o no son válidos.
+ */
+function leerVencimientoSaldo(
+  fila: FilaImportacion,
+  errores: ErroresDeFila,
+  fecha: string | null,
+): { plazoDias: number; vence: string } | null {
+  const textoVence = valor(fila, 'vence');
+  const textoPlazo = valor(fila, 'plazo');
+  if (textoVence === '' && textoPlazo === '') {
+    errores.agregar('vence', 'Falta el vencimiento o el plazo en días.');
+    return null;
+  }
+  let vence: string | null = null;
+  if (textoVence !== '') {
+    vence = leerFechaArchivo(textoVence);
+    if (vence === null) {
+      errores.agregar('vence', `El vencimiento «${textoVence}» no es válido: use dd/mm/aaaa.`);
+    }
+  }
+  let plazo: number | null = null;
+  if (textoPlazo !== '') {
+    const coincidencia = /^(\d+)(?:[.,]0+)?$/.exec(textoPlazo);
+    plazo = coincidencia ? Number(coincidencia[1]) : null;
+    if (plazo === null || plazo > PLAZO_MAXIMO_DIAS) {
+      errores.agregar(
+        'plazo',
+        `El plazo «${textoPlazo}» debe ser un número entero de días entre 0 y ${PLAZO_MAXIMO_DIAS}.`,
+      );
+      plazo = null;
+    }
+  }
+  if (fecha === null || !errores.vacia) {
+    return null;
+  }
+  if (vence !== null) {
+    const dias = diasEntre(fecha, vence);
+    if (dias < 0) {
+      errores.agregar('vence', 'El vencimiento no puede ser anterior a la fecha de la factura.');
+      return null;
+    }
+    if (plazo !== null && plazo !== dias) {
+      errores.agregar(
+        'plazo',
+        `El plazo (${plazo} días) no coincide con el vencimiento, que da ${dias} días.`,
+      );
+      return null;
+    }
+    if (dias > PLAZO_MAXIMO_DIAS) {
+      errores.agregar('vence', `El vencimiento da un plazo mayor que ${PLAZO_MAXIMO_DIAS} días.`);
+      return null;
+    }
+    return { plazoDias: dias, vence };
+  }
+  return plazo === null ? null : { plazoDias: plazo, vence: calcularVencimiento(fecha, plazo) };
+}
+
+/**
+ * Lee el saldo pendiente de un saldo inicial (entero en pesos, mayor que cero).
+ *
+ * @param fila - Fila del archivo.
+ * @param errores - Acumulador de la fila.
+ * @param formato - Formato numérico del archivo.
+ * @returns Saldo, o `null` si falta o es inválido.
+ */
+function leerSaldoPendiente(
+  fila: FilaImportacion,
+  errores: ErroresDeFila,
+  formato: FormatoNumerico,
+): number | null {
+  const saldo = leerPesosObligatorio(fila, 'saldo', 'Saldo pendiente', errores, formato);
+  if (saldo !== null && saldo <= 0) {
+    errores.agregar('saldo', 'El saldo pendiente debe ser mayor que cero.');
+    return null;
+  }
+  return saldo;
+}
+
+/**
+ * Valida una fila de saldo inicial de cliente (D-86): el cliente existe, el
+ * número de factura es entero y no se ha usado (ni en el sistema ni en el
+ * archivo), y fecha, vencimiento y saldo son válidos. Si el número alcanza
+ * el consecutivo de facturas, la fila lleva un aviso: al importar, la
+ * próxima factura pasa a quedar por encima.
+ *
+ * @param fila - Fila del archivo.
+ * @param saldos - Datos existentes de cartera.
+ * @param vistos - Números de factura ya vistos en el archivo → fila.
+ * @param formato - Formato numérico del archivo.
+ * @returns Registro válido, errores y avisos de la fila.
+ */
+function validarFilaSaldoCliente(
+  fila: FilaImportacion,
+  saldos: ContextoSaldosIniciales,
+  vistos: Map<string, number>,
+  formato: FormatoNumerico,
+): ResultadoFila {
+  const errores = new ErroresDeFila(fila.numero);
+  const textoCliente = valor(fila, 'tercero');
+  const clienteCodigo = leerCodigo(textoCliente);
+  if (/^0+$/.test(textoCliente)) {
+    errores.agregar('tercero', '«Consumidor final» no tiene cartera: sus ventas son de contado.');
+  } else if (clienteCodigo === null) {
+    errores.agregar('tercero', 'Falta el código del cliente o no es un número.');
+  } else if (!saldos.clientes.has(clienteCodigo)) {
+    errores.agregar('tercero', `El cliente ${clienteCodigo} no existe.`);
+  }
+
+  const textoNumero = valor(fila, 'numero');
+  const numero = leerCodigo(textoNumero);
+  if (numero === null) {
+    errores.agregar(
+      'numero',
+      textoNumero === ''
+        ? 'Falta el número de la factura.'
+        : `El número de factura «${textoNumero}» debe ser un número entero (el de la factura de venta en el sistema anterior).`,
+    );
+  } else if (saldos.numerosFacturaCliente.has(numero)) {
+    errores.agregar('numero', `La factura de venta ${numero} ya existe en el sistema.`);
+  } else {
+    const repetido = vistos.get(String(numero));
+    if (repetido !== undefined) {
+      errores.agregar(
+        'numero',
+        `La factura ${numero} está repetida (ya aparece en la fila ${repetido}).`,
+      );
+    }
+  }
+
+  const fecha = leerFechaSaldo(fila, errores, saldos.hoy);
+  const vencimiento = leerVencimientoSaldo(fila, errores, fecha);
+  const saldo = leerSaldoPendiente(fila, errores, formato);
+  if (
+    !errores.vacia ||
+    clienteCodigo === null ||
+    numero === null ||
+    fecha === null ||
+    vencimiento === null ||
+    saldo === null
+  ) {
+    return { registro: null, errores: errores.lista };
+  }
+  vistos.set(String(numero), fila.numero);
+  const avisos: ErrorFila[] =
+    numero >= saldos.siguienteFacturaCliente
+      ? [
+          {
+            fila: fila.numero,
+            campo: 'numero',
+            mensaje: `El número alcanza la próxima factura de venta (${saldos.siguienteFacturaCliente}): al importar, la próxima factura quedará después de ${numero}. Revise «Próxima factura No.» en Datos del negocio.`,
+          },
+        ]
+      : [];
+  return {
+    registro: {
+      tipo: 'saldos-clientes',
+      fila: fila.numero,
+      numero,
+      datos: { terceroCodigo: clienteCodigo, fecha, ...vencimiento, saldo },
+    },
+    errores: [],
+    avisos,
+  };
+}
+
+/**
+ * Valida una fila de saldo inicial de proveedor (D-58, D-86): el proveedor
+ * existe, el número de su factura no está registrado (D-49) ni repetido en
+ * el archivo, y fecha, vencimiento y saldo son válidos.
+ *
+ * @param fila - Fila del archivo.
+ * @param contexto - Datos existentes.
+ * @param saldos - Datos existentes de cartera.
+ * @param vistos - `código|número normalizado` ya vistos en el archivo → fila.
+ * @param formato - Formato numérico del archivo.
+ * @returns Registro válido y errores de la fila.
+ */
+function validarFilaSaldoProveedor(
+  fila: FilaImportacion,
+  contexto: ContextoImportacion,
+  saldos: ContextoSaldosIniciales,
+  vistos: Map<string, number>,
+  formato: FormatoNumerico,
+): ResultadoFila {
+  const errores = new ErroresDeFila(fila.numero);
+  const proveedorCodigo = leerCodigo(valor(fila, 'tercero'));
+  if (proveedorCodigo === null) {
+    errores.agregar('tercero', 'Falta el código del proveedor o no es un número.');
+  } else if (!contexto.proveedores.has(proveedorCodigo)) {
+    errores.agregar('tercero', `El proveedor ${proveedorCodigo} no existe.`);
+  }
+
+  const textoNumero = valor(fila, 'numero');
+  let numeroProveedor: string | null = null;
+  let clave = '';
+  if (textoNumero === '') {
+    errores.agregar('numero', 'Falta el número de la factura del proveedor.');
+  } else {
+    numeroProveedor = errores.intentar(() => validarNumeroProveedor(textoNumero));
+    clave = numeroProveedor === null ? '' : claveNumeroProveedor(numeroProveedor);
+  }
+  const par = `${proveedorCodigo ?? ''}|${clave}`;
+  if (numeroProveedor !== null && proveedorCodigo !== null) {
+    if (saldos.facturasProveedor.has(par)) {
+      errores.agregar(
+        'numero',
+        `El proveedor ${proveedorCodigo} ya tiene registrada la factura ${numeroProveedor}.`,
+      );
+    } else {
+      const repetido = vistos.get(par);
+      if (repetido !== undefined) {
+        errores.agregar(
+          'numero',
+          `La factura ${numeroProveedor} de este proveedor está repetida (ya aparece en la fila ${repetido}).`,
+        );
+      }
+    }
+  }
+
+  const fecha = leerFechaSaldo(fila, errores, saldos.hoy);
+  const vencimiento = leerVencimientoSaldo(fila, errores, fecha);
+  const saldo = leerSaldoPendiente(fila, errores, formato);
+  if (
+    !errores.vacia ||
+    proveedorCodigo === null ||
+    numeroProveedor === null ||
+    fecha === null ||
+    vencimiento === null ||
+    saldo === null
+  ) {
+    return { registro: null, errores: errores.lista };
+  }
+  vistos.set(par, fila.numero);
+  return {
+    registro: {
+      tipo: 'saldos-proveedores',
+      fila: fila.numero,
+      numeroProveedor,
+      numeroProveedorClave: clave,
+      datos: { terceroCodigo: proveedorCodigo, fecha, ...vencimiento, saldo },
+    },
+    errores: [],
+  };
+}
+
+/**
+ * Datos de cartera del contexto, que el servicio debe incluir al importar
+ * saldos iniciales.
+ *
+ * @param contexto - Contexto de la importación.
+ * @returns Datos de cartera.
+ * @throws {Error} Si faltan (error técnico del llamador).
+ */
+function exigirSaldos(contexto: ContextoImportacion): ContextoSaldosIniciales {
+  if (!contexto.saldos) {
+    throw new Error('Falta el contexto de saldos iniciales para validar la importación.');
+  }
+  return contexto.saldos;
+}
+
+/**
  * Valida todas las filas de un archivo de importación. Cada fila se valida
  * por separado: las válidas se pueden importar aunque otras tengan errores
  * («Importar solo las filas válidas», D-26). Un código o identificación que
@@ -690,6 +1087,18 @@ export function validarFilasImportacion(
         break;
       case 'stock':
         resultado = validarFilaStock(fila, contexto, paresVistos, formato);
+        break;
+      case 'saldos-clientes':
+        resultado = validarFilaSaldoCliente(fila, exigirSaldos(contexto), paresVistos, formato);
+        break;
+      case 'saldos-proveedores':
+        resultado = validarFilaSaldoProveedor(
+          fila,
+          contexto,
+          exigirSaldos(contexto),
+          paresVistos,
+          formato,
+        );
         break;
     }
     if (resultado.registro) {

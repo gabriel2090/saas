@@ -2,7 +2,7 @@
 
 Aplicación de escritorio para Windows (100 % offline) de inventario, facturación, cuentas por cobrar y cuentas por pagar. La especificación completa está en [`docs/ESPECIFICACION.md`](docs/ESPECIFICACION.md), las decisiones tomadas en [`docs/DECISIONES.md`](docs/DECISIONES.md) y la arquitectura en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
 
-**Estado:** Fase 3a (facturar con impresión térmica) en revisión; la 3b (abonos de cliente e importador de saldos iniciales) empieza tras probar con la impresora real. Guía de uso: [`docs/MANUAL_USUARIO.md`](docs/MANUAL_USUARIO.md). Incluye:
+**Estado:** Fase 3b (abonos de cliente e importador de saldos iniciales) en revisión; la 3a queda pendiente de la prueba con la impresora térmica real. Guía de uso: [`docs/MANUAL_USUARIO.md`](docs/MANUAL_USUARIO.md). Incluye:
 
 - **Fase 0:** estructura, migraciones, contraseña, ventanas internas, barra de iconos, buscador de procesos, `keymap`, historial de cambios y respaldos automáticos.
 - **Fase 1:**
@@ -19,6 +19,9 @@ Aplicación de escritorio para Windows (100 % offline) de inventario, facturaci�
   - Facturar con 6 borradores autoguardados (sobreviven a cerrar la ventana o a un apagón), escala por línea, precio alterado (F7), revisión de crédito con bloqueo y «Cambiar a contado», contado con cambio y «Su ahorro fue de».
   - Tirilla «FACTURA DE VENTA» de 80 mm impresa en silencio en la impresora elegida, con «Reintentar impresión» si falla.
   - En «Datos del negocio»: el consecutivo inicial de la factura y la impresora térmica.
+- **Fase 3b:**
+  - Abono de cliente: la misma ventana del abono a proveedor (reparto a las facturas más antiguas, abonos anteriores y anulación), con su propio consecutivo y recibo en tirilla de 80 mm o en hoja carta (vista previa y PDF).
+  - Importador de saldos iniciales de clientes y de proveedores: cada documento pendiente del sistema anterior entra como factura «Saldo inicial» que se abona y cuenta en el crédito como las demás.
 
 ## Requisitos
 

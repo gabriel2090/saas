@@ -1,6 +1,6 @@
 # Manual de usuario
 
-Guía de uso diario de Inventario y Facturación. Se completa fase a fase; por ahora cubre la configuración de la facturación y la ventana Facturar.
+Guía de uso diario de Inventario y Facturación. Se completa fase a fase; por ahora cubre la configuración de la facturación, la ventana Facturar, el abono de cliente y la importación de saldos iniciales.
 
 ## Configurar la facturación
 
@@ -44,3 +44,34 @@ Abra Facturar con su ícono o con Ctrl+K y «facturar». La ventana tiene **6 bo
 ### Impresión
 
 Al guardar, la factura queda registrada (descuenta el inventario y, si es a crédito, queda en la cartera del cliente) y se imprime la tirilla. Si la impresora falla o está apagada, la factura **ya quedó guardada**: arregle la impresora y pulse «Reintentar impresión». La reimpresión de facturas anteriores llega en una fase próxima.
+
+## Abono de cliente
+
+Abra «Abono de cliente» con Ctrl+K y «abono». Funciona igual que el abono a proveedor.
+
+1. **Cliente**: escriba el código o el nombre. «Consumidor final» no aparece: sus ventas son de contado. La ventana muestra lo que debe, lo vencido, sus facturas con saldo y sus abonos anteriores.
+2. **Fecha**, **Forma de pago** y **Valor del abono**. El valor se reparte solo, de la factura más antigua a la más reciente; puede cambiar el monto de cada factura o pulsar «Repartir de nuevo». Lo aplicado debe sumar el valor del abono.
+3. Guarde con **Av. Pág** (o «Guardar»). El abono recibe su número (los abonos de cliente llevan su propia numeración, aparte de los de proveedor).
+4. En el mensaje de abono guardado, **Imprimir recibo** imprime la tirilla de 80 mm en la impresora térmica, con el saldo pendiente total del cliente. Si falla, el mismo botón sirve para reintentar.
+5. En la lista de abonos anteriores, **Ver recibo** abre el recibo en hoja carta (marcado REIMPRESION), para imprimirlo o guardarlo en PDF.
+
+Las facturas marcadas **«Saldo inicial»** vienen del sistema anterior y se abonan como cualquier otra. Para corregir un abono mal hecho, use «Anular…» en la lista de abonos anteriores: el saldo vuelve a las facturas y el abono queda como ANULADO.
+
+## Importar saldos iniciales
+
+Antes de empezar a facturar, cargue lo que le deben los clientes y lo que usted les debe a los proveedores. Abra el **Importador** (Ctrl+K y «importar») y elija «Saldos iniciales de clientes» o «Saldos iniciales de proveedores». Importe primero los clientes y los proveedores.
+
+El archivo (CSV o Excel) lleva **una fila por factura pendiente**:
+
+| Columna | Qué va |
+| --- | --- |
+| Código del cliente / proveedor | Código del tercero en esta aplicación. |
+| Número de factura | Número de la factura en el sistema anterior. En clientes debe ser un número entero. |
+| Fecha | Fecha de la factura (`dd/mm/aaaa`, o celda de fecha de Excel). No puede ser futura. |
+| Vence / Plazo | Basta con una de las dos; si pone ambas deben coincidir. |
+| Saldo | Lo que falta por pagar de esa factura, en pesos. |
+
+- La vista previa marca cada fila con error (cliente que no existe, factura repetida, fechas inválidas…). Se pueden importar solo las filas válidas.
+- Si un número de factura de cliente alcanza la «Próxima factura No.», la fila lleva un aviso: al importar, la próxima factura queda después del número más alto importado.
+- Cada fila entra como una factura «Saldo inicial»: no mueve inventario, se abona y cuenta en el crédito del cliente como cualquier otra (una vencida bloquea el crédito si el cliente tiene tope).
+- Un saldo importado no se puede editar ni borrar; si quedó mal, se podrá anular cuando llegue la anulación de facturas.

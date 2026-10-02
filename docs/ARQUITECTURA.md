@@ -326,13 +326,22 @@ erDiagram
 - **Borradores (D-89):** se escriben fuera del ejecutor (no son documentos: sin historial ni respaldo por cada tecla). La pantalla los autoguarda 0,5 s después del último cambio y al cerrar; al reabrirlos toma los precios vigentes y avisa lo que cambió (D-83).
 - **Consecutivo configurable (D-84):** «Datos del negocio» cambia `consecutivos.factura_cliente` con su registro en el historial (entidad `consecutivo`); debe ser mayor que la última factura usada.
 
+## Modelo de datos (Fase 3b: `0005_cartera`)
+
+La 3b no crea tablas: reutiliza `abonos`, `abonos_aplicaciones` y las facturas de venta y de compra.
+
+- `facturas_cliente.origen` (`venta` | `saldo_inicial`) y `facturas_proveedor.origen` (`compra` | `saldo_inicial`), con `venta`/`compra` por defecto para lo ya guardado. Un trigger exige que el saldo inicial de cliente sea a crédito.
+- Índice `ix_abonos_cliente (cliente_codigo, fecha)` para la lista de abonos del cliente y consecutivo `abono_cliente` (separado de `abono_proveedor`).
+- **Saldo inicial (D-101):** una factura con `total` = saldo pendiente, sin líneas ni kardex, en la bodega Principal, versión 1 con el motivo «Saldo inicial importado del sistema anterior» e historial. El de cliente toma el número del archivo y ajusta `consecutivos.factura_cliente` si lo alcanza (`ajustarConsecutivo`); el de proveedor toma un número interno del consecutivo `compra` y guarda el del proveedor en `numero_proveedor`. Toda la importación es una sola transacción.
+- **Abonos genéricos (D-100):** `ServicioAbonos` recibe el `TipoAbono` (`cliente` | `proveedor`) y usa el consecutivo y la entidad de historial de cada uno (`abono_cliente`, `abono_proveedor`). Los saldos se derivan igual en ambos lados (`total` − aplicaciones de abonos activos), así que la deuda, el bloqueo de crédito (S-03) y los abonos incluyen los saldos iniciales sin código aparte.
+
 ## Impresión (D-52, D-72, D-88)
 
 1. La pantalla pide un documento por tipo e id (`impresion:html`, `impresion:imprimir`, `impresion:pdf`); el proceso principal arma el HTML desde la base (`main/impresion/plantillas.ts` y `tirilla.ts`, funciones puras con pruebas), con los datos del negocio y las leyendas REIMPRESION y ANULADO/ANULADA.
 2. El HTML lleva su propia CSP (`default-src 'none'; style-src 'unsafe-inline'`) y escapa todo texto escrito por el usuario.
 3. **Vista previa:** `<iframe sandbox srcdoc>` dentro de la app, sin scripts.
 4. **Carta / PDF:** una ventana oculta (`sandbox`, `javascript: false`, sin preload, sin navegación) carga el HTML como `data:` y usa `webContents.print` o `printToPDF` en tamaño carta. El PDF se guarda donde el usuario elija.
-5. **Tirilla de 80 mm (factura de venta):** misma ventana oculta, pero con `javascript` habilitado solo para que el proceso principal mida el alto del contenido (`executeJavaScript`; el documento sigue sin poder ejecutar scripts propios por su CSP). Imprime con `pageSize` de 80 mm × alto medido + 8 mm, sin márgenes. Con impresora configurada en `configuracion.facturacion.impresora` imprime en silencio (`deviceName`) tras comprobar que esté instalada; sin impresora abre el diálogo de Windows. Un fallo deja la factura guardada y la pantalla ofrece «Reintentar impresión».
+5. **Tirilla de 80 mm (factura de venta y, si se pide con `tirilla: true`, recibo de abono de cliente, D-93):** misma ventana oculta, pero con `javascript` habilitado solo para que el proceso principal mida el alto del contenido (`executeJavaScript`; el documento sigue sin poder ejecutar scripts propios por su CSP). Imprime con `pageSize` de 80 mm × alto medido + 8 mm, sin márgenes. Con impresora configurada en `configuracion.facturacion.impresora` imprime en silencio (`deviceName`) tras comprobar que esté instalada; sin impresora abre el diálogo de Windows. Un fallo deja la factura guardada y la pantalla ofrece «Reintentar impresión».
 
 ## Arranque
 

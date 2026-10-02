@@ -3,48 +3,51 @@ import { diaDeIso, validarFechaDocumento } from '../../domain/calendario';
 import { ErrorDeNegocio } from '../../domain/errores';
 import type { BaseDeDatos } from '../../data/conexion';
 import {
-  anularAbonoProveedor,
-  insertarAbonoProveedor,
-  listarAbonosProveedor,
-  obtenerAbonoProveedor,
-  type AbonoProveedorDetalle,
+  anularAbono,
+  insertarAbono,
+  listarAbonos,
+  obtenerAbono,
+  saldosFacturas,
+  type AbonoDetalle,
 } from '../../data/repositorios/abonos.repo';
 import { obtenerCatalogo } from '../../data/repositorios/catalogos.repo';
-import {
-  deudaProveedor,
-  facturasPendientesProveedor,
-  saldosFacturasProveedor,
-} from '../../data/repositorios/compras.repo';
+import { deudaProveedor, facturasPendientesProveedor } from '../../data/repositorios/compras.repo';
 import { consultarConsecutivo, tomarConsecutivo } from '../../data/repositorios/consecutivos.repo';
 import { obtenerTercero } from '../../data/repositorios/terceros.repo';
+import { deudaCliente, facturasPendientesCliente } from '../../data/repositorios/ventas.repo';
 import type { EjecutorTransacciones } from '../../data/transaccion';
 import type {
   AbonoGuardado,
   ContextoAbono,
-  ContextoAbonoProveedor,
+  ContextoAbonoTercero,
   PeticionAnularAbono,
   PeticionGuardarAbono,
+  TipoAbono,
 } from '../../shared/abonos';
 import { aIsoLocal } from '../../shared/formato/fechas';
+import { CODIGO_CONSUMIDOR_FINAL } from '../../shared/ventas';
 
 /**
- * Servicio de los abonos a proveedor (§8).
+ * Servicio de los abonos de cliente y de proveedor (§8). Ambos funcionan
+ * igual; cada tipo tiene su propio consecutivo.
  */
 export interface ServicioAbonos {
   /**
    * Datos generales de la ventana de abono.
    *
+   * @param tipo - Cliente o proveedor.
    * @returns Próximo número y día de hoy.
    */
-  contexto(): ContextoAbono;
+  contexto(tipo: TipoAbono): ContextoAbono;
   /**
-   * Deuda, facturas pendientes y abonos anteriores de un proveedor.
+   * Deuda, facturas pendientes y abonos anteriores de un cliente o proveedor.
    *
-   * @param proveedorCodigo - Proveedor.
-   * @returns Contexto del proveedor.
-   * @throws {ErrorDeNegocio} Si el proveedor no existe.
+   * @param tipo - Cliente o proveedor.
+   * @param codigo - Código del tercero.
+   * @returns Contexto del tercero.
+   * @throws {ErrorDeNegocio} Si el tercero no existe.
    */
-  contextoProveedor(proveedorCodigo: number): ContextoAbonoProveedor;
+  contextoTercero(tipo: TipoAbono, codigo: number): ContextoAbonoTercero;
   /**
    * Guarda un abono repartido entre facturas, en una transacción (§8, D-71).
    *
@@ -67,7 +70,7 @@ export interface ServicioAbonos {
    * @returns El abono.
    * @throws {ErrorDeNegocio} Si no existe.
    */
-  obtener(id: number): AbonoProveedorDetalle;
+  obtener(id: number): AbonoDetalle;
 }
 
 /**
@@ -79,7 +82,17 @@ export interface OpcionesServicioAbonos {
 }
 
 /**
- * Crea el servicio de abonos a proveedor.
+ * Consecutivo de cada tipo de abono.
+ *
+ * @param tipo - Cliente o proveedor.
+ * @returns Clave del consecutivo.
+ */
+function claveConsecutivo(tipo: TipoAbono): 'abono_cliente' | 'abono_proveedor' {
+  return tipo === 'cliente' ? 'abono_cliente' : 'abono_proveedor';
+}
+
+/**
+ * Crea el servicio de abonos.
  *
  * @param db - Conexión abierta.
  * @param ejecutar - Ejecutor de transacciones.
@@ -94,13 +107,21 @@ export function crearServicioAbonos(
   const hoy = opciones.hoy ?? ((): string => diaDeIso(aIsoLocal()));
 
   /**
-   * Verifica que el proveedor exista.
+   * Verifica que el cliente o proveedor exista. Un tercero inactivo puede
+   * tener deudas viejas: se le puede abonar.
    *
-   * @param codigo - Proveedor.
+   * @param tipo - Cliente o proveedor.
+   * @param codigo - Código del tercero.
    */
-  const exigirProveedor = (codigo: number): void => {
-    if (!obtenerTercero(db, 'proveedor', codigo)) {
-      throw new ErrorDeNegocio('NO_ENCONTRADO', `No existe el proveedor ${codigo}.`);
+  const exigirTercero = (tipo: TipoAbono, codigo: number): void => {
+    if (!obtenerTercero(db, tipo, codigo)) {
+      throw new ErrorDeNegocio('NO_ENCONTRADO', `No existe el ${tipo} ${codigo}.`);
+    }
+    if (tipo === 'cliente' && codigo === CODIGO_CONSUMIDOR_FINAL) {
+      throw new ErrorDeNegocio(
+        'VALIDACION',
+        '«Consumidor final» no tiene cartera: sus ventas son de contado.',
+      );
     }
   };
 
@@ -110,8 +131,8 @@ export function crearServicioAbonos(
    * @param id - Id del abono.
    * @returns El abono.
    */
-  const exigirAbono = (id: number): AbonoProveedorDetalle => {
-    const abono = obtenerAbonoProveedor(db, id);
+  const exigirAbono = (id: number): AbonoDetalle => {
+    const abono = obtenerAbono(db, id);
     if (!abono) {
       throw new ErrorDeNegocio('NO_ENCONTRADO', 'El abono no existe.');
     }
@@ -119,20 +140,29 @@ export function crearServicioAbonos(
   };
 
   return {
-    contexto: () => ({ siguienteNumero: consultarConsecutivo(db, 'abono_proveedor'), hoy: hoy() }),
+    contexto: (tipo) => ({
+      siguienteNumero: consultarConsecutivo(db, claveConsecutivo(tipo)),
+      hoy: hoy(),
+    }),
 
-    contextoProveedor(proveedorCodigo) {
-      exigirProveedor(proveedorCodigo);
-      return {
-        deuda: deudaProveedor(db, proveedorCodigo, hoy()),
-        facturas: facturasPendientesProveedor(db, proveedorCodigo),
-        abonos: listarAbonosProveedor(db, proveedorCodigo),
-      };
+    contextoTercero(tipo, codigo) {
+      exigirTercero(tipo, codigo);
+      const dia = hoy();
+      return tipo === 'cliente'
+        ? {
+            deuda: deudaCliente(db, codigo, dia),
+            facturas: facturasPendientesCliente(db, codigo),
+            abonos: listarAbonos(db, 'cliente', codigo),
+          }
+        : {
+            deuda: deudaProveedor(db, codigo, dia),
+            facturas: facturasPendientesProveedor(db, codigo),
+            abonos: listarAbonos(db, 'proveedor', codigo),
+          };
     },
 
     guardar(p) {
-      // Un proveedor inactivo puede tener deudas viejas: se le puede abonar.
-      exigirProveedor(p.proveedorCodigo);
+      exigirTercero(p.tipo, p.terceroCodigo);
       const fecha = validarFechaDocumento(p.fecha, hoy());
       const forma = obtenerCatalogo(db, 'forma-pago', p.formaPagoId);
       if (!forma?.activo) {
@@ -143,12 +173,13 @@ export function crearServicioAbonos(
         const aplicaciones = validarAplicaciones(
           p.valor,
           p.aplicaciones,
-          saldosFacturasProveedor(ctx.db, p.proveedorCodigo),
+          saldosFacturas(ctx.db, p.tipo, p.terceroCodigo),
         );
-        const numero = tomarConsecutivo(ctx, 'abono_proveedor');
-        const id = insertarAbonoProveedor(ctx, {
+        const numero = tomarConsecutivo(ctx, claveConsecutivo(p.tipo));
+        const id = insertarAbono(ctx, {
+          tipo: p.tipo,
           numero,
-          proveedorCodigo: p.proveedorCodigo,
+          terceroCodigo: p.terceroCodigo,
           fecha,
           formaPagoId: forma.id,
           valor: p.valor,
@@ -166,7 +197,7 @@ export function crearServicioAbonos(
         throw new ErrorDeNegocio('CONFLICTO', `El abono ${abono.numero} ya está anulado.`);
       }
       const motivo = validarTextoAbono(p.motivo, 'Motivo');
-      ejecutar((ctx) => anularAbonoProveedor(ctx, abono, motivo));
+      ejecutar((ctx) => anularAbono(ctx, abono, motivo));
     },
 
     obtener: exigirAbono,

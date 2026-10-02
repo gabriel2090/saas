@@ -1,8 +1,9 @@
 /**
- * Qué se puede importar en la Fase 1. Los saldos iniciales de cartera
- * llegan en la Fase 3 (D-24).
+ * Qué se puede importar: maestros y stock inicial (Fase 1) y saldos iniciales
+ * de cartera de clientes y de proveedores (Fase 3b, D-24, D-58, D-86).
  */
-export type TipoImportacion = 'productos' | 'clientes' | 'proveedores' | 'stock';
+export type TipoImportacion =
+  'productos' | 'clientes' | 'proveedores' | 'stock' | 'saldos-clientes' | 'saldos-proveedores';
 
 /**
  * Campo del sistema al que se asigna una columna del archivo.
@@ -72,6 +73,62 @@ const CAMPOS_TERCERO: readonly CampoImportacion[] = [
   { clave: 'barrio', etiqueta: 'Barrio', obligatorio: false, sinonimos: ['barrio'] },
   { clave: 'ciudad', etiqueta: 'Ciudad', obligatorio: false, sinonimos: ['ciudad', 'municipio'] },
 ];
+
+/**
+ * Campos de un saldo inicial de cartera (D-86): una fila por factura que
+ * quedó pendiente en el sistema anterior.
+ *
+ * @param tercero - `cliente` o `proveedor`.
+ * @returns Campos del tipo de importación.
+ */
+function camposSaldo(tercero: 'cliente' | 'proveedor'): readonly CampoImportacion[] {
+  return [
+    {
+      clave: 'tercero',
+      etiqueta: `Código del ${tercero}`,
+      obligatorio: true,
+      sinonimos: ['codigo', 'cod', `codigo ${tercero}`, `cod ${tercero}`, tercero],
+      ayuda: `El ${tercero} debe existir: importe primero los ${tercero}s.`,
+    },
+    {
+      clave: 'numero',
+      etiqueta: 'Número de factura',
+      obligatorio: true,
+      sinonimos: ['numero', 'factura', 'numero factura', 'no factura', 'nro factura', 'documento'],
+      ayuda:
+        tercero === 'cliente'
+          ? 'El número de la factura de venta en el sistema anterior (solo números).'
+          : 'El número de la factura del proveedor.',
+    },
+    {
+      clave: 'fecha',
+      etiqueta: 'Fecha de la factura',
+      obligatorio: true,
+      sinonimos: ['fecha', 'fecha factura', 'fecha documento', 'fecha emision'],
+      ayuda: 'dd/mm/aaaa (también AAAA-MM-DD o fecha de Excel).',
+    },
+    {
+      clave: 'vence',
+      etiqueta: 'Vencimiento',
+      obligatorio: false,
+      sinonimos: ['vence', 'vencimiento', 'fecha vencimiento', 'fecha vence'],
+      ayuda: 'Asigne el vencimiento o el plazo (o ambos, si coinciden).',
+    },
+    {
+      clave: 'plazo',
+      etiqueta: 'Plazo en días',
+      obligatorio: false,
+      sinonimos: ['plazo', 'dias', 'plazo dias', 'dias credito', 'dias plazo'],
+    },
+    {
+      clave: 'saldo',
+      etiqueta: 'Saldo pendiente',
+      obligatorio: true,
+      sinonimos: ['saldo', 'saldo pendiente', 'pendiente', 'debe', 'valor pendiente'],
+      ayuda: 'Lo que falta por pagar de esa factura, en pesos.',
+    },
+  ];
+}
 
 /**
  * Campos de cada tipo de importación.
@@ -155,6 +212,8 @@ export const CAMPOS_IMPORTACION: Readonly<Record<TipoImportacion, readonly Campo
       ayuda: 'Nombre de la bodega. Sin asignar: Principal.',
     },
   ],
+  'saldos-clientes': camposSaldo('cliente'),
+  'saldos-proveedores': camposSaldo('proveedor'),
 };
 
 /**
@@ -165,6 +224,8 @@ export const NOMBRES_IMPORTACION: Readonly<Record<TipoImportacion, string>> = {
   productos: 'Productos',
   clientes: 'Clientes',
   stock: 'Stock inicial',
+  'saldos-clientes': 'Saldos iniciales de clientes',
+  'saldos-proveedores': 'Saldos iniciales de proveedores',
 };
 
 /**

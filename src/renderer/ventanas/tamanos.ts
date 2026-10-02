@@ -20,6 +20,8 @@ const TAMANOS_INICIALES: Partial<Record<IdProceso, TamanoVentana>> = {
   // Documentos: según las maquetas aprobadas (docs/maquetas/factura-proveedor.html y abono-proveedor.html).
   'factura-proveedor': { ancho: 1236, alto: 680 },
   'abono-proveedor': { ancho: 1236, alto: 660 },
+  // Igual que el de proveedor: es la misma ventana (D-100).
+  'abono-cliente': { ancho: 1236, alto: 660 },
   'ajustes-inventario': { ancho: 1040, alto: 600 },
   // Según la maqueta aprobada (docs/maquetas/facturar.html).
   facturar: { ancho: 1236, alto: 740 },

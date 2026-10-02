@@ -6,7 +6,11 @@ import { exigirBooleano, exigirEntero, exigirObjeto, exigirOpcion } from './vali
 /**
  * Tipos de documento imprimibles aceptados.
  */
-const TIPOS_DOCUMENTO: readonly TipoDocumentoImprimible[] = ['abono-proveedor', 'factura-cliente'];
+const TIPOS_DOCUMENTO: readonly TipoDocumentoImprimible[] = [
+  'abono-proveedor',
+  'abono-cliente',
+  'factura-cliente',
+];
 
 /**
  * Dependencias de los canales de impresión.
@@ -46,6 +50,7 @@ function leerDocumento(valor: unknown): DocumentoImprimible {
     tipo: exigirOpcion(d.tipo, TIPOS_DOCUMENTO, 'tipo de documento'),
     id: exigirEntero(d.id, 'documento'),
     reimpresion: exigirBooleano(d.reimpresion, 'reimpresión'),
+    tirilla: d.tirilla === undefined ? false : exigirBooleano(d.tirilla, 'tirilla'),
   };
 }
 

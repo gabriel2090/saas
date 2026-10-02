@@ -1,5 +1,5 @@
 import { ErrorDeNegocio } from '../../domain/errores';
-import type { AplicacionAbono } from '../../shared/abonos';
+import { TIPOS_ABONO, type AplicacionAbono } from '../../shared/abonos';
 import { TIPOS_AJUSTE } from '../../shared/ajustes';
 import type { LineaCompraNueva, ModoDescuento } from '../../shared/compras';
 import type { ServicioAbonos } from '../servicios/abonos';
@@ -32,7 +32,7 @@ const MODOS_DESCUENTO: readonly ModoDescuento[] = ['pesos', 'porcentaje'];
 export interface ServiciosCompras {
   /** Facturas de proveedor. */
   compras: ServicioCompras;
-  /** Abonos a proveedor. */
+  /** Abonos de cliente y de proveedor. */
   abonos: ServicioAbonos;
   /** Ajustes de inventario. */
   ajustes: ServicioAjustes;
@@ -93,8 +93,8 @@ function leerAplicaciones(valor: unknown): AplicacionAbono[] {
 }
 
 /**
- * Registra los canales IPC de compras, abonos a proveedor y ajustes de
- * inventario. Todos exigen sesión.
+ * Registra los canales IPC de compras, abonos (de cliente y de proveedor) y
+ * ajustes de inventario. Todos exigen sesión.
  *
  * @param registrar - Función de registro de manejadores.
  * @param servicios - Servicios de la Fase 2.
@@ -138,14 +138,21 @@ export function registrarIpcCompras(
     });
   });
 
-  registrar('abonos:contexto', () => abonos.contexto());
-  registrar('abonos:contextoProveedor', (codigo) =>
-    abonos.contextoProveedor(exigirEntero(codigo, 'proveedor')),
+  registrar('abonos:contexto', (tipo) =>
+    abonos.contexto(exigirOpcion(tipo, TIPOS_ABONO, 'tipo de abono')),
   );
+  registrar('abonos:contextoTercero', (peticion) => {
+    const d = exigirObjeto(peticion);
+    return abonos.contextoTercero(
+      exigirOpcion(d.tipo, TIPOS_ABONO, 'tipo de abono'),
+      exigirEntero(d.codigo, 'código'),
+    );
+  });
   registrar('abonos:guardar', (peticion) => {
     const d = exigirObjeto(peticion);
     return abonos.guardar({
-      proveedorCodigo: exigirEntero(d.proveedorCodigo, 'proveedor'),
+      tipo: exigirOpcion(d.tipo, TIPOS_ABONO, 'tipo de abono'),
+      terceroCodigo: exigirEntero(d.terceroCodigo, 'cliente o proveedor'),
       fecha: exigirTexto(d.fecha, 'fecha'),
       formaPagoId: exigirEntero(d.formaPagoId, 'forma de pago'),
       valor: exigirEntero(d.valor, 'valor'),

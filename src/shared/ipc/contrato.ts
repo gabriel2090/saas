@@ -1,9 +1,11 @@
 import type {
   AbonoGuardado,
   ContextoAbono,
-  ContextoAbonoProveedor,
+  ContextoAbonoTercero,
+  PeticionContextoAbono,
   PeticionAnularAbono,
   PeticionGuardarAbono,
+  TipoAbono,
 } from '../abonos';
 import type { AjusteResumen, PeticionAjuste } from '../ajustes';
 import type {
@@ -177,8 +179,8 @@ export interface ContratoIpc {
   'compras:stockBodega': { peticion: number; respuesta: StockProducto[] };
   'compras:guardar': { peticion: PeticionGuardarCompra; respuesta: CompraGuardada };
 
-  'abonos:contexto': { peticion: void; respuesta: ContextoAbono };
-  'abonos:contextoProveedor': { peticion: number; respuesta: ContextoAbonoProveedor };
+  'abonos:contexto': { peticion: TipoAbono; respuesta: ContextoAbono };
+  'abonos:contextoTercero': { peticion: PeticionContextoAbono; respuesta: ContextoAbonoTercero };
   'abonos:guardar': { peticion: PeticionGuardarAbono; respuesta: AbonoGuardado };
   'abonos:anular': { peticion: PeticionAnularAbono; respuesta: void };
 
@@ -271,7 +273,7 @@ export const CANALES_IPC: readonly CanalIpc[] = [
   'compras:stockBodega',
   'compras:guardar',
   'abonos:contexto',
-  'abonos:contextoProveedor',
+  'abonos:contextoTercero',
   'abonos:guardar',
   'abonos:anular',
   'ajustes:listar',

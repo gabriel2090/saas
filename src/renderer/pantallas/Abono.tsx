@@ -6,21 +6,27 @@ import type {
   AbonoGuardado,
   AbonoResumen,
   ContextoAbono,
-  ContextoAbonoProveedor,
+  ContextoAbonoTercero,
   FacturaPendiente,
+  TipoAbono,
 } from '../../shared/abonos';
 import { formatearFecha, leerFecha } from '../../shared/formato/fechas';
 import { agruparMiles, formatearPesos, leerPesos } from '../../shared/formato/moneda';
 import type { DocumentoImprimible } from '../../shared/impresion';
 import { ATAJOS } from '../../shared/keymap';
 import type { RegistroCatalogo, Tercero } from '../../shared/maestros';
+import { CODIGO_CONSUMIDOR_FINAL } from '../../shared/ventas';
 import { textoCombinacion } from '../atajos/combinacion';
 import { useAtajos } from '../atajos/useAtajos';
 import { Aviso, type TipoAviso } from '../componentes/Aviso';
 import { useConfirmar } from '../componentes/Dialogos';
 import { Buscador } from '../documentos/Buscador';
 import { Deuda } from '../documentos/Deuda';
-import { DialogoAbonoGuardado, DialogoAnularAbono } from '../documentos/DialogosAbono';
+import {
+  DialogoAbonoGuardado,
+  DialogoAnularAbono,
+  textoFacturaAbonada,
+} from '../documentos/DialogosAbono';
 import { VistaPrevia } from '../documentos/VistaPrevia';
 import { invocar } from '../servicios/api';
 import { useVentana } from '../ventanas/ContextoVentana';
@@ -70,85 +76,140 @@ function repartoEscrito(
 }
 
 /**
- * Texto de un proveedor en el buscador.
+ * Texto de un tercero en el buscador.
  *
- * @param p - Proveedor.
+ * @param t - Cliente o proveedor.
  * @returns `código - nombre`, con la marca de inactivo.
  */
-const textoProveedor = (p: Tercero): string =>
-  `${p.codigo} - ${p.nombre}${p.activo ? '' : ' (inactivo)'}`;
+const textoTercero = (t: Tercero): string =>
+  `${t.codigo} - ${t.nombre}${t.activo ? '' : ' (inactivo)'}`;
 
 /**
- * Ventana «Abono a proveedor» (§8): registra un pago repartido entre las
- * compras con saldo, muestra los abonos anteriores con «Ver recibo» y
- * «Anular…», e imprime el recibo en hoja carta. Av. Pág guarda.
+ * Lo que cambia entre el abono de cliente y el de proveedor.
+ */
+interface ConfiguracionAbono {
+  /** «Cliente» o «Proveedor». */
+  tercero: string;
+  /** Título de la columna del número de factura. */
+  columnaNumero: string;
+  /** Si se muestra la columna con el número de la factura del proveedor. */
+  conReferencia: boolean;
+  /** Documento imprimible del recibo. */
+  documento: DocumentoImprimible['tipo'];
+}
+
+/**
+ * Configuración de cada tipo de abono.
+ */
+const CONFIGURACION: Readonly<Record<TipoAbono, ConfiguracionAbono>> = {
+  cliente: {
+    tercero: 'Cliente',
+    columnaNumero: 'Factura',
+    conReferencia: false,
+    documento: 'abono-cliente',
+  },
+  proveedor: {
+    tercero: 'Proveedor',
+    columnaNumero: 'Compra',
+    conReferencia: true,
+    documento: 'abono-proveedor',
+  },
+};
+
+/**
+ * Propiedades de {@link PantallaAbono}.
+ */
+interface PropiedadesPantallaAbono {
+  /** Cliente o proveedor. */
+  tipo: TipoAbono;
+}
+
+/**
+ * Ventana de abono (§8), igual para clientes y proveedores: registra un pago
+ * repartido entre las facturas con saldo (las más antiguas primero, D-51),
+ * muestra los abonos anteriores con «Ver recibo» y «Anular…», e imprime el
+ * recibo (tirilla para el cliente, hoja carta para el proveedor, D-93). Las
+ * facturas que son saldo inicial llevan su marca (D-86). Av. Pág guarda.
  *
+ * @param props - Propiedades del componente.
  * @returns La ventana.
  */
-export function AbonoProveedor(): ReactNode {
+function PantallaAbono({ tipo }: PropiedadesPantallaAbono): ReactNode {
+  const config = CONFIGURACION[tipo];
+  const terceroMinuscula = config.tercero.toLowerCase();
   const { activa, marcarCambios } = useVentana();
   const confirmar = useConfirmar();
   const [contexto, setContexto] = useState<ContextoAbono | null>(null);
-  const [proveedores, setProveedores] = useState<Tercero[]>([]);
+  const [terceros, setTerceros] = useState<Tercero[]>([]);
   const [formasPago, setFormasPago] = useState<RegistroCatalogo[]>([]);
-  const [proveedor, setProveedor] = useState<Tercero | null>(null);
-  const [datosProveedor, setDatosProveedor] = useState<ContextoAbonoProveedor | null>(null);
+  const [tercero, setTercero] = useState<Tercero | null>(null);
+  const [datosTercero, setDatosTercero] = useState<ContextoAbonoTercero | null>(null);
   const [f, setF] = useState<FormularioAbono | null>(null);
   const [aviso, setAviso] = useState<{ tipo: TipoAviso; texto: string } | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [guardado, setGuardado] = useState<(AbonoGuardado & { valor: number }) | null>(null);
   const [vista, setVista] = useState<DocumentoImprimible | null>(null);
   const [anulando, setAnulando] = useState<AbonoResumen | null>(null);
-  const campoProveedor = useRef<HTMLInputElement>(null);
+  const campoTercero = useRef<HTMLInputElement>(null);
   const cargado = f !== null;
 
-  // La ventana abre mientras se cargan los datos: al terminar, el foco va al proveedor.
+  // La ventana abre mientras se cargan los datos: al terminar, el foco va al tercero.
   useEffect(() => {
-    if (cargado) campoProveedor.current?.focus();
+    if (cargado) campoTercero.current?.focus();
   }, [cargado]);
 
   const cargarContexto = useCallback(async (): Promise<ContextoAbono | null> => {
-    const r = await invocar('abonos:contexto', undefined);
+    const r = await invocar('abonos:contexto', tipo);
     if (!r.ok) {
       setAviso({ tipo: 'error', texto: r.error.mensaje });
       return null;
     }
     setContexto(r.datos);
     return r.datos;
-  }, []);
+  }, [tipo]);
 
   useEffect(() => {
     void (async () => {
-      const [ctx, prov, fp] = await Promise.all([
+      const [ctx, lista, fp] = await Promise.all([
         cargarContexto(),
-        invocar('terceros:listar', 'proveedor'),
+        invocar('terceros:listar', tipo),
         invocar('catalogos:listar', 'forma-pago'),
       ]);
-      if (prov.ok) setProveedores(prov.datos);
+      if (lista.ok) {
+        // «Consumidor final» compra de contado: nunca tiene cartera que abonar.
+        setTerceros(
+          tipo === 'cliente'
+            ? lista.datos.filter((t) => t.codigo !== CODIGO_CONSUMIDOR_FINAL)
+            : lista.datos,
+        );
+      }
       if (fp.ok) setFormasPago(fp.datos);
       if (ctx) setF(formularioVacio(ctx.hoy));
     })();
-  }, [cargarContexto]);
+  }, [cargarContexto, tipo]);
 
   /**
-   * Carga deuda, facturas pendientes y abonos del proveedor, y reparte de
+   * Carga deuda, facturas pendientes y abonos del tercero, y reparte de
    * nuevo el valor escrito.
    *
-   * @param codigo - Proveedor.
+   * @param codigo - Cliente o proveedor.
    */
-  const cargarProveedor = useCallback(async (codigo: number): Promise<void> => {
-    const r = await invocar('abonos:contextoProveedor', codigo);
-    if (!r.ok) {
-      setAviso({ tipo: 'error', texto: r.error.mensaje });
-      return;
-    }
-    setDatosProveedor(r.datos);
-    setF((actual) =>
-      actual ? { ...actual, aplicar: repartoEscrito(actual.valor, r.datos.facturas) } : actual,
-    );
-  }, []);
+  const cargarTercero = useCallback(
+    async (codigo: number): Promise<void> => {
+      const r = await invocar('abonos:contextoTercero', { tipo, codigo });
+      if (!r.ok) {
+        setAviso({ tipo: 'error', texto: r.error.mensaje });
+        return;
+      }
+      setDatosTercero(r.datos);
+      setF((actual) =>
+        actual ? { ...actual, aplicar: repartoEscrito(actual.valor, r.datos.facturas) } : actual,
+      );
+    },
+    [tipo],
+  );
 
-  // El proveedor elegido no cuenta: se conserva a propósito después de guardar.
+  // El tercero elegido no cuenta: se conserva a propósito después de guardar.
   const tieneDatos = f !== null && (f.valor.trim() !== '' || f.observacion.trim() !== '');
 
   useEffect(() => {
@@ -160,11 +221,11 @@ export function AbonoProveedor(): ReactNode {
     setAviso(null);
   };
 
-  const elegirProveedor = (p: Tercero): void => {
-    setProveedor(p);
-    setDatosProveedor(null);
+  const elegirTercero = (t: Tercero): void => {
+    setTercero(t);
+    setDatosTercero(null);
     setAviso(null);
-    void cargarProveedor(p.codigo);
+    void cargarTercero(t.codigo);
   };
 
   const limpiar = async (): Promise<void> => {
@@ -181,13 +242,13 @@ export function AbonoProveedor(): ReactNode {
     ) {
       return;
     }
-    setProveedor(null);
-    setDatosProveedor(null);
+    setTercero(null);
+    setDatosTercero(null);
     setF(formularioVacio(contexto.hoy));
     setAviso(null);
   };
 
-  const facturas = datosProveedor?.facturas ?? [];
+  const facturas = datosTercero?.facturas ?? [];
   const aplicadoPorFactura = facturas.map((fa) => ({
     factura: fa,
     texto: f?.aplicar[fa.id] ?? '0',
@@ -198,16 +259,17 @@ export function AbonoProveedor(): ReactNode {
 
   const guardar = async (): Promise<void> => {
     if (!f || ocupado) return;
-    const error = validarFormulario(f, proveedor, valor, aplicadoPorFactura);
+    const error = validarFormulario(f, tercero, config, valor, aplicadoPorFactura);
     if (error !== null) {
       setAviso({ tipo: 'error', texto: error });
       return;
     }
     const fecha = leerFecha(f.fecha) ?? '';
-    if (proveedor === null || valor === null) return;
+    if (tercero === null || valor === null) return;
     setOcupado(true);
     const r = await invocar('abonos:guardar', {
-      proveedorCodigo: proveedor.codigo,
+      tipo,
+      terceroCodigo: tercero.codigo,
       fecha,
       formaPagoId: Number(f.formaPagoId),
       valor,
@@ -223,18 +285,20 @@ export function AbonoProveedor(): ReactNode {
     }
     setGuardado({ ...r.datos, valor });
     const ctx = await cargarContexto();
-    // Se conserva el proveedor y la forma de pago: es común abonar a varias compras seguidas.
+    // Se conserva el tercero y la forma de pago: es común abonar a varias facturas seguidas.
     setF({ ...formularioVacio(ctx?.hoy ?? contexto?.hoy ?? ''), formaPagoId: f.formaPagoId });
-    await cargarProveedor(proveedor.codigo);
+    await cargarTercero(tercero.codigo);
   };
 
   const imprimirOriginal = async (id: number): Promise<string | null> => {
     const r = await invocar('impresion:imprimir', {
-      tipo: 'abono-proveedor',
+      tipo: config.documento,
       id,
       reimpresion: false,
+      tirilla: tipo === 'cliente',
     });
-    return r.ok ? null : r.error.mensaje;
+    if (!r.ok) return r.error.mensaje;
+    return r.datos ? null : 'La impresión se canceló. Puede intentarlo de nuevo.';
   };
 
   const hayDialogo = guardado !== null || vista !== null || anulando !== null;
@@ -252,7 +316,8 @@ export function AbonoProveedor(): ReactNode {
     );
   }
 
-  const deudaTotal = datosProveedor?.deuda.total ?? 0;
+  const deudaTotal = datosTercero?.deuda.total ?? 0;
+  const columnas = config.conReferencia ? 9 : 8;
 
   return (
     <div className="documento">
@@ -278,23 +343,23 @@ export function AbonoProveedor(): ReactNode {
 
       <div className="documento__encabezado abono__encabezado">
         <label className="campo documento__proveedor">
-          <span>Proveedor *</span>
+          <span>{config.tercero} *</span>
           <Buscador
-            registros={proveedores}
-            clave={(p) => p.codigo}
-            texto={textoProveedor}
-            coincide={(p, b) =>
-              String(p.codigo).startsWith(b) || claveComparacion(p.nombre).includes(b)
+            registros={terceros}
+            clave={(t) => t.codigo}
+            texto={textoTercero}
+            coincide={(t, b) =>
+              String(t.codigo).startsWith(b) || claveComparacion(t.nombre).includes(b)
             }
-            exacto={(p, escrito) => String(p.codigo) === escrito}
-            seleccionado={proveedor}
-            alElegir={elegirProveedor}
-            campo={campoProveedor}
+            exacto={(t, escrito) => String(t.codigo) === escrito}
+            seleccionado={tercero}
+            alElegir={elegirTercero}
+            campo={campoTercero}
             ayuda="Código o parte del nombre…"
-            etiqueta="Proveedor"
+            etiqueta={config.tercero}
           />
         </label>
-        <Deuda deuda={datosProveedor?.deuda ?? null} />
+        <Deuda deuda={datosTercero?.deuda ?? null} />
         <label className="campo campo--num">
           <span>Fecha *</span>
           <input
@@ -345,8 +410,8 @@ export function AbonoProveedor(): ReactNode {
           <table className="tabla tabla--precios">
             <thead>
               <tr>
-                <th className="num">Compra</th>
-                <th>Factura proveedor</th>
+                <th className="num">{config.columnaNumero}</th>
+                {config.conReferencia && <th>Factura proveedor</th>}
                 <th className="num">Fecha</th>
                 <th className="num">Vence</th>
                 <th>Estado</th>
@@ -359,21 +424,37 @@ export function AbonoProveedor(): ReactNode {
             <tbody>
               {facturas.length === 0 && (
                 <tr>
-                  <td className="tabla__vacia" colSpan={9}>
-                    {proveedor === null
-                      ? 'Elija el proveedor para ver sus facturas pendientes.'
-                      : datosProveedor === null
+                  <td className="tabla__vacia" colSpan={columnas}>
+                    {tercero === null
+                      ? `Elija el ${terceroMinuscula} para ver sus facturas pendientes.`
+                      : datosTercero === null
                         ? 'Cargando…'
-                        : 'Este proveedor no tiene facturas con saldo.'}
+                        : `Este ${terceroMinuscula} no tiene facturas con saldo.`}
                   </td>
                 </tr>
               )}
               {aplicadoPorFactura.map(({ factura: fa, texto, valor: v }) => {
                 const estado = contexto ? textoVencimiento(fa.vence, contexto.hoy) : null;
+                const marca = fa.saldoInicial && (
+                  <span
+                    className="etiqueta etiqueta--saldo-inicial"
+                    title="Saldo pendiente importado del sistema anterior"
+                  >
+                    Saldo inicial
+                  </span>
+                );
                 return (
                   <tr key={fa.id} className={v === null ? 'fila--alerta' : undefined}>
-                    <td className="num">{fa.numero}</td>
-                    <td>{fa.numeroProveedor}</td>
+                    <td className="num">
+                      {fa.numero}
+                      {!config.conReferencia && marca}
+                    </td>
+                    {config.conReferencia && (
+                      <td>
+                        {fa.referencia}
+                        {marca}
+                      </td>
+                    )}
                     <td className="num">{formatearFecha(fa.fecha)}</td>
                     <td className="num">{formatearFecha(fa.vence)}</td>
                     <td className={estado?.vencida ? 'texto-error' : undefined}>
@@ -385,7 +466,7 @@ export function AbonoProveedor(): ReactNode {
                       <input
                         value={texto}
                         inputMode="numeric"
-                        aria-label={`Aplicar a la compra ${fa.numero}`}
+                        aria-label={`Aplicar a la ${config.columnaNumero.toLowerCase()} ${fa.numero}`}
                         onFocus={(e) => e.target.select()}
                         onChange={(e) =>
                           cambiar({ aplicar: { ...f.aplicar, [fa.id]: e.target.value } })
@@ -427,7 +508,7 @@ export function AbonoProveedor(): ReactNode {
       {aviso && <Aviso tipo={aviso.tipo}>{aviso.texto}</Aviso>}
 
       <fieldset className="grupo">
-        <legend>Abonos anteriores de este proveedor</legend>
+        <legend>Abonos anteriores de este {terceroMinuscula}</legend>
         <div className="tabla-contenedor abono__anteriores">
           <table className="tabla">
             <thead>
@@ -442,21 +523,21 @@ export function AbonoProveedor(): ReactNode {
               </tr>
             </thead>
             <tbody>
-              {(datosProveedor?.abonos.length ?? 0) === 0 && (
+              {(datosTercero?.abonos.length ?? 0) === 0 && (
                 <tr>
                   <td className="tabla__vacia" colSpan={7}>
-                    {proveedor === null ? '—' : 'Sin abonos anteriores.'}
+                    {tercero === null ? '—' : 'Sin abonos anteriores.'}
                   </td>
                 </tr>
               )}
-              {datosProveedor?.abonos.map((a) => (
+              {datosTercero?.abonos.map((a) => (
                 <tr key={a.id} className={a.estado === 'anulado' ? 'fila--inactiva' : undefined}>
                   <td className="num">{a.numero}</td>
                   <td className="num">{formatearFecha(a.fecha)}</td>
                   <td>{a.formaPagoNombre}</td>
                   <td className="num">{agruparMiles(a.valor)}</td>
                   <td>
-                    {a.aplicaciones.map((ap) => `Compra ${ap.compraNumero}`).join(', ')}
+                    {a.aplicaciones.map((ap) => textoFacturaAbonada(tipo, ap)).join(', ')}
                     {a.origen === 'contado' && (
                       <span className="etiqueta etiqueta--activo">contado</span>
                     )}
@@ -472,7 +553,7 @@ export function AbonoProveedor(): ReactNode {
                       type="button"
                       className="boton"
                       onClick={() =>
-                        setVista({ tipo: 'abono-proveedor', id: a.id, reimpresion: true })
+                        setVista({ tipo: config.documento, id: a.id, reimpresion: true })
                       }
                     >
                       Ver recibo
@@ -492,6 +573,7 @@ export function AbonoProveedor(): ReactNode {
 
       {guardado && (
         <DialogoAbonoGuardado
+          tipo={tipo}
           numero={guardado.numero}
           valor={guardado.valor}
           alImprimir={() => imprimirOriginal(guardado.id)}
@@ -512,7 +594,7 @@ export function AbonoProveedor(): ReactNode {
           alAnular={() => {
             setAviso({ tipo: 'exito', texto: `Abono ${anulando.numero} anulado.` });
             setAnulando(null);
-            if (proveedor) void cargarProveedor(proveedor.codigo);
+            if (tercero) void cargarTercero(tercero.codigo);
           }}
         />
       )}
@@ -525,18 +607,20 @@ export function AbonoProveedor(): ReactNode {
  * validar el proceso principal con los saldos del momento.
  *
  * @param f - Formulario.
- * @param proveedor - Proveedor elegido.
+ * @param tercero - Cliente o proveedor elegido.
+ * @param config - Textos del tipo de abono.
  * @param valor - Valor leído.
  * @param aplicaciones - «Aplicar» leído de cada factura.
  * @returns Mensaje del primer error, o `null` si se puede enviar.
  */
 function validarFormulario(
   f: FormularioAbono,
-  proveedor: Tercero | null,
+  tercero: Tercero | null,
+  config: ConfiguracionAbono,
   valor: number | null,
   aplicaciones: readonly { factura: FacturaPendiente; valor: number | null }[],
 ): string | null {
-  if (proveedor === null) return 'Elija el proveedor.';
+  if (tercero === null) return `Elija el ${config.tercero.toLowerCase()}.`;
   if (leerFecha(f.fecha) === null) return 'La fecha no es válida: use el formato dd/mm/aaaa.';
   if (f.formaPagoId === '') return 'Elija la forma de pago.';
   if (valor === null || valor <= 0) {
@@ -544,7 +628,27 @@ function validarFormulario(
   }
   const invalida = aplicaciones.find((a) => a.valor === null);
   if (invalida) {
-    return `El valor a aplicar a la compra ${invalida.factura.numero} no es un valor válido en pesos.`;
+    return `El valor a aplicar a la ${config.columnaNumero.toLowerCase()} ${invalida.factura.numero} no es un valor válido en pesos.`;
   }
   return null;
+}
+
+/**
+ * Ventana «Abono de cliente» (§8, Fase 3b): cobra facturas a crédito y
+ * saldos iniciales; el recibo sale en la tirilla (D-93).
+ *
+ * @returns La ventana.
+ */
+export function AbonoCliente(): ReactNode {
+  return <PantallaAbono tipo="cliente" />;
+}
+
+/**
+ * Ventana «Abono a proveedor» (§8, Fase 2): paga compras y saldos iniciales;
+ * el recibo sale en hoja carta.
+ *
+ * @returns La ventana.
+ */
+export function AbonoProveedor(): ReactNode {
+  return <PantallaAbono tipo="proveedor" />;
 }

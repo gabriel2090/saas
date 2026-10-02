@@ -13,7 +13,7 @@ import {
 } from '../../domain/compras';
 import { ErrorDeNegocio } from '../../domain/errores';
 import type { BaseDeDatos } from '../../data/conexion';
-import { insertarAbonoProveedor } from '../../data/repositorios/abonos.repo';
+import { insertarAbono } from '../../data/repositorios/abonos.repo';
 import { obtenerCatalogo } from '../../data/repositorios/catalogos.repo';
 import {
   compraConNumeroProveedor,
@@ -242,9 +242,10 @@ export function crearServicioCompras(
         let abonoNumero: number | null = null;
         if (p.contado !== null) {
           abonoNumero = tomarConsecutivo(ctx, 'abono_proveedor');
-          insertarAbonoProveedor(ctx, {
+          insertarAbono(ctx, {
+            tipo: 'proveedor',
             numero: abonoNumero,
-            proveedorCodigo: p.proveedorCodigo,
+            terceroCodigo: p.proveedorCodigo,
             fecha,
             formaPagoId: p.contado.formaPagoId,
             valor: calculo.total,

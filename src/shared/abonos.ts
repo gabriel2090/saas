@@ -1,20 +1,36 @@
 import type { ResumenDeuda } from './compras';
 
 /**
+ * A quién se le abona: un cliente (cuentas por cobrar) o un proveedor
+ * (cuentas por pagar). Ambos funcionan igual (§8).
+ */
+export type TipoAbono = 'cliente' | 'proveedor';
+
+/**
+ * Tipos de abono aceptados, para validar peticiones.
+ */
+export const TIPOS_ABONO: readonly TipoAbono[] = ['cliente', 'proveedor'];
+
+/**
  * Estado de un abono.
  */
 export type EstadoAbono = 'activo' | 'anulado';
 
 /**
- * Factura de proveedor con saldo pendiente.
+ * Factura (de cliente o de proveedor) con saldo pendiente.
  */
 export interface FacturaPendiente {
-  /** Id interno de la compra. */
+  /** Id interno de la factura. */
   id: number;
-  /** Número interno de la compra. */
+  /**
+   * Número de la factura: el de la factura de venta, o el número interno de
+   * la compra.
+   */
   numero: number;
-  /** Número de la factura del proveedor. */
-  numeroProveedor: string;
+  /** Número de la factura del proveedor (vacío en las de cliente). */
+  referencia: string;
+  /** Si es un saldo inicial importado del sistema anterior (D-86). */
+  saldoInicial: boolean;
   /** Fecha de la factura, `AAAA-MM-DD`. */
   fecha: string;
   /** Vencimiento, `AAAA-MM-DD`. */
@@ -29,21 +45,23 @@ export interface FacturaPendiente {
  * Parte de un abono aplicada a una factura.
  */
 export interface AplicacionAbono {
-  /** Id de la compra. */
+  /** Id de la factura. */
   facturaId: number;
   /** Valor aplicado. */
   valor: number;
 }
 
 /**
- * Aplicación de un abono guardado, con los datos de la compra para mostrarla.
+ * Aplicación de un abono guardado, con los datos de la factura para mostrarla.
  */
 export interface AplicacionAbonoDetalle extends AplicacionAbono {
-  /** Número interno de la compra. */
-  compraNumero: number;
-  /** Número de la factura del proveedor. */
-  numeroProveedor: string;
-  /** Saldo actual de la compra (para explicar el efecto de anular, D-62). */
+  /** Número de la factura (de venta o interno de la compra). */
+  facturaNumero: number;
+  /** Número de la factura del proveedor (vacío en las de cliente). */
+  referencia: string;
+  /** Si la factura es un saldo inicial. */
+  saldoInicial: boolean;
+  /** Saldo actual de la factura (para explicar el efecto de anular, D-62). */
   saldoActual: number;
 }
 
@@ -53,6 +71,8 @@ export interface AplicacionAbonoDetalle extends AplicacionAbono {
 export interface AbonoResumen {
   /** Id interno. */
   id: number;
+  /** Cliente o proveedor. */
+  tipo: TipoAbono;
   /** Número del abono. */
   numero: number;
   /** Fecha, `AAAA-MM-DD`. */
@@ -76,10 +96,10 @@ export interface AbonoResumen {
 }
 
 /**
- * Lo que la ventana de abono necesita al elegir un proveedor.
+ * Lo que la ventana de abono necesita al elegir el cliente o el proveedor.
  */
-export interface ContextoAbonoProveedor {
-  /** Deuda actual. */
+export interface ContextoAbonoTercero {
+  /** Deuda actual (lo que debe el cliente, o lo que se le debe al proveedor). */
   deuda: ResumenDeuda;
   /** Facturas con saldo, de la más antigua a la más reciente (D-51). */
   facturas: FacturaPendiente[];
@@ -98,11 +118,23 @@ export interface ContextoAbono {
 }
 
 /**
- * Datos para guardar un abono a proveedor.
+ * Petición del contexto de un cliente o proveedor en la ventana de abono.
+ */
+export interface PeticionContextoAbono {
+  /** Cliente o proveedor. */
+  tipo: TipoAbono;
+  /** Código del tercero. */
+  codigo: number;
+}
+
+/**
+ * Datos para guardar un abono.
  */
 export interface PeticionGuardarAbono {
-  /** Proveedor. */
-  proveedorCodigo: number;
+  /** Cliente o proveedor. */
+  tipo: TipoAbono;
+  /** Código del cliente o del proveedor. */
+  terceroCodigo: number;
   /** Fecha, `AAAA-MM-DD` (D-71). */
   fecha: string;
   /** Forma de pago. */

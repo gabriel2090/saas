@@ -3,6 +3,7 @@ import { CAMPOS_IMPORTACION, type FilaImportacion } from '../shared/importacion'
 import {
   aPuntoDecimal,
   leerCodigo,
+  leerFechaArchivo,
   leerTipoIdentificacion,
   leerTipoPersona,
   leerUnidad,
@@ -409,5 +410,181 @@ describe('formato numérico elegido por el usuario (D-40)', () => {
     expect(r.errores[0]?.mensaje).toBe(
       'La cantidad «1,23456» no es válida: use hasta tres decimales separados por coma.',
     );
+  });
+});
+
+describe('leerFechaArchivo', () => {
+  it('lee dd/mm/aaaa, con guiones, ISO y el número de fecha de Excel', () => {
+    expect(leerFechaArchivo('15/09/2026')).toBe('2026-09-15');
+    expect(leerFechaArchivo('5/9/2026')).toBe('2026-09-05');
+    expect(leerFechaArchivo('15-09-2026')).toBe('2026-09-15');
+    expect(leerFechaArchivo('2026-09-15')).toBe('2026-09-15');
+    expect(leerFechaArchivo('46280')).toBe('2026-09-15');
+    expect(leerFechaArchivo('46280.75')).toBe('2026-09-15');
+  });
+
+  it('rechaza fechas que no existen o números fuera del rango de fechas', () => {
+    expect(leerFechaArchivo('31/02/2026')).toBeNull();
+    expect(leerFechaArchivo('2026-13-01')).toBeNull();
+    expect(leerFechaArchivo('12345')).toBeNull();
+    expect(leerFechaArchivo('ayer')).toBeNull();
+    expect(leerFechaArchivo('')).toBeNull();
+  });
+});
+
+describe('saldos iniciales de cartera (D-86)', () => {
+  /** Contexto con clientes 10001 y 10002, la factura 84600 ya usada y la próxima en 84772. */
+  const conSaldos: ContextoImportacion = {
+    ...CONTEXTO,
+    saldos: {
+      hoy: '2026-10-02',
+      clientes: new Set([0, 10001, 10002]),
+      numerosFacturaCliente: new Set([84600]),
+      siguienteFacturaCliente: 84772,
+      facturasProveedor: new Set(['10003|FV100']),
+    },
+  };
+
+  /** Saldo de cliente válido. */
+  const SALDO = {
+    tercero: '10001',
+    numero: '84650',
+    fecha: '15/09/2026',
+    vence: '23/09/2026',
+    plazo: '',
+    saldo: '120,000',
+  };
+
+  it('acepta un saldo de cliente con vencimiento y calcula el plazo', () => {
+    const r = validarFilasImportacion(
+      'saldos-clientes',
+      [fila(0, SALDO)],
+      conSaldos,
+      'punto-decimal',
+    );
+    expect(r.errores).toEqual([]);
+    expect(r.avisos).toEqual([]);
+    expect(r.registros).toEqual([
+      {
+        tipo: 'saldos-clientes',
+        fila: 2,
+        numero: 84650,
+        datos: {
+          terceroCodigo: 10001,
+          fecha: '2026-09-15',
+          plazoDias: 8,
+          vence: '2026-09-23',
+          saldo: 120_000,
+        },
+      },
+    ]);
+  });
+
+  it('con solo el plazo calcula el vencimiento; si vienen ambos deben coincidir', () => {
+    const soloPlazo = validarFilasImportacion(
+      'saldos-clientes',
+      [fila(0, { ...SALDO, vence: '', plazo: '30' })],
+      conSaldos,
+      'punto-decimal',
+    );
+    expect(soloPlazo.registros[0]).toMatchObject({ datos: { plazoDias: 30, vence: '2026-10-15' } });
+    const distintos = validarFilasImportacion(
+      'saldos-clientes',
+      [fila(0, { ...SALDO, plazo: '30' })],
+      conSaldos,
+      'punto-decimal',
+    );
+    expect(distintos.errores[0]?.mensaje).toMatch(/no coincide con el vencimiento, que da 8 días/);
+    const ninguno = validarFilasImportacion(
+      'saldos-clientes',
+      [fila(0, { ...SALDO, vence: '' })],
+      conSaldos,
+      'punto-decimal',
+    );
+    expect(ninguno.errores[0]?.mensaje).toBe('Falta el vencimiento o el plazo en días.');
+  });
+
+  it('rechaza cliente inexistente, Consumidor final, número usado o repetido y saldo no positivo', () => {
+    const r = validarFilasImportacion(
+      'saldos-clientes',
+      [
+        fila(0, { ...SALDO, tercero: '99999' }),
+        fila(1, { ...SALDO, tercero: '0', numero: '84651' }),
+        fila(2, { ...SALDO, numero: '84600' }),
+        fila(3, { ...SALDO, numero: 'FV-12' }),
+        fila(4, SALDO),
+        fila(5, SALDO),
+        fila(6, { ...SALDO, numero: '84652', saldo: '0' }),
+        fila(7, { ...SALDO, numero: '84653', fecha: '03/10/2026', vence: '', plazo: '8' }),
+        fila(8, { ...SALDO, numero: '84654', vence: '10/09/2026' }),
+      ],
+      conSaldos,
+      'punto-decimal',
+    );
+    expect(r.registros.map((x) => x.fila)).toEqual([6]);
+    expect(r.errores.map((e) => [e.fila, e.mensaje])).toEqual([
+      [2, 'El cliente 99999 no existe.'],
+      [3, '«Consumidor final» no tiene cartera: sus ventas son de contado.'],
+      [4, 'La factura de venta 84600 ya existe en el sistema.'],
+      [
+        5,
+        'El número de factura «FV-12» debe ser un número entero (el de la factura de venta en el sistema anterior).',
+      ],
+      [7, 'La factura 84650 está repetida (ya aparece en la fila 6).'],
+      [8, 'El saldo pendiente debe ser mayor que cero.'],
+      [9, 'La fecha de la factura no puede ser posterior a hoy.'],
+      [10, 'El vencimiento no puede ser anterior a la fecha de la factura.'],
+    ]);
+  });
+
+  it('avisa si el número alcanza la próxima factura de venta', () => {
+    const r = validarFilasImportacion(
+      'saldos-clientes',
+      [fila(0, { ...SALDO, numero: '84800' })],
+      conSaldos,
+      'punto-decimal',
+    );
+    expect(r.registros).toHaveLength(1);
+    expect(r.avisos[0]?.mensaje).toMatch(/próxima factura de venta \(84772\).*después de 84800/);
+  });
+
+  it('valida saldos de proveedor con su número de factura y detecta duplicados (D-49)', () => {
+    const r = validarFilasImportacion(
+      'saldos-proveedores',
+      [
+        fila(0, { ...SALDO, tercero: '10003', numero: ' fv-200 ', saldo: '1.250.000' }),
+        fila(1, { ...SALDO, tercero: '10003', numero: 'FV 100', saldo: '5.000' }),
+        fila(2, { ...SALDO, tercero: '10003', numero: 'FV-200', saldo: '5.000' }),
+        fila(3, { ...SALDO, tercero: '10001', numero: 'X-1', saldo: '5.000' }),
+      ],
+      conSaldos,
+      'coma-decimal',
+    );
+    expect(r.registros).toEqual([
+      {
+        tipo: 'saldos-proveedores',
+        fila: 2,
+        numeroProveedor: 'fv-200',
+        numeroProveedorClave: 'FV-200',
+        datos: {
+          terceroCodigo: 10003,
+          fecha: '2026-09-15',
+          plazoDias: 8,
+          vence: '2026-09-23',
+          saldo: 1_250_000,
+        },
+      },
+    ]);
+    expect(r.errores.map((e) => [e.fila, e.mensaje])).toEqual([
+      [3, 'El proveedor 10003 ya tiene registrada la factura FV 100.'],
+      [4, 'La factura FV-200 de este proveedor está repetida (ya aparece en la fila 2).'],
+      [5, 'El proveedor 10001 no existe.'],
+    ]);
+  });
+
+  it('exige el contexto de cartera (error técnico del llamador)', () => {
+    expect(() =>
+      validarFilasImportacion('saldos-clientes', [fila(0, SALDO)], CONTEXTO, 'punto-decimal'),
+    ).toThrow(/contexto de saldos/);
   });
 });

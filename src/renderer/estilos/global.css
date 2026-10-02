@@ -635,6 +635,12 @@ textarea {
   color: var(--color-tenue);
 }
 
+.etiqueta--saldo-inicial {
+  background: #eaf1fb;
+  color: #2f5d9e;
+  border: 1px solid currentColor;
+}
+
 /* ---------- Ficha (formulario de detalle) ---------- */
 
 .ficha {

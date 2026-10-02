@@ -4,10 +4,21 @@ import {
   type RegistroImportable,
   type ResultadoValidacionFilas,
 } from '../../domain/importacion';
+import { diaDeIso } from '../../domain/calendario';
 import { claveComparacion } from '../../domain/texto';
 import type { BaseDeDatos } from '../../data/conexion';
 import { listarCatalogo } from '../../data/repositorios/catalogos.repo';
-import { ajustarConsecutivo, tomarConsecutivo } from '../../data/repositorios/consecutivos.repo';
+import {
+  ajustarConsecutivo,
+  consultarConsecutivo,
+  tomarConsecutivo,
+} from '../../data/repositorios/consecutivos.repo';
+import {
+  facturasProveedorActivas,
+  insertarSaldoInicialCliente,
+  insertarSaldoInicialProveedor,
+  numerosFacturaCliente,
+} from '../../data/repositorios/saldosIniciales.repo';
 import {
   productosConOtrosMovimientos,
   registrarStockInicial,
@@ -23,6 +34,7 @@ import type {
   ResultadoValidacionImportacion,
   TipoImportacion,
 } from '../../shared/importacion';
+import { aIsoLocal } from '../../shared/formato/fechas';
 
 /**
  * Motivo con que quedan en el historial los registros importados.
@@ -68,10 +80,15 @@ export interface ServicioImportador {
  *
  * @param db - Conexión (o la de la transacción en curso).
  * @param tipo - Qué se importa.
+ * @param hoy - Día de hoy `AAAA-MM-DD` (las facturas de saldo inicial no pueden ser futuras).
  * @returns Contexto para el dominio.
  * @throws {Error} Si no existe la bodega Principal (error técnico: la crea la migración).
  */
-function construirContexto(db: BaseDeDatos, tipo: TipoImportacion): ContextoImportacion {
+function construirContexto(
+  db: BaseDeDatos,
+  tipo: TipoImportacion,
+  hoy: string,
+): ContextoImportacion {
   const productos = mapaProductos(db);
   const proveedores = indiceTerceros(db, 'proveedor');
   const clientes = indiceTerceros(db, 'cliente');
@@ -85,8 +102,20 @@ function construirContexto(db: BaseDeDatos, tipo: TipoImportacion): ContextoImpo
     clientes: clientes.codigos,
     proveedores: proveedores.codigos,
     stock: new Set(),
+    'saldos-clientes': new Set(),
+    'saldos-proveedores': new Set(),
   };
+  const esSaldo = tipo === 'saldos-clientes' || tipo === 'saldos-proveedores';
   return {
+    saldos: esSaldo
+      ? {
+          hoy,
+          clientes: clientes.codigos,
+          numerosFacturaCliente: numerosFacturaCliente(db),
+          siguienteFacturaCliente: consultarConsecutivo(db, 'factura_cliente'),
+          facturasProveedor: facturasProveedorActivas(db),
+        }
+      : undefined,
     codigosExistentes: codigosExistentes[tipo],
     identificacionesExistentes:
       tipo === 'clientes' ? clientes.identificaciones : proveedores.identificaciones,
@@ -135,16 +164,39 @@ function guardarConCodigo(
  *
  * @param ctx - Contexto de la transacción.
  * @param registros - Registros válidos.
+ * @param bodegaPrincipalId - Bodega a la que quedan asignados los saldos iniciales.
  */
 function guardarRegistros(
   ctx: ContextoTransaccion,
   registros: readonly RegistroImportable[],
+  bodegaPrincipalId: number,
 ): void {
   const sinCodigo: Extract<
     RegistroImportable,
     { tipo: 'productos' | 'clientes' | 'proveedores' }
   >[] = [];
   for (const registro of registros) {
+    if (registro.tipo === 'saldos-clientes') {
+      insertarSaldoInicialCliente(ctx, {
+        numero: registro.numero,
+        datos: registro.datos,
+        fechaIso: medianocheLocal(registro.datos.fecha),
+        bodegaId: bodegaPrincipalId,
+      });
+      // El saldo inicial conserva su número de la misma serie: la próxima factura debe quedar después.
+      ajustarConsecutivo(ctx, 'factura_cliente', registro.numero);
+      continue;
+    }
+    if (registro.tipo === 'saldos-proveedores') {
+      insertarSaldoInicialProveedor(ctx, {
+        numero: tomarConsecutivo(ctx, 'compra'),
+        numeroProveedor: registro.numeroProveedor,
+        numeroProveedorClave: registro.numeroProveedorClave,
+        datos: registro.datos,
+        bodegaId: bodegaPrincipalId,
+      });
+      continue;
+    }
     if (registro.tipo === 'stock') {
       registrarStockInicial(ctx, {
         productoCodigo: registro.productoCodigo,
@@ -180,6 +232,18 @@ function guardarRegistros(
 }
 
 /**
+ * Fecha ISO con desfase de la medianoche local de un día (D-06): la fecha
+ * con hora de una factura de cliente importada como saldo inicial.
+ *
+ * @param dia - Día `AAAA-MM-DD`.
+ * @returns Fecha ISO, p. ej. `2026-09-15T00:00:00.000-05:00`.
+ */
+function medianocheLocal(dia: string): string {
+  const [anio = 0, mes = 1, d = 1] = dia.split('-').map(Number);
+  return aIsoLocal(new Date(anio, mes - 1, d));
+}
+
+/**
  * Convierte el resultado del dominio en el resumen para la vista previa.
  *
  * @param resultado - Resultado de la validación.
@@ -195,29 +259,36 @@ function resumen(resultado: ResultadoValidacionFilas): ResultadoValidacionImport
 }
 
 /**
+ * Opciones del servicio del importador.
+ */
+export interface OpcionesServicioImportador {
+  /** Día de hoy `AAAA-MM-DD` (inyectable en pruebas). */
+  hoy?: () => string;
+}
+
+/**
  * Crea el servicio del importador.
  *
  * @param db - Conexión abierta.
  * @param ejecutar - Ejecutor de transacciones.
+ * @param opciones - Reloj del día.
  * @returns El servicio.
  */
 export function crearServicioImportador(
   db: BaseDeDatos,
   ejecutar: EjecutorTransacciones,
+  opciones: OpcionesServicioImportador = {},
 ): ServicioImportador {
+  const hoy = opciones.hoy ?? ((): string => diaDeIso(aIsoLocal()));
   return {
     validar: (tipo, filas, formato = 'punto-decimal') =>
-      resumen(validarFilasImportacion(tipo, filas, construirContexto(db, tipo), formato)),
+      resumen(validarFilasImportacion(tipo, filas, construirContexto(db, tipo, hoy()), formato)),
 
     importar(tipo, filas, formato = 'punto-decimal') {
       return ejecutar((ctx) => {
-        const resultado = validarFilasImportacion(
-          tipo,
-          filas,
-          construirContexto(ctx.db, tipo),
-          formato,
-        );
-        guardarRegistros(ctx, resultado.registros);
+        const contexto = construirContexto(ctx.db, tipo, hoy());
+        const resultado = validarFilasImportacion(tipo, filas, contexto, formato);
+        guardarRegistros(ctx, resultado.registros, contexto.bodegaPrincipalId);
         const filasConError = new Set(resultado.errores.map((e) => e.fila)).size;
         ctx.registrarCambio({
           entidad: 'importacion',

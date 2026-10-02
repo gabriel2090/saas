@@ -42,7 +42,7 @@ const TODOS_LOS_CANALES = {
   'compras:stockBodega': true,
   'compras:guardar': true,
   'abonos:contexto': true,
-  'abonos:contextoProveedor': true,
+  'abonos:contextoTercero': true,
   'abonos:guardar': true,
   'abonos:anular': true,
   'ajustes:listar': true,

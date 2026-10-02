@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import type { AbonoDetalle } from '../../data/repositorios/abonos.repo';
 import type { FacturaClienteDetalle } from '../../data/repositorios/ventas.repo';
-import { tirillaFactura } from './tirilla';
+import { tirillaFactura, tirillaReciboAbono } from './tirilla';
 
 /** Datos del negocio del encabezado. */
 const negocio = {
@@ -131,5 +132,83 @@ describe('tirillaFactura', () => {
     });
     expect(html).toContain('REIMPRESION');
     expect(html).toContain('ANULADA');
+  });
+});
+
+describe('tirillaReciboAbono', () => {
+  /** Abono de cliente a un saldo inicial y a una venta. */
+  const abono: AbonoDetalle = {
+    id: 4,
+    tipo: 'cliente',
+    numero: 12,
+    fecha: '2026-10-02',
+    formaPagoNombre: 'Transferencia',
+    valor: 150_000,
+    observacion: 'Pago <nequi>',
+    origen: 'manual',
+    estado: 'activo',
+    anuladoEn: null,
+    motivoAnulacion: null,
+    aplicaciones: [
+      {
+        facturaId: 1,
+        valor: 120_000,
+        facturaNumero: 84650,
+        referencia: '',
+        saldoInicial: true,
+        saldoActual: 0,
+      },
+      {
+        facturaId: 2,
+        valor: 30_000,
+        facturaNumero: 84772,
+        referencia: '',
+        saldoInicial: false,
+        saldoActual: 51_000,
+      },
+    ],
+    terceroCodigo: 10001,
+    terceroNombre: 'JUAN JJ FERTILIA',
+    terceroIdentificacion: 'CC 897627275',
+    registradoEn: '2026-10-02T09:15:20.000-05:00',
+  };
+  const impresoEn = '2026-10-02T09:15:25.000-05:00';
+
+  it('imprime el recibo de 80 mm con facturas, saldos, total en letras y deuda', () => {
+    const html = tirillaReciboAbono({
+      negocio,
+      abono,
+      deudaActual: 51_000,
+      reimpresion: false,
+      impresoEn,
+    });
+    expect(html).toContain('size: 80mm auto');
+    expect(html).toContain('RECIBO DE ABONO');
+    expect(html).toContain('<div class="numero">12</div>');
+    expect(html).toContain('Fecha: 02/10/2026');
+    expect(html).toContain('CLIENTE: 10001-JUAN JJ FERTILIA');
+    expect(html).toContain('CC 897627275');
+    expect(html).toContain('FORMA DE PAGO: TRANSFERENCIA');
+    expect(html).toContain('84650<div class="detalle">SALDO INICIAL</div>');
+    expect(html).toContain('120,000');
+    expect(html).toContain('51,000');
+    expect(html).toContain('SON: CIENTO CINCUENTA MIL PESOS M/L');
+    expect(html).toContain('<span>TOTAL ABONO</span><span>150,000</span>');
+    expect(html).toContain('<span>SALDO PENDIENTE</span><span>51,000</span>');
+    expect(html).toContain('OBS: Pago &lt;nequi&gt;');
+    expect(html).not.toContain('REIMPRESION');
+    expect(html).not.toContain('<script');
+  });
+
+  it('marca la reimpresión y la anulación', () => {
+    const html = tirillaReciboAbono({
+      negocio,
+      abono: { ...abono, estado: 'anulado', anuladoEn: '2026-10-03T08:00:00-05:00' },
+      deudaActual: 201_000,
+      reimpresion: true,
+      impresoEn,
+    });
+    expect(html).toContain('REIMPRESION');
+    expect(html).toContain('ANULADO');
   });
 });
