@@ -167,6 +167,8 @@ No abre la aplicación ni toca sus datos. Las maquetas con varios estados recibe
 
 ## 11. Espacio y ventanas (Fase 3c) — propuesta pendiente de aprobación
 
+Decidido el 02/10/2026 (D-108 a D-110): barra con **ícono y nombre en una línea** por defecto (solo íconos queda como preferencia), **modo angosto de los maestros** incluido en la 3c y **Ctrl+Shift+O** para Organizar.
+
 Maqueta: `docs/maquetas/espacio-ventanas.html`, con una imagen por variante (`docs/maquetas/espacio-*.png`). Los componentes nuevos están en el bloque de estilos de la maqueta y pasan a `global.css` solo cuando se aprueben.
 
 ### 11.1 Espacio disponible

@@ -167,3 +167,16 @@ La foto se usa solo como referencia de campos y flujo, no de aspecto.
 | D-105 | (3b) «Consumidor final» no tiene cartera: no recibe abonos ni saldos iniciales. Un cliente o proveedor **inactivo** sí puede recibir abonos (puede tener deudas viejas), pero no se le puede facturar (D-95). | Supuesto |
 | D-106 | (3b) La tirilla del recibo de cliente imprime: número, fecha y hora de registro, cliente con identificación, forma de pago, tabla Factura · Abono · Saldo (marcando «SALDO INICIAL»), valor en letras, TOTAL ABONO, **SALDO PENDIENTE** (toda la deuda actual del cliente al imprimir, no solo la de las facturas abonadas) y observación. | Supuesto (por confirmar con la impresora real) |
 | D-107 | (3b) Un saldo inicial importado con error se corrige **anulándolo** cuando llegue la anulación de facturas (Fase 4) y volviéndolo a importar; mientras tanto, no se puede borrar ni editar. | Supuesto |
+
+## Decisiones de la Fase 3c (espacio y ventanas, `DISENO.md` §11)
+
+| #    | Decisión | Estado |
+| ---- | -------- | ------ |
+| D-108 | La barra superior por defecto lleva **ícono y nombre en una línea** (36 px; el cliente está acostumbrado a leer los nombres). «Solo íconos» con ayuda emergente queda como preferencia que se cambia y se recuerda. La barra de estado pasa a 19 px. | Confirmado |
+| D-109 | Los maestros (Productos, Clientes, Proveedores, Bodegas, Formas de pago) tienen **modo angosto**: por debajo de 680 px de ancho la ficha pasa debajo de la lista, para que quepan en tercios. | Confirmado |
+| D-110 | «Organizar» se abre con **Ctrl+Shift+O** (definido en el `keymap`; no choca con ningún atajo ni combinación reservada). Sus opciones se eligen con una tecla (1–4, M, I, D, R, T, B) o con ↑/↓ y Enter. | Confirmado |
+| D-111 | Cada proceso tiene un tamaño mínimo (tabla de `DISENO.md` §11.2); entre el mínimo y el tamaño natural el contenido se desplaza dentro de la ventana. | Supuesto |
+| D-112 | Si una ventana no cabe en su zona, la zona crece hasta el mínimo de la ventana y las vecinas se achican sin bajar del suyo; si ni así cabe, la opción de Organizar sale desactivada con la razón y el arrastre avisa en ámbar cómo quedará. | Supuesto |
+| D-113 | Se recuerdan tamaño, posición y estado (maximizada o encajada) por proceso entre sesiones, en una tabla de preferencias de interfaz **fuera del historial de cambios** (como los borradores, D-89). Si al abrir no cabe en el escritorio actual, se ajusta para que el título quede visible. | Supuesto |
+| D-114 | Organizar reparte las ventanas por orden de uso (la activa a la izquierda o arriba a la izquierda); las sobrantes quedan detrás en cascada; con 3 ventanas, «2 × 2» deja la activa en la mitad izquierda. Arrastrar el borde compartido cambia el tamaño de las dos ventanas encajadas. | Supuesto |
+| D-115 | Con el escritorio dividido, la ventana activa recibe el teclado y sus atajos; Ctrl+F6 recorre las ventanas en orden de lectura (izquierda a derecha, arriba abajo). | Supuesto |
