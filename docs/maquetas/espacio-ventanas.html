@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Maqueta: espacio y ventanas (Fase 3c)</title>
+    <!-- Estilo real de la app. -->
+    <link rel="stylesheet" href="../../src/renderer/estilos/global.css" />
+    <style>
+      /* Estilos nuevos de la maqueta; al aprobarse pasan a global.css. */
+
+      /* --- Barra superior, opción 1: ícono y nombre en una línea (36 px) --- */
+      .barra-iconos--linea {
+        padding: 2px 6px;
+      }
+      .barra-iconos--linea .barra-iconos__boton {
+        flex-direction: row;
+        gap: 6px;
+        width: auto;
+        padding: 4px 9px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .barra-iconos--linea .icono,
+      .barra-iconos--iconos .icono {
+        width: 20px;
+        height: 20px;
+      }
+
+      /* --- Barra superior, opción 2: solo íconos con ayuda emergente (34 px) --- */
+      .barra-iconos--iconos {
+        padding: 2px 6px;
+      }
+      .barra-iconos--iconos .barra-iconos__boton {
+        width: 38px;
+        padding: 5px 0;
+      }
+      .barra-iconos--iconos .barra-iconos__boton span {
+        display: none;
+      }
+      .ayuda-emergente {
+        position: absolute;
+        z-index: 50;
+        padding: 4px 8px;
+        border: 1px solid var(--color-borde);
+        border-radius: 3px;
+        background: #fffef5;
+        box-shadow: 0 2px 6px rgb(0 0 0 / 18%);
+        color: var(--color-texto);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .ayuda-emergente .atajo {
+        margin-left: 8px;
+        color: var(--color-tenue);
+      }
+
+      /* Botón «Organizar» a la derecha de la barra, junto a «Buscar». */
+      .barra-iconos__organizar {
+        margin-left: auto;
+      }
+      .barra-iconos__organizar + .barra-iconos__buscar {
+        margin-left: 0;
+      }
+      .barra-iconos__boton--abierto {
+        border-color: var(--color-borde);
+        background: #fff;
+      }
+
+      /* --- Barra de estado delgada (19 px) --- */
+      .barra-estado--delgada {
+        padding: 1px 10px;
+        font-size: 11px;
+      }
+
+      /* --- Ventanas: botón maximizar, bordes para redimensionar y encajadas --- */
+      .ventana__botones {
+        display: flex;
+        gap: 2px;
+      }
+      .ventana__maximizar {
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 22px;
+        border: none;
+        border-radius: 2px;
+        background: transparent;
+        color: #fff;
+      }
+      .ventana__maximizar:hover {
+        background: rgb(255 255 255 / 18%);
+      }
+      .ventana--encajada {
+        border-radius: 0;
+        box-shadow: none;
+      }
+      .ventana--encajada .ventana__titulo {
+        border-radius: 0;
+      }
+      .ventana--encajada.ventana--activa {
+        outline: 2px solid var(--color-titulo);
+        outline-offset: -1px;
+      }
+
+      /* --- Vista previa de la zona al arrastrar --- */
+      .zona-encaje {
+        position: absolute;
+        z-index: 40;
+        border: 2px solid var(--color-primario);
+        border-radius: 4px;
+        background: rgb(37 99 168 / 16%);
+      }
+      .zona-encaje--ajuste {
+        border-color: var(--color-alerta);
+        background: rgb(242 176 30 / 18%);
+      }
+      .zona-encaje__texto {
+        position: absolute;
+        right: 16px;
+        bottom: 16px;
+        left: 16px;
+        padding: 10px 12px;
+        border: 1px solid var(--color-alerta);
+        border-radius: 3px;
+        background: var(--color-alerta-fondo);
+        color: var(--color-alerta);
+        font-size: 13px;
+      }
+      .zona-encaje__medida {
+        position: absolute;
+        top: 12px;
+        left: 50%;
+        padding: 2px 8px;
+        border-radius: 3px;
+        background: var(--color-primario);
+        color: #fff;
+        font-size: 12px;
+        transform: translateX(-50%);
+      }
+      .zona-encaje--ajuste .zona-encaje__medida {
+        background: var(--color-alerta);
+      }
+
+      /* --- Diseños de encaje (arriba al centro, aparecen al arrastrar) --- */
+      .disenos-encaje {
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        z-index: 45;
+        display: flex;
+        gap: 14px;
+        padding: 8px 12px;
+        border: 1px solid var(--color-borde);
+        border-radius: 4px;
+        background: var(--color-panel);
+        box-shadow: 0 4px 14px rgb(0 0 0 / 18%);
+        transform: translateX(-50%);
+      }
+      .disenos-encaje__titulo {
+        align-self: center;
+        color: var(--color-tenue);
+        font-size: 12px;
+      }
+      .miniatura {
+        display: grid;
+        gap: 2px;
+        width: 54px;
+        height: 34px;
+      }
+      .miniatura i {
+        border: 1px solid var(--color-borde);
+        border-radius: 2px;
+        background: #eef1f5;
+      }
+      .miniatura i.miniatura__elegida {
+        border-color: var(--color-primario);
+        background: var(--color-primario);
+      }
+      .miniatura--menu {
+        width: 30px;
+        height: 19px;
+      }
+
+      /* --- Menú «Organizar» --- */
+      .menu-organizar {
+        position: absolute;
+        z-index: 60;
+        width: 330px;
+        padding: 4px 0;
+        border: 1px solid var(--color-borde);
+        border-radius: 3px;
+        background: var(--color-panel);
+        box-shadow: 0 6px 20px rgb(0 0 0 / 25%);
+        font-size: 13px;
+      }
+      .menu-organizar__titulo {
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 12px 6px;
+        color: var(--color-titulo);
+        font-weight: 600;
+      }
+      .menu-organizar__seccion {
+        padding: 6px 12px 2px;
+        border-top: 1px solid #dde3ea;
+        color: var(--color-tenue);
+        font-size: 11px;
+      }
+      .menu-organizar__opcion {
+        display: grid;
+        grid-template-columns: 34px 1fr auto;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+      }
+      .menu-organizar__opcion--activa {
+        background: var(--color-primario);
+        color: #fff;
+      }
+      .menu-organizar__opcion--activa .miniatura i {
+        border-color: #fff;
+      }
+      .menu-organizar__opcion--inactiva {
+        color: #9aa5b3;
+      }
+      .menu-organizar__razon {
+        display: block;
+        color: var(--color-alerta);
+        font-size: 11px;
+      }
+      .menu-organizar__tecla {
+        min-width: 16px;
+        padding: 0 4px;
+        border: 1px solid currentColor;
+        border-radius: 3px;
+        font-size: 11px;
+        text-align: center;
+        opacity: 0.8;
+      }
+
+      /* --- Asistente de encaje: qué ventana va en la zona libre --- */
+      .asistente-encaje {
+        position: absolute;
+        z-index: 30;
+        display: grid;
+        place-items: center;
+        background: rgb(201 211 222 / 65%);
+        outline: 2px dashed var(--color-borde);
+        outline-offset: -8px;
+      }
+      .asistente-encaje__panel {
+        width: 330px;
+        border: 1px solid var(--color-borde);
+        border-radius: 4px;
+        background: var(--color-panel);
+        box-shadow: 0 4px 14px rgb(0 0 0 / 18%);
+      }
+      .asistente-encaje__titulo {
+        padding: 6px 10px;
+        border-radius: 3px 3px 0 0;
+        background: var(--color-titulo);
+        color: #fff;
+        font-weight: 600;
+      }
+      .asistente-encaje__opcion {
+        display: flex;
+        justify-content: space-between;
+        padding: 7px 12px;
+        font-size: 13px;
+      }
+      .asistente-encaje__opcion--activa {
+        background: var(--color-primario);
+        color: #fff;
+      }
+      .asistente-encaje__ayuda {
+        padding: 6px 12px 8px;
+        border-top: 1px solid #dde3ea;
+        color: var(--color-tenue);
+        font-size: 12px;
+      }
+
+      /* --- Maestro en modo angosto: la ficha pasa debajo de la lista --- */
+      .maestro--angosto {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(120px, 42%) 1fr;
+      }
+
+      /* Solo de la maqueta: cursor de arrastre y rótulos de comparación. */
+      .mq-cursor {
+        position: absolute;
+        z-index: 70;
+        width: 0;
+        height: 0;
+        border-top: 18px solid #000;
+        border-right: 11px solid transparent;
+        filter: drop-shadow(1px 1px 0 #fff);
+      }
+      .mq-rotulo {
+        margin: 0;
+        padding: 10px 14px 4px;
+        color: var(--color-titulo);
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .mq-rotulo span {
+        color: var(--color-tenue);
+        font-weight: 400;
+      }
+      .mq-comparacion {
+        height: auto;
+        overflow: visible;
+        background: #fff;
+      }
+      .mq-comparacion .aplicacion {
+        height: auto;
+        grid-template-rows: auto 40px auto;
+        border: 1px solid var(--color-borde);
+        margin: 0 14px;
+      }
+      .mq-medida {
+        float: right;
+        color: var(--color-tenue);
+        font-weight: 400;
+      }
+      .mq-campos {
+        display: grid;
+        gap: 8px 10px;
+      }
+      .mq-total {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 6px 10px;
+        border: 1px solid var(--color-borde);
+        background: #f5f7fa;
+        font-size: 13px;
+      }
+      .mq-total strong {
+        font-size: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="raiz"></div>
+    <script>
+      // Íconos del mismo set que la app (IconoInterfaz / íconos de proceso).
+      const TRAZOS = {
+        facturar: 'M6 2h12v20l-3-2-3 2-3-2-3 2zM9 7h6M9 11h6M9 15h4',
+        compra: 'M3 7h13v10H3zM16 10h3l2 3v4h-5zM7 19a2 2 0 1 0 0-.01M17 19a2 2 0 1 0 0-.01',
+        abonoCliente: 'M2 7h20v10H2zM12 12m-2.5 0a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0M5 10v4M19 10v4',
+        abonoProveedor: 'M2 7h20v10H2zM8 12h8M13 9l3 3-3 3',
+        productos: 'M12 2l9 5v10l-9 5-9-5V7zM3 7l9 5 9-5M12 12v10',
+        clientes: 'M12 8m-4 0a4 4 0 1 0 8 0a4 4 0 1 0-8 0M4 21c0-4 4-6 8-6s8 2 8 6',
+        proveedores: 'M3 21V9l6-4v4l6-4v4l6-4v16zM7 17h2M11 17h2M15 17h2',
+        reimpresiones: 'M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z',
+        organizar: 'M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z',
+        buscar: 'M10 10m-6 0a6 6 0 1 0 12 0a6 6 0 1 0-12 0M15 15l6 6',
+      };
+      const icono = (t) =>
+        `<svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${TRAZOS[t]}"/></svg>`;
+      const BOTONES = [
+        ['facturar', 'Facturar'],
+        ['compra', 'Factura de proveedor'],
+        ['abonoCliente', 'Abono de cliente'],
+        ['abonoProveedor', 'Abono a proveedor'],
+        ['productos', 'Productos'],
+        ['clientes', 'Clientes'],
+        ['proveedores', 'Proveedores'],
+        ['reimpresiones', 'Reimpresiones'],
+      ];
+
+      /** Barra superior: `actual`, `linea` (opción 1) o `iconos` (opción 2). */
+      function barra(modo, { menuAbierto = false } = {}) {
+        const clase = modo === 'actual' ? '' : ` barra-iconos--${modo}`;
+        const botones = BOTONES.map(
+          ([i, t]) => `<button class="barra-iconos__boton">${icono(i)}<span>${t}</span></button>`,
+        ).join('');
+        const organizar =
+          modo === 'actual'
+            ? ''
+            : `<button class="barra-iconos__boton barra-iconos__organizar${menuAbierto ? ' barra-iconos__boton--abierto' : ''}">${icono('organizar')}<span>Organizar</span></button>`;
+        const buscar = `<button class="barra-iconos__boton barra-iconos__buscar">${icono('buscar')}<span>Buscar (Ctrl+K)</span></button>`;
+        return `<nav class="barra-iconos${clase}">${botones}${organizar}${buscar}</nav>`;
+      }
+
+      /** Barra de estado, actual o delgada. */
+      function estado(delgada, atajos = 'Ctrl+K buscar · Ctrl+F6 cambiar ventana · Ctrl+Shift+O organizar · Esc cerrar') {
+        return `<footer class="barra-estado${delgada ? ' barra-estado--delgada' : ''}"><span>Versión 0.1.0</span><span>Último respaldo: 02/10/2026 3:40 a. m.</span><span class="barra-estado__atajos">${atajos}</span></footer>`;
+      }
+
+      const MAXIMIZAR =
+        '<svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1" y="1" width="9" height="9"/></svg>';
+
+      /** Ventana interna con barra de título, botón maximizar y cerrar. */
+      function ventana({ titulo, x, y, w, h, activa = false, encajada = true, cambios = '', contenido, z = 10 }) {
+        const clases = ['ventana', activa && 'ventana--activa', encajada && 'ventana--encajada']
+          .filter(Boolean)
+          .join(' ');
+        return `<section class="${clases}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;z-index:${z}">
+          <div class="ventana__titulo"><span>${titulo}${cambios ? `<span class="ventana__cambios"> • ${cambios}</span>` : ''}</span>
+            <span class="ventana__botones"><button class="ventana__maximizar" title="Maximizar (doble clic en el título)">${MAXIMIZAR}</button><button class="ventana__cerrar">×</button></span></div>
+          <div class="ventana__contenido">${contenido}</div>
+          <div class="ventana__redimensionar"></div>
+        </section>`;
+      }
+
+      const tabla = (cabeza, filas, alto) =>
+        `<div class="tabla-contenedor" style="${alto ? `height:${alto}` : 'flex:1;min-height:0'}"><table class="tabla"><thead><tr>${cabeza
+          .map((c) => `<th${c.endsWith('$') ? ' class="num"' : ''}>${c.replace('$', '')}</th>`)
+          .join('')}</tr></thead><tbody>${filas
+          .map(
+            (f, i) =>
+              `<tr${f.sel ? ' class="fila--seleccionada"' : ''}>${(f.celdas ?? f)
+                .map((c, j) => `<td${cabeza[j].endsWith('$') ? ' class="num"' : ''}>${c}</td>`)
+                .join('')}</tr>`,
+          )
+          .join('')}</tbody></table></div>`;
+      const campo = (etiqueta, valor, extra = '') =>
+        `<label class="campo ${extra}"><span>${etiqueta}</span><input value="${valor}" /></label>`;
+
+      function facturar() {
+        return `<div class="documento" style="flex:1;min-height:0">
+          <div class="barra-herramientas"><button class="boton boton--primario">Guardar e imprimir<span class="atajo">Av. Pág</span></button><button class="boton">Limpiar borrador</button><span class="barra-herramientas__separador"></span><span class="texto-tenue">Factura No. <strong>84773</strong></span></div>
+          <div class="borradores">
+            <div class="borradores__pestana borradores__pestana--activa"><span class="borradores__atajo">1</span><span class="borradores__nombre">JUAN JJ FERTILIA</span><span class="borradores__total">79,250</span></div>
+            <div class="borradores__pestana"><span class="borradores__atajo">2</span><span class="borradores__nombre">Consumidor final</span><span class="borradores__total">8,800</span></div>
+            <div class="borradores__pestana borradores__pestana--vacia"><span class="borradores__atajo">3</span><span class="borradores__nombre">vacío</span></div>
+          </div>
+          <div class="mq-campos" style="grid-template-columns:2fr 1fr 0.7fr">${campo('Cliente *', '10001 - JUAN JJ FERTILIA')}${campo('Condición', 'Crédito')}${campo('Plazo (días)', '8', 'campo--num')}</div>
+          ${tabla(
+            ['Código$', 'Producto', 'Escala', 'Cantidad$', 'Precio$', 'Total$'],
+            [
+              ['231', 'PAPA FRANCESA AGRINA PREMIUM *2.5 KG', 'Menor', '4', '14,500', '58,000'],
+              ['101', 'CAJA PIZZA 35*35 FD', 'Mayor', '5', '1,950', '9,750'],
+              ['102', 'CAJA PIZZA 40*40 FD', 'Mayor', '5', '2,300', '11,500'],
+            ],
+          )}
+          <div class="mq-total"><span>Son: setenta y nueve mil doscientos cincuenta pesos</span><span>Total <strong>$ 79,250</strong></span></div>
+        </div>`;
+      }
+
+      function abono() {
+        return `<div class="documento" style="flex:1;min-height:0">
+          <div class="barra-herramientas"><button class="boton boton--primario">Guardar<span class="atajo">Av. Pág</span></button><button class="boton">Limpiar</button><span class="barra-herramientas__separador"></span><span class="texto-tenue">Abono No. <strong>2</strong></span></div>
+          <div class="mq-campos" style="grid-template-columns:1.6fr 1fr">${campo('Cliente *', '10001 - JUAN JJ FERTILIA')}<div class="deuda"><span>Deuda actual</span><strong>$ 165,000</strong><span class="texto-error">Vencido: $ 120,000</span></div></div>
+          <div class="mq-campos" style="grid-template-columns:1fr 1fr 1fr">${campo('Fecha *', '02/10/2026', 'campo--num')}${campo('Forma de pago *', 'Efectivo')}${campo('Valor del abono *', '150,000', 'campo--num')}</div>
+          ${tabla(
+            ['Factura$', 'Vence$', 'Saldo$', 'Aplicar$'],
+            [
+              ['84650 <span class="etiqueta etiqueta--saldo-inicial">Saldo inicial</span>', '09/09/2026', '120,000', '120,000'],
+              ['84700 <span class="etiqueta etiqueta--saldo-inicial">Saldo inicial</span>', '20/10/2026', '45,000', '30,000'],
+            ],
+          )}
+          <div class="reparto"><span>Aplicado: <strong>$ 150,000</strong></span><span>Deuda después: <strong>$ 15,000</strong></span></div>
+        </div>`;
+      }
+
+      function maestro(tipo, angosto) {
+        const productos = tipo === 'productos';
+        const lista = productos
+          ? tabla(
+              ['Código$', 'Nombre', 'P. mayor$'],
+              [
+                ['101', 'CAJA PIZZA 35*35 FD', '1,950'],
+                ['102', 'CAJA PIZZA 40*40 FD', '2,300'],
+                { sel: true, celdas: ['231', 'PAPA FRANCESA AGRINA PREMIUM *2.5 KG', '16,000'] },
+                ['501', 'QUESO COSTEÑO', '16,000'],
+                ['502', 'SALCHICHA RANCHERA *500 G', '9,800'],
+              ],
+            )
+          : tabla(
+              ['Código$', 'Nombre', 'Tope$'],
+              [
+                ['0', 'Consumidor final', '—'],
+                { sel: true, celdas: ['10001', 'JUAN JJ FERTILIA', '500,000'] },
+                ['10002', 'MARIA LA DEL BARRIO', '—'],
+                ['10003', 'RESTAURANTE EL FOGÓN', '1,200,000'],
+              ],
+            );
+        const ficha = productos
+          ? `<div style="overflow:auto"><h3 style="margin:0 0 8px;font-size:15px;color:var(--color-titulo)">Producto 231 <span class="etiqueta etiqueta--activo">Activo</span></h3>
+              <div class="mq-campos" style="grid-template-columns:1fr 1fr">${campo('Nombre *', 'PAPA FRANCESA AGRINA PREMIUM *2.5 KG', '" style="grid-column:span 2')}${campo('Costo', '12,000', 'campo--num')}${campo('Unidad', 'UND')}${campo('P. mayor', '16,000', 'campo--num')}${campo('P. menor', '17,500', 'campo--num')}</div></div>`
+          : `<div style="overflow:auto"><h3 style="margin:0 0 8px;font-size:15px;color:var(--color-titulo)">Cliente 10001 <span class="etiqueta etiqueta--activo">Activo</span></h3>
+              <div class="mq-campos" style="grid-template-columns:1fr 1fr">${campo('Nombre *', 'JUAN JJ FERTILIA', '" style="grid-column:span 2')}${campo('Identificación', 'CC 212121354')}${campo('Celular', '3042620852')}${campo('Tope de crédito', '500,000', 'campo--num')}${campo('Ciudad', 'BARRANQUILLA')}</div></div>`;
+        return `<div class="barra-herramientas"><button class="boton">Nuevo<span class="atajo">F2</span></button><button class="boton boton--primario">Guardar<span class="atajo">Ctrl+S</span></button><span class="barra-herramientas__separador"></span><input placeholder="Buscar código o nombre…" style="flex:1;min-width:80px" /></div>
+          <div class="maestro${angosto ? ' maestro--angosto' : ''}" style="margin-top:10px"><div class="maestro__lista" style="display:flex;flex-direction:column;min-height:0">${lista}</div>${ficha}</div>`;
+      }
+
+      const zona = (x, y, w, h, extra = '', clase = '') =>
+        `<div class="zona-encaje ${clase}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px">${extra}</div>`;
+      const mini = (columnas, filas, celdas, elegida = -1, clase = '') =>
+        `<div class="miniatura ${clase}" style="grid-template-columns:${columnas};grid-template-rows:${filas}">${celdas
+          .map((c, i) => `<i style="${c}" class="${i === elegida ? 'miniatura__elegida' : ''}"></i>`)
+          .join('')}</div>`;
+      const MINIS = {
+        dos: (e, c) => mini('1fr 1fr', '1fr', ['', ''], e, c),
+        tres: (e, c) => mini('1fr 1fr 1fr', '1fr', ['', '', ''], e, c),
+        cuatro: (e, c) => mini('1fr 1fr', '1fr 1fr', ['', '', '', ''], e, c),
+        cascada: (e, c) =>
+          `<div class="miniatura ${c}" style="position:relative;display:block"><i style="position:absolute;left:0;top:0;width:60%;height:60%"></i><i style="position:absolute;left:20%;top:20%;width:60%;height:60%"></i><i style="position:absolute;left:40%;top:40%;width:60%;height:60%"></i></div>`,
+      };
+
+      function menuOrganizar({ x, y, tresInactiva = null, activa = 0 }) {
+        const opcion = (i, mini, texto, tecla, razon = null) =>
+          `<div class="menu-organizar__opcion${i === activa ? ' menu-organizar__opcion--activa' : ''}${razon ? ' menu-organizar__opcion--inactiva' : ''}">${mini}<span>${texto}${razon ? `<span class="menu-organizar__razon">${razon}</span>` : ''}</span><span class="menu-organizar__tecla">${tecla}</span></div>`;
+        const simple = (i, texto, tecla) =>
+          `<div class="menu-organizar__opcion${i === activa ? ' menu-organizar__opcion--activa' : ''}"><span></span><span>${texto}</span><span class="menu-organizar__tecla">${tecla}</span></div>`;
+        return `<div class="menu-organizar" style="left:${x}px;top:${y}px">
+          <div class="menu-organizar__titulo"><span>Organizar ventanas</span><span class="texto-tenue" style="font-weight:400">Ctrl+Shift+O</span></div>
+          ${opcion(1, MINIS.dos(-1, 'miniatura--menu'), '2 columnas', '1')}
+          ${opcion(2, MINIS.tres(-1, 'miniatura--menu'), '3 columnas', '2', tresInactiva)}
+          ${opcion(3, MINIS.cuatro(-1, 'miniatura--menu'), '2 × 2', '3')}
+          ${opcion(4, MINIS.cascada(-1, 'miniatura--menu'), 'Cascada', '4')}
+          <div class="menu-organizar__seccion">Ventana activa</div>
+          ${simple(5, 'Maximizar o restaurar <span class="texto-tenue">(doble clic en el título)</span>', 'M')}
+          ${simple(6, 'Mitad izquierda', 'I')}
+          ${simple(7, 'Mitad derecha', 'D')}
+          ${simple(8, 'Restablecer su tamaño y posición', 'R')}
+          ${simple(9, 'Restablecer todas las ventanas', 'T')}
+          <div class="menu-organizar__seccion">Barra superior</div>
+          ${simple(10, '<label><input type="radio" checked /> Ícono y nombre</label> &nbsp; <label><input type="radio" /> Solo íconos</label>', 'B')}
+        </div>`;
+      }
+
+      /** Monta una pantalla completa de la app con su barra, escritorio y estado. */
+      function pantalla(contenido, { modo = 'linea', menuAbierto = false, atajos } = {}) {
+        return `<div class="aplicacion">${barra(modo, { menuAbierto })}<main class="escritorio">${contenido}</main>${estado(true, atajos)}</div>`;
+      }
+
+      const ALTO_ESCRITORIO = () => innerHeight - 36 - 19;
+      const variante = location.hash.slice(1) || 'barra';
+      const raiz = document.getElementById('raiz');
+      const E = () => ({ w: innerWidth, h: ALTO_ESCRITORIO() });
+
+      const VARIANTES = {
+        barra() {
+          document.body.classList.add('mq-comparacion');
+          raiz.classList.add('mq-comparacion');
+          const fila = (titulo, medida, modo, delgada, extra = '') =>
+            `<p class="mq-rotulo">${titulo} <span class="mq-medida">${medida}</span></p>
+             <div class="aplicacion" style="position:relative">${barra(modo)}<main class="escritorio"></main>${estado(delgada)}${extra}</div>`;
+          const ayuda = `<div class="ayuda-emergente" style="left:8px;top:40px">Facturar</div><div class="ayuda-emergente" style="left:200px;top:40px">Productos</div><div class="ayuda-emergente" style="right:8px;top:40px">Buscar procesos<span class="atajo">Ctrl+K</span></div>`;
+          raiz.innerHTML =
+            fila('Hoy', 'barra 75 px · estado 23 px', 'actual', false) +
+            fila('Opción 1: ícono y nombre en una línea', 'barra 36 px · estado 19 px · gana 43 px de alto', 'linea', true) +
+            fila('Opción 2: solo íconos, con ayuda emergente (nombre y atajo)', 'barra 34 px · estado 19 px · gana 45 px de alto', 'iconos', true, ayuda) +
+            '<p class="mq-rotulo" style="padding-bottom:14px"><span>La ayuda emergente aparece al pasar el ratón o al llegar con el teclado; muestra el atajo del proceso cuando tenga uno (hoy solo Buscar tiene: Ctrl+K). La preferencia se cambia en «Organizar» o con clic derecho sobre la barra, y se recuerda.</span></p>';
+        },
+
+        'dos-columnas'() {
+          const { w, h } = E();
+          const mitad = w / 2;
+          raiz.innerHTML = pantalla(
+            ventana({ titulo: 'Facturar', x: 0, y: 0, w: mitad, h, contenido: facturar(), cambios: '2 borradores pendientes' }) +
+              ventana({ titulo: 'Abono de cliente', x: mitad, y: 0, w: mitad, h, activa: true, contenido: abono() }) +
+              menuOrganizar({ x: w - 330 - 120, y: -2, activa: 1 }),
+            { menuAbierto: true },
+          );
+        },
+
+        arrastre() {
+          const { w, h } = E();
+          raiz.innerHTML = pantalla(
+            ventana({ titulo: 'Productos', x: 520, y: 40, w: 980, h: 600, encajada: false, contenido: maestro('productos', false) }) +
+              zona(6, 6, w / 2 - 12, h - 12, '<span class="zona-encaje__medida">Mitad izquierda · 768 × 739</span>') +
+              ventana({ titulo: 'Abono de cliente', x: 40, y: 150, w: 760, h: 520, activa: true, encajada: false, contenido: abono(), z: 50 }) +
+              `<div class="disenos-encaje"><span class="disenos-encaje__titulo">Suelte sobre una zona:</span>${MINIS.dos(0)}${MINIS.tres()}${MINIS.cuatro()}</div>` +
+              '<div class="mq-cursor" style="left:14px;top:160px"></div>',
+          );
+        },
+
+        asistente() {
+          const { w, h } = E();
+          const mitad = w / 2;
+          raiz.innerHTML = pantalla(
+            ventana({ titulo: 'Abono de cliente', x: 0, y: 0, w: mitad, h, activa: true, contenido: abono() }) +
+              `<div class="asistente-encaje" style="left:${mitad}px;top:0;width:${mitad}px;height:${h}px"><div class="asistente-encaje__panel">
+                <div class="asistente-encaje__titulo">¿Qué ventana va en la mitad derecha?</div>
+                <div class="asistente-encaje__opcion asistente-encaje__opcion--activa"><span>Facturar</span><span>2 borradores</span></div>
+                <div class="asistente-encaje__opcion"><span>Productos</span><span></span></div>
+                <div class="asistente-encaje__opcion"><span>Clientes</span><span></span></div>
+                <div class="asistente-encaje__ayuda">↑/↓ y Enter para elegir · Esc la deja libre</div>
+              </div></div>`,
+          );
+        },
+
+        'ajuste-1366'() {
+          const { w, h } = E();
+          raiz.innerHTML = pantalla(
+            ventana({ titulo: 'Datos del negocio', x: 700, y: 30, w: 420, h: 560, encajada: false, contenido: '<div class="mq-campos">' + campo('Nombre del negocio *', 'SALSAMENTARIA EL BUEN CIUDADANO') + campo('NIT *', '70694229-1') + campo('Dirección', 'CRA 31 # 120-54') + campo('Próxima factura No.', '84773', 'campo--num') + '</div>' }) +
+              zona(6, 6, 760 - 12, h - 12, '<span class="zona-encaje__medida">Facturar · 760 × 634 (ajustada)</span><div class="zona-encaje__texto">La mitad mide 683 px y Facturar necesita al menos 760 px de ancho: quedará de 760 px y la otra zona, de 606 px.</div>', 'zona-encaje--ajuste') +
+              ventana({ titulo: 'Facturar', x: 30, y: 60, w: 760, h: 440, activa: true, encajada: false, contenido: facturar(), z: 50 }) +
+              '<div class="mq-cursor" style="left:10px;top:70px"></div>',
+          );
+        },
+
+        'menu-1366'() {
+          const { w, h } = E();
+          const negocio = '<div class="mq-campos">' + campo('Nombre del negocio *', 'SALSAMENTARIA EL BUEN CIUDADANO') + campo('NIT *', '70694229-1') + campo('Dirección', 'CRA 31 # 120-54') + campo('Próxima factura No.', '84773', 'campo--num') + '</div>';
+          raiz.innerHTML = pantalla(
+            ventana({ titulo: 'Facturar', x: 0, y: 0, w: 760, h, activa: true, contenido: facturar() }) +
+              ventana({ titulo: 'Datos del negocio', x: 760, y: 0, w: w - 760, h, contenido: negocio }) +
+              menuOrganizar({ x: w - 330 - 120, y: -2, activa: -1, tresInactiva: 'No caben: cada columna mediría 455 px y Facturar necesita 760.' }),
+            { menuAbierto: true },
+          );
+        },
+
+        'tres-columnas'() {
+          const { w, h } = E();
+          const tercio = w / 3;
+          raiz.innerHTML = pantalla(
+            ventana({ titulo: 'Productos', x: 0, y: 0, w: tercio, h, contenido: maestro('productos', true) }) +
+              ventana({ titulo: 'Clientes', x: tercio, y: 0, w: tercio, h, contenido: maestro('clientes', true) }) +
+              ventana({ titulo: 'Abono de cliente', x: 2 * tercio, y: 0, w: tercio, h, activa: true, contenido: abono() }),
+          );
+        },
+
+        'dos-por-dos'() {
+          const { w, h } = E();
+          const mitad = w / 2;
+          const arriba = 480;
+          raiz.innerHTML = pantalla(
+            ventana({ titulo: 'Facturar', x: 0, y: 0, w: mitad, h: arriba, activa: true, contenido: facturar(), cambios: '2 borradores pendientes' }) +
+              ventana({ titulo: 'Abono de cliente', x: mitad, y: 0, w: mitad, h: arriba, contenido: abono() }) +
+              ventana({ titulo: 'Productos', x: 0, y: arriba, w: mitad, h: h - arriba, contenido: maestro('productos', false) }) +
+              ventana({ titulo: 'Clientes', x: mitad, y: arriba, w: mitad, h: h - arriba, contenido: maestro('clientes', false) }),
+          );
+        },
+      };
+      VARIANTES[variante]();
+    </script>
+  </body>
+</html>

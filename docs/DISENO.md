@@ -58,7 +58,7 @@ Definida como variables CSS en `:root`. No se usan colores sueltos fuera de esta
 └──────────────────────────────────────────────────────────────┘
 ```
 
-- **Barra de iconos** (`.barra-iconos`): degradado claro, botones de 92 px con ícono lineal de 26 px y texto de 11 px. No reciben foco con Tab.
+- **Barra de iconos** (`.barra-iconos`): degradado claro, botones de 92 px con ícono lineal de 26 px y texto de 11 px. No reciben foco con Tab. Mide 75 px de alto; la Fase 3c propone adelgazarla (§11.4).
 - **Escritorio** (`.escritorio`): gris azulado; sin ventanas muestra un texto de ayuda centrado.
 - **Barra de estado** (`.barra-estado`): 12 px, gris; a la derecha, los atajos de la ventana activa o los globales.
 
@@ -69,7 +69,7 @@ Definida como variables CSS en `:root`. No se usan colores sueltos fuera de esta
 - Botón × a la derecha (rojo al pasar el ratón). Cerrar siempre pide confirmación.
 - Contenido con 16 px de margen interno.
 - Una instancia por proceso (D-04).
-- **Se pueden agrandar** arrastrando el asa de la esquina inferior derecha (mínimo 360×200 px). Cada proceso abre con un tamaño inicial (`src/renderer/ventanas/tamanos.ts`); los maestros, con 1040×640 px. Las listas aprovechan el espacio extra mostrando columnas adicionales (§6.4).
+- **Se pueden agrandar** arrastrando el asa de la esquina inferior derecha (mínimo 360×200 px). Cada proceso abre con un tamaño inicial (`src/renderer/ventanas/tamanos.ts`); los maestros, con 1040×640 px. Las listas aprovechan el espacio extra mostrando columnas adicionales (§6.4). La Fase 3c propone redimensionar por todos los bordes, maximizar, tamaño mínimo por proceso, recordar tamaño y posición, y dividir el escritorio (§11).
 
 ## 6. Componentes
 
@@ -163,4 +163,74 @@ Las maquetas son HTML estático que usa el CSS real de la app. Para regenerar la
 npx electron docs/maquetas/capturar.mjs docs/maquetas/productos.html docs/maquetas/productos.png 1280 800
 ```
 
-No abre la aplicación ni toca sus datos.
+No abre la aplicación ni toca sus datos. Las maquetas con varios estados reciben la variante como quinto parámetro (por ejemplo `espacio-ventanas.html` con `dos-columnas`).
+
+## 11. Espacio y ventanas (Fase 3c) — propuesta pendiente de aprobación
+
+Maqueta: `docs/maquetas/espacio-ventanas.html`, con una imagen por variante (`docs/maquetas/espacio-*.png`). Los componentes nuevos están en el bloque de estilos de la maqueta y pasan a `global.css` solo cuando se aprueben.
+
+### 11.1 Espacio disponible
+
+Medido en la app: hoy la barra de iconos mide 75 px y la de estado 23 px. Con la barra adelgazada (36 px) y la de estado delgada (19 px) el escritorio gana 43 px de alto. Medidas en píxeles de la app (una pantalla de 1920×1080 con la escala de Windows al 125 % equivale a 1536×864). La fila de 1536×864 está medida en la app; las otras dos son cálculos con la barra de tareas de Windows 11 y la barra de título de la ventana principal:
+
+| Pantalla                          | Escritorio hoy | Escritorio propuesto | 2 columnas | 3 columnas | 2 × 2     |
+| --------------------------------- | -------------- | -------------------- | ---------- | ---------- | --------- |
+| 1366×768 (100 %)                  | 1366×591       | 1366×634             | 683×634    | 455×634    | 683×317   |
+| 1920×1080 al 125 % (1536×864)     | 1536×696       | 1536×739             | 768×739    | 512×739    | 768×369   |
+| 1920×1080 (100 %)                 | 1920×903       | 1920×946             | 960×946    | 640×946    | 960×473   |
+
+### 11.2 Tamaño de las ventanas
+
+- **Redimensionar por los cuatro bordes y las cuatro esquinas** (zona sensible de 6 px en los bordes y 12 px en las esquinas, con el cursor de Windows correspondiente). Se conserva el asa visible de la esquina inferior derecha.
+- **Maximizar:** doble clic en la barra de título o el botón □ (junto al ×). Maximizada ocupa todo el escritorio, sin bordes redondeados; otro doble clic, o arrastrarla por el título, la restaura a su tamaño anterior.
+- **Tamaño mínimo por proceso** (no se puede achicar más). Entre el mínimo y el tamaño natural, el contenido se desplaza dentro de la ventana; las tablas se encogen primero. Mínimos propuestos (ventana completa, con su barra de título), según el ancho mínimo medido de cada contenido:
+
+| Proceso                                  | Mínimo (ancho × alto) |
+| ---------------------------------------- | --------------------- |
+| Facturar                                 | 760 × 480             |
+| Factura de proveedor                     | 720 × 460             |
+| Abono de cliente, Abono a proveedor      | 560 × 440             |
+| Ajustes de inventario                    | 560 × 420             |
+| Productos, Clientes, Proveedores         | 680 × 360 (440 × 420 en modo angosto, §11.3) |
+| Bodegas, Formas de pago                  | 440 × 300 (con modo angosto) |
+| Importar datos                           | 560 × 400             |
+| Datos del negocio                        | 420 × 360             |
+| Procesos de fases futuras                | 480 × 320 hasta que tengan el suyo |
+
+- **Se recuerdan tamaño y posición por proceso** entre sesiones (también si quedó maximizada o encajada). Al abrir, si no cabe en el escritorio actual (otra pantalla u otra escala), se ajusta para que la barra de título quede visible y respetando el mínimo. «Restablecer su tamaño y posición» (menú Organizar o clic derecho en el título) vuelve al tamaño inicial de `tamanos.ts`; «Restablecer todas las ventanas» lo hace con todas.
+- La ventana principal ya abre maximizada; se mantiene.
+
+### 11.3 Dividir el escritorio
+
+Hasta 4 ventanas a la vez, cada una de un proceso distinto (D-04). Una ventana **encajada** pierde la sombra y las esquinas redondeadas; la activa se distingue por la barra de título azul y un contorno del mismo color.
+
+- **Arrastrar a un borde o esquina** (maqueta `#arrastre`): al acercar el puntero a 8 px del borde izquierdo o derecho aparece la vista previa de la **mitad**; en una esquina, el **cuadrante**; en el borde superior, **maximizar**. Al arrastrar aparece arriba al centro la tira **«Suelte sobre una zona»** con los diseños 2 columnas, 3 columnas y 2 × 2: soltar sobre una celda encaja la ventana ahí (así se llega a los **tercios**). La vista previa es azul translúcida con la medida de la zona.
+- **Asistente de encaje** (maqueta `#asistente`): al encajar una ventana, la zona libre ofrece las demás ventanas abiertas («¿Qué ventana va en la mitad derecha?»): ↑/↓ y Enter elige, Esc la deja libre. Las que no caben en esa zona salen en gris con la razón.
+- **Organizar** (botón a la derecha de la barra, junto a «Buscar», y atajo **Ctrl+Shift+O**, maqueta `#dos-columnas`): menú con 2 columnas (1), 3 columnas (2), 2 × 2 (3) y Cascada (4); para la ventana activa: Maximizar o restaurar (M), Mitad izquierda (I), Mitad derecha (D), Restablecer su tamaño y posición (R) y Restablecer todas (T); y la preferencia de la barra superior (B). Cada opción se elige con su tecla o con ↑/↓ y Enter. Las teclas del menú se definen en el `keymap`.
+  - Se reparten las ventanas en su orden de uso: la activa va a la izquierda (o arriba a la izquierda). Si hay más ventanas que zonas, las sobrantes quedan detrás en cascada. Con 3 ventanas, «2 × 2» deja la activa en la mitad izquierda y las otras dos en los cuadrantes derechos.
+- **Zona más pequeña que el mínimo** (maquetas `#ajuste-1366` y `#menu-1366`): las zonas empiezan iguales; si una ventana no cabe, su columna (o fila) crece hasta su mínimo y las vecinas se achican sin bajar del suyo. La vista previa del arrastre se pone ámbar y dice cómo quedará («La mitad mide 683 px y Facturar necesita al menos 760 px de ancho: quedará de 760 px y la otra zona, de 606 px»). Si ni así cabe, la opción del menú sale en gris con la razón («No caben: cada columna mediría 455 px y Facturar necesita 760»).
+- **Borde compartido:** arrastrar el borde entre dos ventanas encajadas cambia el tamaño de ambas, sin bajar de sus mínimos.
+- **Al cambiar el tamaño del escritorio** (otra pantalla, ventana principal restaurada), las ventanas encajadas siguen su zona en proporción y las sueltas se ajustan para seguir visibles.
+- **Modo angosto de los maestros** (maqueta `#tres-columnas`): por debajo de 680 px de ancho, la ficha pasa debajo de la lista (como las columnas extra de §6.4, con una consulta de contenedor). Así Productos, Clientes y Proveedores caben en tercios.
+- **Teclado:** la ventana activa recibe el teclado y sus atajos; Ctrl+F6 pasa a la siguiente (con el escritorio organizado, en orden de lectura: de izquierda a derecha y de arriba abajo); un clic en cualquier parte de una ventana la activa; Esc cierra la activa. La barra de estado muestra los atajos de la activa.
+
+Qué cabe con los mínimos propuestos (barra adelgazada):
+
+| Pantalla                      | 2 columnas                                          | 3 columnas                                                     | 2 × 2                                                     |
+| ----------------------------- | --------------------------------------------------- | -------------------------------------------------------------- | --------------------------------------------------------- |
+| 1366×768                      | Facturar (760) + una de hasta 606: abono, ajustes, maestro angosto, datos del negocio | Solo maestros angostos y Datos del negocio                     | No (cada fila mediría 317 px)                             |
+| 1920×1080 al 125 % (1536×864) | Cualquier par                                       | Maestros angostos y un abono (ajustado a 560 + 488 + 488); sin Facturar | Maestros y ventanas simples; sin documentos               |
+| 1920×1080 (100 %)             | Cualquier par                                       | Facturar ajustada (760 + 580 + 580) con abonos o maestros angostos | Facturar arriba ajustada (filas de 480 y 466) con abono y maestros (maqueta `#dos-por-dos`) |
+
+### 11.4 Barra superior y barra de estado
+
+Maqueta `#barra`, con las dos opciones frente a la barra actual:
+
+- **Opción 1 — ícono y nombre en una línea** (`.barra-iconos--linea`): ícono de 20 px y nombre de 12 px al lado; 36 px de alto. Los nombres largos («Factura de proveedor») caben en una línea.
+- **Opción 2 — solo íconos** (`.barra-iconos--iconos`): botones de 38 px con ícono de 20 px; 34 px de alto. Al pasar el ratón o llegar con el teclado aparece la **ayuda emergente** (`.ayuda-emergente`) con el nombre y el atajo del proceso, si lo tiene (hoy solo «Buscar», Ctrl+K; los atajos de los íconos se definen en `ATAJOS_PROCESOS` del `keymap`).
+- **Barra de estado delgada** (`.barra-estado--delgada`): 11 px de letra y 1 px de relleno; 19 px de alto.
+- La preferencia se cambia en el menú Organizar (B) o con clic derecho sobre la barra, y se recuerda entre sesiones.
+
+### 11.5 Dónde se guardan las preferencias
+
+Tamaño y posición por proceso y la preferencia de la barra se guardan en la base, en una tabla de preferencias de interfaz (migración nueva), **fuera del historial de cambios**: no son documentos ni datos del negocio, igual que los borradores (D-89).
