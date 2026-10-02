@@ -40,16 +40,34 @@ Cada entrada indica su estado: **Confirmado** (aprobado por el cliente/desarroll
 
 ## Factura actual (referencia: `docs/referencias/factura-actual.jpg`)
 
-Lo que muestra la tirilla del sistema actual y cómo se usará. Los puntos marcados **Pendiente** chocan con una decisión ya tomada y se resuelven antes de la Fase 3.
+Lo que muestra la tirilla del sistema actual y cómo se usará. Regla general (confirmada): **la impresión imita la factura actual**, aunque difiera de cómo se muestran los datos en pantalla (D-13, D-20 y D-02 aplican a la interfaz, no a la tirilla).
 
 | #    | Observación                                                                                                                                                                     | Estado             |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
 | F-01 | Encabezado: nombre del negocio, NIT, «NO RESPONSABLE DE IVA», «DIR: … - TEL: …». El texto de autorización DIAN **no** se copia (§11.1).                                         | Confirmado (§11.1) |
-| F-02 | El número de factura actual va por el **84771**: el consecutivo inicial de factura de cliente debe poder fijarse para continuar la numeración.                                   | Pendiente (Fase 3) |
-| F-03 | Las fechas de generación y expedición se imprimen con segundos y «PM» (`30/09/2026 05:26:36 PM`), distinto de D-20 (`5:26 p. m.`). ¿En la tirilla se copia el formato actual? | Pendiente (Fase 3) |
-| F-04 | La cantidad se imprime con tres decimales también en unidades (`4.000`), distinto de D-13 (UND sin decimales).                                                                 | Pendiente (Fase 3) |
-| F-05 | La columna «Valor» va sin separador de miles (`58000`), pero el total sí lo lleva (`79,250`).                                                                              | Pendiente (Fase 3) |
-| F-06 | «SU AHORRO FUE DE» se imprime con dos decimales (`12,000.00`), aunque el dinero no tiene decimales.                                                                           | Pendiente (Fase 3) |
-| F-07 | Debajo de la fecha aparece una línea «NDEF» de significado desconocido.                                                                                                          | Pendiente (Fase 3) |
-| F-08 | El nombre del producto se imprime con la unidad al final («… x UNIDAD»).                                                                                                         | Pendiente (Fase 3) |
+| F-02 | El número de factura actual va por el **84771**. El consecutivo inicial de factura de cliente es **configurable** y el desarrollador lo fija al instalar.                         | Confirmado         |
+| F-03 | En la tirilla, fechas con segundos y «PM», como la actual: `30/09/2026 05:26:36 PM`. En pantalla sigue D-20.                                                                     | Confirmado         |
+| F-04 | En la tirilla, la cantidad lleva **tres decimales** también en unidades (`4.000`). En pantalla sigue D-13.                                                                       | Confirmado         |
+| F-05 | En la tirilla, la columna «Valor» lleva **separador de miles con coma** (`58,000`), igual que el total.                                                                          | Confirmado         |
+| F-06 | «SU AHORRO FUE DE» se imprime **sin decimales** (`12,000`).                                                                                                                      | Confirmado         |
+| F-07 | Debajo de la fecha aparece una línea «NDEF» de significado desconocido. Dan lo consulta con el cliente.                                                                          | Pendiente (Fase 3) |
+| F-08 | El nombre del producto se imprime con la unidad al final («… x UNIDAD»), como en la factura actual.                                                                              | Supuesto (Fase 3)  |
 | F-09 | Del cliente se imprime: código-nombre, «NIT:» (cualquier tipo de identificación), DIR, BARRIO, CIUDAD y TEL. Por eso el cliente tiene **barrio y ciudad** (opcionales).          | Supuesto (Fase 1)  |
+
+## Decisiones de la Fase 1
+
+| #    | Decisión                                                                                                                                                                                                                         | Estado     |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| D-21 | Sin empaquetar (`npm run dev`) la app usa por defecto `%APPDATA%\Inventario y Facturación (desarrollo)`. `--carpeta-datos` sigue pudiendo cambiarla. La app instalada usa siempre la carpeta real.                                | Confirmado |
+| D-22 | Al crear la contraseña se genera una **clave de recuperación** (24 caracteres en grupos) que se muestra una sola vez; se guarda solo su hash. Permite restablecer la contraseña desde la pantalla de acceso y queda en el historial. | Confirmado |
+| D-23 | La clave de recuperación es de **un solo uso**: al restablecer la contraseña se genera y muestra una clave nueva.                                                                                                                 | Confirmado |
+| D-24 | El importador de **saldos iniciales de cartera** pasa a la Fase 3, pero debe estar listo **antes de la entrega**. En la Fase 1 se importan productos, clientes, proveedores y stock inicial.                                      | Confirmado |
+| D-25 | Al importar se **conservan los códigos** del sistema actual (p. ej. cliente 10065). El consecutivo sigue desde el mayor código importado.                                                                                         | Confirmado |
+| D-26 | La vista previa del importador **marca los errores por fila** y permite «Importar solo las filas válidas», en una sola transacción. El reporte de errores se puede exportar. Un código o identificación repetida es error de fila: no se actualiza el registro existente. | Confirmado |
+| D-27 | Los maestros (productos, clientes, proveedores, bodegas, formas de pago) **nunca se borran**, solo se inactivan, aunque no tengan movimientos.                                                                                    | Confirmado |
+| D-28 | El costo del producto se escribe a mano al crearlo o importarlo. Después solo lo cambian las compras (Fase 2).                                                                                                                   | Confirmado |
+| D-29 | No puede haber dos clientes, ni dos proveedores, con el mismo tipo y número de identificación.                                                                                                                                   | Confirmado |
+| D-30 | Tipos de identificación: Cédula de ciudadanía (CC), NIT, Cédula de extranjería (CE) y Pasaporte.                                                                                                                                 | Confirmado |
+| D-31 | Atajos de las ventanas de maestros, definidos en el `keymap`: **F2** nuevo, **Ctrl+S** guardar y **F8** inactivar o reactivar.                                                                                                     | Confirmado |
+| D-32 | El % de ganancia se muestra con **un decimal** (`25.5 %`) y «—» si el costo es cero.                                                                                                                                             | Confirmado |
+| D-33 | `docs/DISENO.md` documenta el estilo visual de la interfaz construida en la Fase 0 (no hay capturas de pantalla del sistema anterior). Toda pantalla nueva lo sigue.                                                              | Supuesto   |
