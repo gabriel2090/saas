@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { claveComparacion } from '../../domain/texto';
 import type { Resultado } from '../../shared/resultado';
 import { useAtajos } from '../atajos/useAtajos';
 import { useConfirmar } from '../componentes/Dialogos';
 import { useVentana } from '../ventanas/ContextoVentana';
+import { enfocarPrimerCampo } from './foco';
 
 /**
  * Mensaje que se muestra en la ficha.
@@ -65,6 +66,8 @@ export interface EstadoMaestro<R, F> {
   ocupado: boolean;
   /** Mensaje de la ficha. */
   aviso: AvisoFicha;
+  /** Contenedor de la ficha (para llevar el foco a sus campos). */
+  ficha: RefObject<HTMLDivElement | null>;
   /** Texto de búsqueda. */
   busqueda: string;
   /** Si se muestran los inactivos. */
@@ -137,6 +140,15 @@ export function useMaestro<R, F>(config: ConfiguracionMaestro<R, F>): EstadoMaes
   const [ocupado, setOcupado] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   const [mostrarInactivos, setMostrarInactivos] = useState(false);
+  const ficha = useRef<HTMLDivElement>(null);
+  const [pedidosFoco, setPedidosFoco] = useState(0);
+
+  // Tras «Nuevo» el foco pasa a la ficha cuando ya se dibujaron sus campos.
+  useEffect(() => {
+    if (pedidosFoco > 0) {
+      enfocarPrimerCampo(ficha.current);
+    }
+  }, [pedidosFoco]);
 
   const seleccionado = useMemo(
     () =>
@@ -247,6 +259,7 @@ export function useMaestro<R, F>(config: ConfiguracionMaestro<R, F>): EstadoMaes
     setEsNuevo(true);
     setFormulario(formularioNuevo);
     setOriginal(formularioNuevo);
+    setPedidosFoco((n) => n + 1);
   };
 
   const guardar = async (): Promise<void> => {
@@ -323,6 +336,7 @@ export function useMaestro<R, F>(config: ConfiguracionMaestro<R, F>): EstadoMaes
     conCambios,
     ocupado,
     aviso,
+    ficha,
     busqueda,
     mostrarInactivos,
     cambiar: (cambios) => {

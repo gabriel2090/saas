@@ -323,7 +323,12 @@ function leerPesosObligatorio(
   }
   const pesos = leerPesos(texto);
   if (pesos === null) {
-    errores.agregar(campo, `${etiqueta} «${texto}» no es un valor en pesos enteros.`);
+    errores.agregar(
+      campo,
+      /^\$?\s*\d{1,3}(\.\d{3})+$/.test(texto)
+        ? `${etiqueta} «${texto}»: use coma para separar los miles (${texto.replace(/\./g, ',')}); el punto se lee como decimal.`
+        : `${etiqueta} «${texto}» no es un valor en pesos enteros.`,
+    );
   }
   return pesos;
 }

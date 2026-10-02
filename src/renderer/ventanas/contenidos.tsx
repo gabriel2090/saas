@@ -3,6 +3,7 @@ import type { IdProceso } from '../../shared/procesos';
 import { CambiarContrasena } from '../pantallas/CambiarContrasena';
 import { Catalogos } from '../pantallas/Catalogos';
 import { DatosNegocio } from '../pantallas/DatosNegocio';
+import { Importador } from '../pantallas/Importador';
 import { PendienteFase } from '../pantallas/PendienteFase';
 import { Productos } from '../pantallas/Productos';
 import { Terceros } from '../pantallas/Terceros';
@@ -18,6 +19,7 @@ const CONTENIDOS: Partial<Record<IdProceso, ComponentType>> = {
   bodegas: (): ReactNode => <Catalogos tipo="bodega" />,
   'formas-pago': (): ReactNode => <Catalogos tipo="forma-pago" />,
   'datos-negocio': DatosNegocio,
+  importador: Importador,
   'cambiar-contrasena': CambiarContrasena,
 };
 

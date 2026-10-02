@@ -1,4 +1,4 @@
-import { useMemo, useRef, type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { LARGO_MAXIMO_NOMBRE } from '../../domain/maestros';
 import { claveComparacion } from '../../domain/texto';
 import type { DatosCatalogo, RegistroCatalogo, TipoCatalogo } from '../../shared/maestros';
@@ -93,7 +93,7 @@ export function Catalogos({ tipo }: PropiedadesCatalogos): ReactNode {
   const cols = useMemo(() => columnas(tipo), [tipo]);
   const maestro = useMaestro(config);
   const { formulario: f, seleccionado, esNuevo } = maestro;
-  const ficha = useRef<HTMLDivElement>(null);
+  const { ficha } = maestro;
   const textos = TEXTOS[tipo];
   const esPrincipal = !esNuevo && (seleccionado?.esPrincipal ?? false);
 

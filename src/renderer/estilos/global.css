@@ -652,8 +652,14 @@ textarea {
 
 .ficha__fila {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 10px;
+}
+
+.ficha .campo input,
+.ficha .campo select {
+  width: 100%;
+  min-width: 0;
 }
 
 .ficha__vacia {
@@ -662,7 +668,12 @@ textarea {
   text-align: center;
 }
 
+/* Un fieldset por defecto no se encoge por debajo de su contenido. */
 .grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
   margin: 0;
   padding: 6px 10px 10px;
   border: 1px solid #d5dce5;
@@ -820,4 +831,30 @@ textarea {
   grid-template-columns: 220px 1fr;
   gap: 6px 12px;
   align-items: center;
+}
+
+/* Cada campo aporta su etiqueta y su lista a las dos columnas de la grilla. */
+.mapeo .campo {
+  display: contents;
+}
+
+.importador {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.importador__vista {
+  flex: 1;
+  min-height: 120px;
+  margin-bottom: 10px;
+}
+
+.importador__errores {
+  white-space: normal !important;
+}
+
+.importador__acciones {
+  flex: none;
 }

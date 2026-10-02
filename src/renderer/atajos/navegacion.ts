@@ -20,6 +20,12 @@ const SELECTOR_ENFOCABLES = [
 export const ATRIBUTO_FLECHAS_PROPIAS = 'data-flechas-propias';
 
 /**
+ * Atributo HTML del elemento que recibe el foco al abrir o traer al frente
+ * una ventana (p. ej. la lista de un maestro). Sin él, va al primer campo.
+ */
+export const ATRIBUTO_FOCO_INICIAL = 'data-foco-inicial';
+
+/**
  * Calcula el índice del elemento que debe recibir el foco.
  *
  * @param total - Cantidad de elementos enfocables.

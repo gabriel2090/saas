@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, type PointerEvent, type ReactNode } from 'react';
 import { obtenerProceso } from '../../shared/procesos';
-import { useNavegacionFlechas } from '../atajos/navegacion';
+import { ATRIBUTO_FOCO_INICIAL, useNavegacionFlechas } from '../atajos/navegacion';
 import type { VentanaAbierta } from './gestor';
 import { ContextoVentana, type DatosVentana } from './ContextoVentana';
 import { useVentanas } from './ProveedorVentanas';
@@ -47,9 +47,11 @@ export function VentanaInterna({
   useEffect(() => {
     const elemento = contenido.current;
     if (activa && elemento && !elemento.contains(document.activeElement)) {
-      const primero = elemento.querySelector<HTMLElement>(
-        'input, select, textarea, button, [tabindex="0"]',
-      );
+      const primero =
+        elemento.querySelector<HTMLElement>(`[${ATRIBUTO_FOCO_INICIAL}]`) ??
+        elemento.querySelector<HTMLElement>(
+          'input:not([tabindex="-1"]), select, textarea, button:not([tabindex="-1"]), [tabindex="0"]',
+        );
       (primero ?? elemento).focus();
     }
   }, [activa]);
@@ -99,10 +101,18 @@ export function VentanaInterna({
 
   const cambiarTamano = (evento: PointerEvent<HTMLDivElement>): void => {
     const inicio = cambioTamano.current;
-    if (inicio) {
+    const escritorio = marco.current?.parentElement;
+    if (inicio && escritorio) {
+      // Sin salirse del escritorio: el asa de la esquina debe quedar al alcance.
       redimensionar(ventana.id, {
-        ancho: inicio.ancho + evento.clientX - inicio.x,
-        alto: inicio.alto + evento.clientY - inicio.y,
+        ancho: Math.min(
+          inicio.ancho + evento.clientX - inicio.x,
+          escritorio.clientWidth - ventana.x,
+        ),
+        alto: Math.min(
+          inicio.alto + evento.clientY - inicio.y,
+          escritorio.clientHeight - ventana.y,
+        ),
       });
     }
   };

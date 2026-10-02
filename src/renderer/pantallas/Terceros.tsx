@@ -1,4 +1,4 @@
-import { useMemo, useRef, type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { LARGO_MAXIMO_NOMBRE, LARGO_MAXIMO_TEXTO } from '../../domain/maestros';
 import { claveComparacion } from '../../domain/texto';
 import { agruparMiles, leerPesos } from '../../shared/formato/moneda';
@@ -231,7 +231,7 @@ export function Terceros({ clase }: PropiedadesTerceros): ReactNode {
   const cols = useMemo(() => columnas(clase), [clase]);
   const maestro = useMaestro(config);
   const { formulario: f, seleccionado, esNuevo } = maestro;
-  const ficha = useRef<HTMLDivElement>(null);
+  const { ficha } = maestro;
   const textos = TEXTOS[clase];
   const bloqueado = !esNuevo && (seleccionado?.esSistema ?? false);
 

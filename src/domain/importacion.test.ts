@@ -163,6 +163,17 @@ describe('validarFilasImportacion: productos', () => {
     expect(r.errores.find((e) => e.fila === 4)?.mensaje).toMatch(/Nombre/);
   });
 
+  it('explica cómo escribir un valor con punto de miles en lugar de adivinarlo (D-40)', () => {
+    const r = validarFilasImportacion(
+      'productos',
+      [fila(0, { ...PRODUCTO, costo: '13.200' })],
+      CONTEXTO,
+    );
+    expect(r.errores.map((e) => e.mensaje)).toEqual([
+      'Costo «13.200»: use coma para separar los miles (13,200); el punto se lee como decimal.',
+    ]);
+  });
+
   it('un código existente o repetido es error de la fila, sin actualizar nada', () => {
     const r = validarFilasImportacion(
       'productos',

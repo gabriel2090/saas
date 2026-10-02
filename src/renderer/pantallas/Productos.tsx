@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { escalasBajoCosto, porcentajeGanancia } from '../../domain/ganancia';
 import { LARGO_MAXIMO_NOMBRE } from '../../domain/maestros';
 import { claveComparacion } from '../../domain/texto';
@@ -208,7 +208,7 @@ export function Productos(): ReactNode {
   const [proveedores, setProveedores] = useState<Tercero[]>([]);
   const [detalleCargado, setDetalleCargado] = useState<ProductoDetalle | null>(null);
   const [corrigiendo, setCorrigiendo] = useState(false);
-  const ficha = useRef<HTMLDivElement>(null);
+  const { ficha } = maestro;
 
   useEffect(() => {
     void invocar('terceros:listar', 'proveedor').then((r) => {

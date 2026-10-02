@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { ATRIBUTO_FLECHAS_PROPIAS } from '../atajos/navegacion';
+import { ATRIBUTO_FLECHAS_PROPIAS, ATRIBUTO_FOCO_INICIAL } from '../atajos/navegacion';
 import { useAtajos } from '../atajos/useAtajos';
 import { useVentana } from '../ventanas/ContextoVentana';
 
@@ -94,7 +94,7 @@ export function TablaMaestro<R>(props: PropiedadesTablaMaestro<R>): ReactNode {
       className="tabla-contenedor"
       ref={contenedor}
       tabIndex={0}
-      {...{ [ATRIBUTO_FLECHAS_PROPIAS]: '' }}
+      {...{ [ATRIBUTO_FLECHAS_PROPIAS]: '', [ATRIBUTO_FOCO_INICIAL]: '' }}
     >
       <table className="tabla tabla--seleccionable">
         <thead>
