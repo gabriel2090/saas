@@ -187,4 +187,11 @@ export function registrarIpcCompras(
       motivo: exigirTexto(d.motivo, 'motivo'),
     });
   });
+  registrar('ajustes:anular', (peticion) => {
+    const d = exigirObjeto(peticion);
+    return ajustes.anular({
+      id: exigirEntero(d.id, 'ajuste'),
+      motivo: exigirTexto(d.motivo, 'motivo'),
+    });
+  });
 }

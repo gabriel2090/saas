@@ -309,7 +309,7 @@ describe('abonos a proveedor', () => {
       ['C', 300_000, '2026-10-22'],
     ]);
     expect(contexto.deuda).toEqual({ total: 600_000, vencido: 100_000 });
-    expect(abonos.contexto('proveedor')).toEqual({ siguienteNumero: 1, hoy: HOY });
+    expect(abonos.contexto('proveedor')).toMatchObject({ siguienteNumero: 1, hoy: HOY });
   });
 
   it('guarda un abono repartido entre varias facturas y baja sus saldos', () => {

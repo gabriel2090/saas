@@ -3,12 +3,13 @@ import type { CondicionPago } from '../shared/ventas';
 import {
   type CarteraVigente,
   type EfectoCartera,
+  type EfectoCredito,
   type MovimientoCorreccion,
   type ProductoLinea,
 } from './correcciones';
 import { aMilesimas, aPesos, valorLinea } from './dinero';
 import { ErrorDeNegocio } from './errores';
-import { ajustarCartera, validarReversoGenerado } from './saldo-favor';
+import { ajustarCartera } from './saldo-favor';
 import { limpiarTexto } from './texto';
 
 /**
@@ -159,21 +160,29 @@ export function calcularDevolucion(entrada: EntradaDevolucion): DevolucionCalcul
   for (const { renglon, cantidad } of entrada.pedidas) {
     const linea = porRenglon.get(renglon);
     if (!linea) {
-      invalido(`La línea ${renglon} no existe en la factura.`);
+      invalido(
+        `La línea ${renglon} no existe en la factura. Vuelva a buscar la factura e intente de nuevo.`,
+      );
     }
     if (vistas.has(renglon)) {
-      invalido(`La línea ${renglon} aparece dos veces en la devolución.`);
+      invalido(
+        `La línea ${renglon} aparece dos veces en la devolución. Vuelva a buscar la factura e intente de nuevo.`,
+      );
     }
     vistas.add(renglon);
     const texto = `Línea ${renglon} (${linea.producto.codigo} - ${linea.producto.nombre})`;
     if (!Number.isSafeInteger(cantidad) || cantidad < 0) {
-      invalido(`${texto}: la cantidad a devolver no es válida.`);
+      invalido(
+        `${texto}: la cantidad a devolver no es válida. Escriba un número igual o mayor que cero.`,
+      );
     }
     if (cantidad === 0) {
       continue;
     }
     if (linea.producto.unidad === 'UND' && cantidad % MILESIMAS_POR_UNIDAD !== 0) {
-      invalido(`${texto}: el producto se maneja por unidades (sin decimales).`);
+      invalido(
+        `${texto}: el producto se maneja por unidades. Escriba una cantidad entera, sin decimales.`,
+      );
     }
     const disponible = puedeDevolver(linea, entrada.yaDevuelto);
     if (cantidad > disponible) {
@@ -181,7 +190,7 @@ export function calcularDevolucion(entrada: EntradaDevolucion): DevolucionCalcul
         `${texto}: se pueden devolver máximo ${formatearCantidad(disponible, linea.producto.unidad)} ` +
           `(${entrada.tipo === 'venta' ? 'vendido' : 'comprado'} ` +
           `${formatearCantidad(linea.cantidad, linea.producto.unidad)}, ya devuelto ` +
-          `${formatearCantidad(linea.cantidad - disponible, linea.producto.unidad)}).`,
+          `${formatearCantidad(linea.cantidad - disponible, linea.producto.unidad)}). Corrija la cantidad.`,
       );
     }
     lineas.push({
@@ -199,10 +208,13 @@ export function calcularDevolucion(entrada: EntradaDevolucion): DevolucionCalcul
   }
   const total = lineas.reduce((suma, l) => suma + l.total, 0);
   if (!Number.isSafeInteger(total)) {
-    invalido('Los valores de la devolución son demasiado grandes.');
+    invalido('Los valores de la devolución son demasiado grandes. Revise las cantidades.');
   }
   if (total === 0) {
-    invalido('La devolución no puede quedar en $ 0: las líneas devueltas no tienen valor.');
+    invalido(
+      'La devolución no puede quedar en $ 0: las líneas devueltas no tienen valor. Para mover ' +
+        'mercancía sin valor, use un ajuste de inventario.',
+    );
   }
   const signo = entrada.tipo === 'venta' ? 1 : -1;
   const porProducto = new Map<number, MovimientoCorreccion>();
@@ -250,32 +262,36 @@ export function efectoDevolucion(
 }
 
 /**
- * Efecto de anular una devolución (D-131): la cartera vuelve a deber lo
- * devuelto. Si la devolución había generado saldo a favor, primero se
- * recupera (debe seguir disponible); el resto vuelve al saldo de la factura.
- * En una venta de contado, el dinero devuelto se vuelve a cobrar.
+ * Efecto de anular una devolución (D-131): la factura vuelve a deber lo
+ * devuelto. Primero recupera el saldo a favor que había trasladado, hasta lo
+ * que el tercero todavía tenga disponible (como una corrección que sube el
+ * total, D-127); si el tercero ya lo usó, esa parte queda como saldo de la
+ * factura. En una venta de contado, el dinero devuelto se vuelve a cobrar.
  *
  * @param total - Total de la devolución anulada.
- * @param generado - Saldo a favor que generó la devolución (0 si no generó).
- * @param condicion - Condición de la factura.
- * @param disponible - Saldo a favor disponible del tercero.
- * @returns Lo que se recupera del saldo a favor (negativo) o lo que se cobra en contado.
- * @throws {ErrorDeNegocio} Si el saldo a favor que generó ya se usó.
+ * @param condicion - Condición de la factura (las compras van como `credito`).
+ * @param totalFactura - Total vigente de la factura.
+ * @param cartera - Cartera vigente (`devuelto` todavía incluye esta devolución).
+ * @returns El efecto en la cartera o lo que se cobra en contado.
  *
  * @example
- * efectoAnularDevolucion(89500, 89500, 'credito', 125100); // { tipo: 'credito', movimientoFavor: -89500 }
+ * // Compra 37 v2: total 924,400, pagado 960,000, trasladados 125,100 (35,600 + 89,500).
+ * efectoAnularDevolucion(89500, 'credito', 924400, { aplicado: 960000, devuelto: 89500, trasladado: 125100, disponible: 125100 });
+ * // { tipo: 'credito', saldo: 0, movimientoFavor: -89500 }
  */
 export function efectoAnularDevolucion(
   total: number,
-  generado: number,
   condicion: CondicionPago,
-  disponible: number,
-): { tipo: 'contado'; cobrar: number } | { tipo: 'credito'; movimientoFavor: number } {
+  totalFactura: number,
+  cartera: CarteraVigente,
+): { tipo: 'contado'; cobrar: number } | EfectoCredito {
   if (condicion === 'contado') {
     return { tipo: 'contado', cobrar: total };
   }
-  validarReversoGenerado(generado, disponible);
-  return { tipo: 'credito', movimientoFavor: generado === 0 ? 0 : -generado };
+  return {
+    tipo: 'credito',
+    ...ajustarCartera({ ...cartera, total: totalFactura, devuelto: cartera.devuelto - total }),
+  };
 }
 
 /**
@@ -288,7 +304,7 @@ export function efectoAnularDevolucion(
 export function validarMotivoDevolucion(motivo: string): string {
   const limpio = limpiarTexto(motivo);
   if (limpio.length > LARGO_MAXIMO_MOTIVO_DEVOLUCION) {
-    invalido(`El motivo admite máximo ${LARGO_MAXIMO_MOTIVO_DEVOLUCION} caracteres.`);
+    invalido(`El motivo admite máximo ${LARGO_MAXIMO_MOTIVO_DEVOLUCION} caracteres. Acórtelo.`);
   }
   return limpio;
 }

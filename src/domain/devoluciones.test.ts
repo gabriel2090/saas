@@ -197,26 +197,42 @@ describe('devolución de compra (§9.2): compra 37 corregida', () => {
 });
 
 describe('anular una devolución (D-131)', () => {
+  /** Compra 37 v2 con la devolución de 89,500 activa. */
+  const CARTERA_37 = { aplicado: 960000, devuelto: 89500, trasladado: 125100 };
+
   it('recupera el saldo a favor que generó, si sigue disponible', () => {
-    expect(efectoAnularDevolucion(89500, 89500, 'credito', 125100)).toEqual({
-      tipo: 'credito',
-      movimientoFavor: -89500,
-    });
-    expect(() => efectoAnularDevolucion(89500, 89500, 'credito', 20000)).toThrow(/ya usó parte/);
+    expect(
+      efectoAnularDevolucion(89500, 'credito', 924400, { ...CARTERA_37, disponible: 125100 }),
+    ).toEqual({ tipo: 'credito', saldo: 0, movimientoFavor: -89500 });
+  });
+
+  it('si el proveedor ya usó parte del saldo a favor, la compra vuelve a deber esa parte', () => {
+    expect(
+      efectoAnularDevolucion(89500, 'credito', 924400, { ...CARTERA_37, disponible: 20000 }),
+    ).toEqual({ tipo: 'credito', saldo: 69500, movimientoFavor: -20000 });
   });
 
   it('si no generó saldo a favor, la factura vuelve a deberlo sin tocar el libro', () => {
-    expect(efectoAnularDevolucion(78000, 0, 'credito', 0)).toEqual({
-      tipo: 'credito',
-      movimientoFavor: 0,
-    });
+    // Factura 84790 después de devolver 78,000: saldo 273,200.
+    expect(
+      efectoAnularDevolucion(78000, 'credito', 489000, {
+        aplicado: 100000,
+        devuelto: 115800,
+        trasladado: 0,
+        disponible: 0,
+      }),
+    ).toEqual({ tipo: 'credito', saldo: 351200, movimientoFavor: 0 });
   });
 
   it('en contado se vuelve a cobrar lo devuelto', () => {
-    expect(efectoAnularDevolucion(78000, 0, 'contado', 0)).toEqual({
-      tipo: 'contado',
-      cobrar: 78000,
-    });
+    expect(
+      efectoAnularDevolucion(78000, 'contado', 78000, {
+        aplicado: 0,
+        devuelto: 78000,
+        trasladado: 0,
+        disponible: 0,
+      }),
+    ).toEqual({ tipo: 'contado', cobrar: 78000 });
   });
 });
 

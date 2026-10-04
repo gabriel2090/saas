@@ -2,6 +2,7 @@ import { resumenDeuda } from '../../domain/abonos';
 import type { ValorJson } from '../../domain/auditoria';
 import type { FacturaPendiente } from '../../shared/abonos';
 import type { ResumenDeuda } from '../../shared/compras';
+import type { SentidoReintegro } from '../../shared/correcciones';
 import type { UnidadMedida } from '../../shared/formato/cantidades';
 import type { EscalaPrecio } from '../../shared/maestros';
 import type {
@@ -12,6 +13,8 @@ import type {
 } from '../../shared/ventas';
 import type { BaseDeDatos } from '../conexion';
 import type { ContextoTransaccion } from '../transaccion';
+import { sqlAplicado, sqlSaldo, sqlTrasladado } from './cartera.sql';
+import { saldoFavorDe } from './saldosFavor.repo';
 
 /**
  * Línea de venta ya calculada, lista para guardar.
@@ -80,6 +83,22 @@ export interface LineaFacturaDetalle extends LineaVentaARegistrar {
 }
 
 /**
+ * Última corrección de una factura, para el recuadro de la tirilla (D-122).
+ */
+export interface CorreccionDeFactura {
+  /** Fecha ISO de la corrección (de la versión vigente). */
+  fecha: string;
+  /** Total de la versión anterior. */
+  totalAnterior: number;
+  /** Lo abonado a la factura (abonos activos). */
+  abonado: number;
+  /** Lo que la factura dejó como saldo a favor del cliente. */
+  saldoFavor: number;
+  /** Dinero devuelto o cobrado en esta corrección (venta de contado), o `null`. */
+  reintegro: { sentido: SentidoReintegro; valor: number } | null;
+}
+
+/**
  * Factura de cliente con los datos que necesita la tirilla.
  */
 export interface FacturaClienteDetalle {
@@ -107,10 +126,14 @@ export interface FacturaClienteDetalle {
   cambio: number | null;
   /** Cajas de empaque o `null`. */
   cajasEmpaque: number | null;
-  /** Saldo actual de la factura (0 en contado, D-92). */
+  /** Saldo actual de la factura (0 en contado y en las anuladas, D-92, D-127). */
   saldo: number;
   /** Estado. */
   estado: 'activa' | 'anulada';
+  /** Versión vigente (mayor que 1 si se corrigió). */
+  version: number;
+  /** Última corrección, para la leyenda CORREGIDA (D-122), o `null` si no se ha corregido. */
+  correccion: CorreccionDeFactura | null;
   /** Cliente con los datos que se imprimen (F-09). */
   cliente: {
     codigo: number;
@@ -236,16 +259,12 @@ export function ultimoNumeroFactura(db: BaseDeDatos): number | null {
 }
 
 /**
- * Consulta de las facturas a crédito activas con su saldo (total menos lo
- * aplicado por abonos activos). Las de contado no generan cartera.
+ * Consulta de las facturas a crédito activas con su saldo (D-127). Las de
+ * contado no generan cartera.
  */
 const CONSULTA_SALDOS = `
   SELECT f.id, f.numero, f.dia, f.vence, f.total, f.origen = 'saldo_inicial' AS saldoInicial,
-         f.total - COALESCE((
-           SELECT SUM(ap.valor) FROM abonos_aplicaciones ap
-           JOIN abonos a ON a.id = ap.abono_id
-           WHERE ap.factura_cliente_id = f.id AND a.estado = 'activo'
-         ), 0) AS saldo
+         ${sqlSaldo('cliente', 'f')} AS saldo
   FROM facturas_cliente f
   WHERE f.cliente_codigo = ? AND f.estado = 'activa' AND f.condicion = 'credito'`;
 
@@ -357,6 +376,7 @@ export function creditoCliente(
     deuda: resumenDeuda(pendientes, hoy),
     vencidaMasAntigua,
     ultimoPlazo: ultima?.plazo ?? null,
+    saldoFavor: saldoFavorDe(db, 'cliente', clienteCodigo),
   };
 }
 
@@ -390,8 +410,14 @@ interface FilaFactura {
   cajasEmpaque: number | null;
   /** Estado. */
   estado: 'activa' | 'anulada';
+  /** Versión vigente. */
+  version: number;
   /** Aplicado por abonos activos. */
   aplicado: number;
+  /** Trasladado al saldo a favor. */
+  trasladado: number;
+  /** Saldo (D-127). */
+  saldo: number;
   /** Código del cliente. */
   clienteCodigo: number;
   /** Nombre del cliente. */
@@ -411,6 +437,38 @@ interface FilaFactura {
 }
 
 /**
+ * Datos de la última corrección de una factura para el recuadro de la
+ * tirilla (D-122).
+ *
+ * @param db - Conexión abierta.
+ * @param fila - Factura leída (con versión mayor que 1).
+ * @returns Fecha, total anterior, abonado, saldo a favor y reintegro.
+ */
+function correccionDeFactura(db: BaseDeDatos, fila: FilaFactura): CorreccionDeFactura {
+  const version = db
+    .prepare(
+      `SELECT v.id, v.fecha,
+              (SELECT json_extract(a.contenido, '$.total') FROM facturas_cliente_versiones a
+               WHERE a.factura_id = v.factura_id AND a.version = v.version - 1) AS totalAnterior
+       FROM facturas_cliente_versiones v WHERE v.factura_id = ? AND v.version = ?`,
+    )
+    .get(fila.id, fila.version) as { id: number; fecha: string; totalAnterior: number };
+  const reintegro = db
+    .prepare(
+      `SELECT sentido, valor FROM reintegros
+       WHERE documento_tipo = 'correccion_venta' AND documento_id = ?`,
+    )
+    .get(version.id) as { sentido: SentidoReintegro; valor: number } | undefined;
+  return {
+    fecha: version.fecha,
+    totalAnterior: version.totalAnterior,
+    abonado: fila.aplicado,
+    saldoFavor: fila.trasladado,
+    reintegro: reintegro ?? null,
+  };
+}
+
+/**
  * Obtiene una factura de cliente con sus líneas vigentes y los datos del
  * cliente, para imprimirla.
  *
@@ -423,12 +481,10 @@ export function obtenerFacturaCliente(db: BaseDeDatos, id: number): FacturaClien
     .prepare(
       `SELECT f.id, f.numero, f.fecha, f.condicion, f.plazo_dias AS plazoDias, f.vence, f.total,
               f.ahorro, fp.nombre AS formaPagoNombre, f.recibido, f.cambio,
-              f.cajas_empaque AS cajasEmpaque, f.estado,
-              COALESCE((
-                SELECT SUM(ap.valor) FROM abonos_aplicaciones ap
-                JOIN abonos a ON a.id = ap.abono_id
-                WHERE ap.factura_cliente_id = f.id AND a.estado = 'activo'
-              ), 0) AS aplicado,
+              f.cajas_empaque AS cajasEmpaque, f.estado, f.version,
+              ${sqlAplicado('cliente', 'f')} AS aplicado,
+              ${sqlTrasladado('cliente', 'f')} AS trasladado,
+              ${sqlSaldo('cliente', 'f')} AS saldo,
               c.codigo AS clienteCodigo, c.nombre AS clienteNombre,
               c.tipo_identificacion AS tipoIdentificacion,
               c.numero_identificacion AS numeroIdentificacion, c.direccion, c.barrio, c.ciudad,
@@ -465,8 +521,10 @@ export function obtenerFacturaCliente(db: BaseDeDatos, id: number): FacturaClien
     recibido: fila.recibido,
     cambio: fila.cambio,
     cajasEmpaque: fila.cajasEmpaque,
-    saldo: fila.condicion === 'credito' ? fila.total - fila.aplicado : 0,
+    saldo: fila.condicion === 'credito' && fila.estado === 'activa' ? fila.saldo : 0,
     estado: fila.estado,
+    version: fila.version,
+    correccion: fila.version > 1 ? correccionDeFactura(db, fila) : null,
     cliente: {
       codigo: fila.clienteCodigo,
       nombre: fila.clienteNombre,

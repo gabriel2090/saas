@@ -105,6 +105,8 @@ export interface ContextoAbonoTercero {
   facturas: FacturaPendiente[];
   /** Abonos anteriores, del más reciente al más antiguo. */
   abonos: AbonoResumen[];
+  /** Saldo a favor disponible del tercero (D-120). */
+  saldoFavor: number;
 }
 
 /**
@@ -115,6 +117,8 @@ export interface ContextoAbono {
   siguienteNumero: number;
   /** Día de hoy, `AAAA-MM-DD`. */
   hoy: string;
+  /** Forma de pago de sistema «Saldo a favor» (D-130), que no está en el catálogo editable. */
+  formaSaldoFavor: { id: number; nombre: string };
 }
 
 /**

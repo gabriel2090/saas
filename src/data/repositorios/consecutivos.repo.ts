@@ -14,7 +14,10 @@ export type ClaveConsecutivo =
   | 'abono_proveedor'
   | 'abono_cliente'
   | 'ajuste'
-  | 'factura_cliente';
+  | 'factura_cliente'
+  | 'devolucion_venta'
+  | 'devolucion_compra'
+  | 'reintegro';
 
 /**
  * Toma el siguiente número de un consecutivo y lo incrementa, de forma

@@ -15,6 +15,25 @@ import type {
   PeticionGuardarCompra,
   StockProducto,
 } from '../compras';
+import type {
+  AnulacionGuardada,
+  ContextoDevolucion,
+  CorreccionGuardada,
+  DevolucionAnulada,
+  DevolucionGuardada,
+  FacturaClienteParaCorregir,
+  FacturaProveedorParaCorregir,
+  PeticionAnularDocumento,
+  PeticionAnularFactura,
+  PeticionCorregirCompra,
+  PeticionCorregirVenta,
+  PeticionGuardarDevolucion,
+  PeticionReintegrar,
+  PeticionSaldoFavor,
+  ReintegroGenerado,
+  SaldoFavorTercero,
+  TipoDevolucion,
+} from '../correcciones';
 import type { DocumentoImprimible } from '../impresion';
 import type { ModoBarra, PeticionGuardarVentana, PreferenciasInterfaz } from '../interfaz';
 import type { IdProceso } from '../procesos';
@@ -189,6 +208,22 @@ export interface ContratoIpc {
   'ajustes:listar': { peticion: void; respuesta: AjusteResumen[] };
   'ajustes:stock': { peticion: PeticionStockAjuste; respuesta: number };
   'ajustes:registrar': { peticion: PeticionAjuste; respuesta: AjusteResumen };
+  'ajustes:anular': { peticion: PeticionAnularDocumento; respuesta: AjusteResumen };
+
+  'correcciones:buscarVenta': { peticion: number; respuesta: FacturaClienteParaCorregir };
+  'correcciones:buscarCompra': { peticion: string; respuesta: FacturaProveedorParaCorregir };
+  'correcciones:corregirVenta': { peticion: PeticionCorregirVenta; respuesta: CorreccionGuardada };
+  'correcciones:corregirCompra': {
+    peticion: PeticionCorregirCompra;
+    respuesta: CorreccionGuardada;
+  };
+  'correcciones:anular': { peticion: PeticionAnularFactura; respuesta: AnulacionGuardada };
+  'devoluciones:contexto': { peticion: TipoDevolucion; respuesta: ContextoDevolucion };
+  'devoluciones:guardar': { peticion: PeticionGuardarDevolucion; respuesta: DevolucionGuardada };
+  'devoluciones:anular': { peticion: PeticionAnularDocumento; respuesta: DevolucionAnulada };
+  'saldoFavor:consultar': { peticion: PeticionSaldoFavor; respuesta: SaldoFavorTercero };
+  'saldoFavor:reintegrar': { peticion: PeticionReintegrar; respuesta: ReintegroGenerado };
+  'saldoFavor:anularReintegro': { peticion: PeticionAnularDocumento; respuesta: void };
 
   'ventas:contexto': { peticion: void; respuesta: ContextoFacturar };
   'ventas:creditoCliente': { peticion: number; respuesta: CreditoCliente };
@@ -286,6 +321,18 @@ export const CANALES_IPC: readonly CanalIpc[] = [
   'ajustes:listar',
   'ajustes:stock',
   'ajustes:registrar',
+  'ajustes:anular',
+  'correcciones:buscarVenta',
+  'correcciones:buscarCompra',
+  'correcciones:corregirVenta',
+  'correcciones:corregirCompra',
+  'correcciones:anular',
+  'devoluciones:contexto',
+  'devoluciones:guardar',
+  'devoluciones:anular',
+  'saldoFavor:consultar',
+  'saldoFavor:reintegrar',
+  'saldoFavor:anularReintegro',
   'ventas:contexto',
   'ventas:creditoCliente',
   'ventas:guardar',

@@ -61,4 +61,10 @@ export interface AjusteResumen {
   cantidadContada: number | null;
   /** Motivo. */
   motivo: string;
+  /** Estado (D-133: los ajustes se pueden anular). */
+  estado: 'activo' | 'anulado';
+  /** Fecha ISO de la anulación, o `null`. */
+  anuladoEn: string | null;
+  /** Motivo de la anulación, o `null`. */
+  motivoAnulacion: string | null;
 }

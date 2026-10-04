@@ -1,14 +1,21 @@
-import { movimientoAjuste } from '../../domain/ajustes';
+import { validarTextoAbono } from '../../domain/abonos';
+import { movimientoAjuste, movimientoAnulacionAjuste } from '../../domain/ajustes';
 import { ErrorDeNegocio } from '../../domain/errores';
 import { validarMotivo } from '../../domain/maestros';
 import type { BaseDeDatos } from '../../data/conexion';
-import { insertarAjuste, listarAjustes } from '../../data/repositorios/ajustes.repo';
+import {
+  anularAjuste,
+  insertarAjuste,
+  listarAjustes,
+  obtenerAjuste,
+} from '../../data/repositorios/ajustes.repo';
 import { obtenerCatalogo } from '../../data/repositorios/catalogos.repo';
 import { tomarConsecutivo } from '../../data/repositorios/consecutivos.repo';
 import { stockEnBodega } from '../../data/repositorios/kardex.repo';
 import { obtenerProducto } from '../../data/repositorios/productos.repo';
 import type { EjecutorTransacciones } from '../../data/transaccion';
 import type { AjusteResumen, PeticionAjuste } from '../../shared/ajustes';
+import type { PeticionAnularDocumento } from '../../shared/correcciones';
 
 /**
  * Cantidad de ajustes recientes que muestra la ventana.
@@ -41,6 +48,15 @@ export interface ServicioAjustes {
    * @throws {ErrorDeNegocio} Si el producto o la bodega no existen, falta el motivo o la cantidad no es válida.
    */
   registrar(peticion: PeticionAjuste): AjusteResumen;
+  /**
+   * Anula un ajuste (D-73, D-133): registra el movimiento contrario en el
+   * kardex, en una transacción. El stock puede quedar negativo (§5.1).
+   *
+   * @param peticion - Ajuste y motivo.
+   * @returns El ajuste anulado.
+   * @throws {ErrorDeNegocio} Si no existe o ya está anulado.
+   */
+  anular(peticion: PeticionAnularDocumento): AjusteResumen;
 }
 
 /**
@@ -99,6 +115,37 @@ export function crearServicioAjustes(
         throw new Error(`El ajuste ${numero} no se encontró después de guardarlo.`);
       }
       return guardado;
+    },
+
+    anular(p) {
+      const ajuste = obtenerAjuste(db, p.id);
+      if (!ajuste) {
+        throw new ErrorDeNegocio(
+          'NO_ENCONTRADO',
+          'El ajuste no existe. Cierre y vuelva a abrir la ventana de ajustes.',
+        );
+      }
+      if (ajuste.estado === 'anulado') {
+        throw new ErrorDeNegocio(
+          'CONFLICTO',
+          `El ajuste ${ajuste.numero} ya está anulado: no hay nada más que hacer.`,
+        );
+      }
+      const motivo = validarTextoAbono(p.motivo, 'Motivo');
+      const cantidad = movimientoAnulacionAjuste(ajuste.cantidad, ajuste.estado);
+      ejecutar((ctx) => {
+        if (!anularAjuste(ctx, ajuste, cantidad, motivo)) {
+          throw new ErrorDeNegocio(
+            'CONFLICTO',
+            `El ajuste ${ajuste.numero} ya está anulado: no hay nada más que hacer.`,
+          );
+        }
+      });
+      const anulado = obtenerAjuste(db, ajuste.id);
+      if (!anulado) {
+        throw new Error(`El ajuste ${ajuste.numero} no se encontró después de anularlo.`);
+      }
+      return anulado;
     },
   };
 }

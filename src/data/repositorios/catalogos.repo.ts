@@ -97,6 +97,41 @@ export function obtenerCatalogo(
 }
 
 /**
+ * Id de la forma de pago de sistema «Saldo a favor» (D-130), que no está en
+ * el catálogo editable.
+ *
+ * @param db - Conexión abierta.
+ * @returns El id.
+ * @throws {Error} Si la migración 0007 no la creó.
+ */
+export function idFormaSaldoFavor(db: BaseDeDatos): number {
+  const fila = db.prepare('SELECT id FROM formas_pago WHERE es_sistema = 1').get() as
+    { id: number } | undefined;
+  if (!fila) {
+    throw new Error('No existe la forma de pago de sistema «Saldo a favor».');
+  }
+  return fila.id;
+}
+
+/**
+ * Nombre de una forma de pago, también la de sistema (para mostrar
+ * documentos ya guardados).
+ *
+ * @param db - Conexión abierta.
+ * @param id - Id de la forma de pago.
+ * @returns El nombre.
+ * @throws {Error} Si no existe.
+ */
+export function nombreFormaPago(db: BaseDeDatos, id: number): string {
+  const fila = db.prepare('SELECT nombre FROM formas_pago WHERE id = ?').get(id) as
+    { nombre: string } | undefined;
+  if (!fila) {
+    throw new Error(`No existe la forma de pago ${id}.`);
+  }
+  return fila.nombre;
+}
+
+/**
  * Busca el id del registro con un nombre equivalente (sin importar
  * mayúsculas, tildes ni espacios).
  *

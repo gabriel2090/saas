@@ -28,6 +28,8 @@ const factura: FacturaClienteDetalle = {
   cajasEmpaque: null,
   saldo: 79_250,
   estado: 'activa',
+  version: 1,
+  correccion: null,
   cliente: {
     codigo: 10065,
     nombre: 'JUAN <JJ> FERTILIA',
@@ -132,6 +134,58 @@ describe('tirillaFactura', () => {
     });
     expect(html).toContain('REIMPRESION');
     expect(html).toContain('ANULADA');
+  });
+
+  it('imprime la factura corregida con la leyenda, la versión y el recuadro (D-122)', () => {
+    const html = tirillaFactura({
+      negocio,
+      factura: {
+        ...factura,
+        total: 48_250,
+        saldo: 0,
+        version: 2,
+        correccion: {
+          fecha: '2026-10-04T15:20:15.000-05:00',
+          totalAnterior: 79_250,
+          abonado: 70_000,
+          saldoFavor: 21_750,
+          reintegro: null,
+        },
+      },
+      reimpresion: false,
+    });
+    expect(html).toContain('CORREGIDA');
+    expect(html).toContain('Versión 2 · 04/10/2026 03:20:15 PM');
+    expect(html).toContain('Fecha Generación: 30/09/2026 05:26:36 PM');
+    expect(html).toContain('<span>Total anterior</span><span>79,250</span>');
+    expect(html).toContain('<span>Diferencia</span><span>-31,000</span>');
+    expect(html).toContain('<span>Abonado</span><span>70,000</span>');
+    expect(html).toContain('<span>SALDO A FAVOR</span><span>21,750</span>');
+    expect(html).not.toContain('REIMPRESION');
+  });
+
+  it('en una venta de contado corregida muestra lo devuelto', () => {
+    const html = tirillaFactura({
+      negocio,
+      factura: {
+        ...factura,
+        condicion: 'contado',
+        formaPagoNombre: 'Efectivo',
+        total: 48_250,
+        saldo: 0,
+        version: 2,
+        correccion: {
+          fecha: '2026-10-04T15:20:15.000-05:00',
+          totalAnterior: 79_250,
+          abonado: 0,
+          saldoFavor: 0,
+          reintegro: { sentido: 'entrega', valor: 31_000 },
+        },
+      },
+      reimpresion: false,
+    });
+    expect(html).toContain('<span>DEVUELTO</span><span>31,000</span>');
+    expect(html).not.toContain('Abonado');
   });
 });
 

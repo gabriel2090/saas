@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   ajustarCartera,
   movimientoFavorAlAnular,
+  movimientoFavorAlAnularAbono,
   saldoDeFactura,
   saldoFavorDisponible,
-  validarReversoGenerado,
   validarUsoSaldoFavor,
 } from './saldo-favor';
 
@@ -94,9 +94,45 @@ describe('uso del saldo a favor (D-128, D-130)', () => {
     expect(() => validarUsoSaldoFavor(21751, 21750)).toThrow(/supera el saldo a favor/);
     expect(() => validarUsoSaldoFavor(0, 21750)).toThrow(/mayor que cero/);
   });
+});
 
-  it('reversar un saldo a favor generado exige que siga disponible', () => {
-    expect(() => validarReversoGenerado(89500, 125100)).not.toThrow();
-    expect(() => validarReversoGenerado(89500, 50000)).toThrow(/ya usó parte/);
+describe('anular un abono (D-127)', () => {
+  it('la factura activa recupera lo que había trasladado', () => {
+    const factura = {
+      numero: 84772,
+      anulada: false,
+      valor: 70000,
+      cartera: { total: 48250, aplicado: 70000, devuelto: 0, trasladado: 21750 },
+    };
+    expect(movimientoFavorAlAnularAbono(factura, 21750)).toBe(-21750);
+    // Si el cliente ya se llevó el saldo a favor en efectivo, la factura vuelve a deber 70,000.
+    expect(movimientoFavorAlAnularAbono(factura, 0)).toBe(0);
+  });
+
+  it('sin saldo a favor trasladado no mueve el libro', () => {
+    expect(
+      movimientoFavorAlAnularAbono(
+        {
+          numero: 84772,
+          anulada: false,
+          valor: 70000,
+          cartera: { total: 79250, aplicado: 70000, devuelto: 0, trasladado: 0 },
+        },
+        5000,
+      ),
+    ).toBe(0);
+  });
+
+  it('la factura anulada devuelve lo abonado del saldo a favor, que debe estar disponible', () => {
+    const factura = {
+      numero: 84772,
+      anulada: true,
+      valor: 70000,
+      cartera: { total: 79250, aplicado: 70000, devuelto: 0, trasladado: 70000 },
+    };
+    expect(movimientoFavorAlAnularAbono(factura, 70000)).toBe(-70000);
+    expect(() => movimientoFavorAlAnularAbono(factura, 30000)).toThrow(
+      /factura 84772 está anulada.*Anule primero/,
+    );
   });
 });

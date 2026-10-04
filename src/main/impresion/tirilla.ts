@@ -39,6 +39,7 @@ const ESTILO_TIRILLA = `
   .separador { margin: 4px 0; border-top: 1px dashed #000; }
   .total { font-size: 12pt; font-weight: bold; }
   .ahorro { margin: 6px 0; padding: 4px; border: 1px dashed #000; text-align: center; font-weight: bold; }
+  .recuadro { margin: 6px 0; padding: 4px; border: 1px dashed #000; }
 `;
 
 /**
@@ -102,10 +103,46 @@ function clienteTirilla(cliente: FacturaClienteDetalle['cliente']): string {
 }
 
 /**
+ * Recuadro CORRECCION de una factura corregida (D-122): total anterior,
+ * diferencia, lo abonado y cómo queda el dinero.
+ *
+ * @param factura - Factura con su última corrección.
+ * @returns HTML del recuadro, o vacío si no se ha corregido.
+ */
+function recuadroCorreccion(factura: FacturaClienteDetalle): string {
+  const c = factura.correccion;
+  if (!c) {
+    return '';
+  }
+  const fila = (etiqueta: string, valor: number, negrita = false): string =>
+    `<div class="fila${negrita ? ' negrita' : ''}"><span>${etiqueta}</span><span>${agruparMiles(valor)}</span></div>`;
+  let cierre: string;
+  if (c.reintegro) {
+    cierre = fila(
+      c.reintegro.sentido === 'entrega' ? 'DEVUELTO' : 'COBRADO',
+      c.reintegro.valor,
+      true,
+    );
+  } else if (c.saldoFavor > 0) {
+    cierre = fila('SALDO A FAVOR', c.saldoFavor, true);
+  } else {
+    cierre = fila('SALDO PENDIENTE', factura.saldo, true);
+  }
+  return `<div class="recuadro">
+      <div class="centro negrita">CORRECCION</div>
+      ${fila('Total anterior', c.totalAnterior)}
+      ${fila('Diferencia', factura.total - c.totalAnterior)}
+      ${factura.condicion === 'credito' ? fila('Abonado', c.abonado) : ''}
+      ${cierre}
+    </div>`;
+}
+
+/**
  * Arma la tirilla de 80 mm de una factura de venta, con el formato de la
  * tirilla actual del negocio (F-01 a F-09, D-92): sin «NDEF», con «SALDO
  * CREDITO» igual al saldo de esta factura y «SU AHORRO FUE DE» solo si hubo
- * ahorro. Lleva REIMPRESION o ANULADA cuando corresponde.
+ * ahorro. Lleva REIMPRESION o ANULADA cuando corresponde, y CORREGIDA con la
+ * versión, la fecha de la corrección y su recuadro si se corrigió (D-122).
  *
  * @param datos - Negocio, factura y si es reimpresión.
  * @returns Documento HTML completo.
@@ -115,6 +152,9 @@ export function tirillaFactura(datos: DatosTirillaFactura): string {
   const leyendas = [
     datos.reimpresion ? '<div class="leyenda">REIMPRESION</div>' : '',
     factura.estado === 'anulada' ? '<div class="leyenda">ANULADA</div>' : '',
+    factura.correccion
+      ? `<div class="leyenda">CORREGIDA</div><div class="centro detalle">Versión ${factura.version} · ${formatearFechaHoraTirilla(factura.correccion.fecha)}</div>`
+      : '',
   ].join('');
   const filas = factura.lineas
     .map(
@@ -152,6 +192,7 @@ export function tirillaFactura(datos: DatosTirillaFactura): string {
     <div class="bloque fila total"><span>TOTAL</span><span>${agruparMiles(factura.total)}</span></div>
     <div class="fila"><span>SALDO CREDITO</span><span>${agruparMiles(factura.saldo)}</span></div>
     <div class="fila"><span>CAMBIO</span><span>${agruparMiles(factura.cambio ?? 0)}</span></div>
+    ${recuadroCorreccion(factura)}
     ${ahorro}
     <div class="bloque centro negrita">GRACIAS POR SU COMPRA</div>
     <div class="bloque">No.Cajas Empaque: ${cajas}</div>`;

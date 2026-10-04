@@ -199,10 +199,14 @@ function validarCantidad(
   permitirCero: boolean,
 ): void {
   if (!Number.isSafeInteger(cantidad) || cantidad < 0 || (!permitirCero && cantidad === 0)) {
-    invalido(`${renglon}: la cantidad no es válida.`);
+    invalido(
+      `${renglon}: la cantidad no es válida. Escriba un número ${permitirCero ? 'igual o mayor que cero (0 quita la línea)' : 'mayor que cero'}.`,
+    );
   }
   if (producto.unidad === 'UND' && cantidad % MILESIMAS_POR_UNIDAD !== 0) {
-    invalido(`${renglon}: el producto se maneja por unidades (sin decimales).`);
+    invalido(
+      `${renglon}: el producto se maneja por unidades. Escriba una cantidad entera, sin decimales.`,
+    );
   }
 }
 
@@ -216,7 +220,9 @@ function validarCantidad(
  */
 function validarPesos(valor: number, renglon: string, campo: string): void {
   if (!Number.isSafeInteger(valor) || valor < 0) {
-    invalido(`${renglon}: el ${campo} debe ser un valor en pesos enteros, sin signo negativo.`);
+    invalido(
+      `${renglon}: el ${campo} no es válido. Escríbalo en pesos enteros, sin signo negativo.`,
+    );
   }
 }
 
@@ -237,11 +243,14 @@ function indexarCambios<T extends { renglon: number }>(
   for (const cambio of cambios) {
     if (!renglones.has(cambio.renglon)) {
       invalido(
-        `La línea ${cambio.renglon} no existe en la factura. En una corrección no se agregan productos.`,
+        `La línea ${cambio.renglon} no existe en la factura: en una corrección no se agregan ` +
+          'productos. Para venderlos o comprarlos, haga una factura nueva.',
       );
     }
     if (porRenglon.has(cambio.renglon)) {
-      invalido(`La línea ${cambio.renglon} aparece dos veces en la corrección.`);
+      invalido(
+        `La línea ${cambio.renglon} aparece dos veces en la corrección. Vuelva a buscar la factura e intente de nuevo.`,
+      );
     }
     porRenglon.set(cambio.renglon, cambio);
   }
@@ -368,7 +377,9 @@ export function corregirVenta(entrada: EntradaCorreccionVenta): CorreccionVenta 
     });
   }
   if (!hayCambio) {
-    invalido('No hay cambios que guardar.');
+    invalido(
+      'No hay cambios que guardar: la factura quedaría igual. Cambie una cantidad o un precio, o cierre la ventana.',
+    );
   }
   if (corregidas.length === 0) {
     invalido(
@@ -382,7 +393,9 @@ export function corregirVenta(entrada: EntradaCorreccionVenta): CorreccionVenta 
   const total = corregidas.reduce((suma, l) => suma + l.total, 0);
   const ahorro = corregidas.reduce((suma, l) => suma + l.ahorro, 0);
   if (!Number.isSafeInteger(total)) {
-    invalido('Los valores de la factura son demasiado grandes.');
+    invalido(
+      'Los valores de la factura son demasiado grandes. Revise las cantidades y los precios.',
+    );
   }
   const costoDe = new Map(lineas.map((l) => [l.producto.codigo, l.costo]));
   const movimientos = [
@@ -615,7 +628,9 @@ export function corregirCompra(entrada: EntradaCorreccionCompra): CorreccionComp
     }
   }
   if (!hayCambio) {
-    invalido('No hay cambios que guardar.');
+    invalido(
+      'No hay cambios que guardar: la compra quedaría igual. Cambie una cantidad, un costo, el flete o el descuento, o cierre la ventana.',
+    );
   }
   if (quedan.length === 0) {
     invalido(

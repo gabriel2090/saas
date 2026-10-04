@@ -149,6 +149,62 @@ export function movimientoFavorAlAnular(
 }
 
 /**
+ * Factura a la que se había aplicado un abono que se va a anular.
+ */
+export interface FacturaDeAbonoAnulado {
+  /** Número de la factura (para el mensaje). */
+  numero: number;
+  /** Si la factura está anulada. */
+  anulada: boolean;
+  /** Lo que el abono le había aplicado. */
+  valor: number;
+  /** Cartera de la factura todavía con el abono (se ignora si está anulada). */
+  cartera: Omit<CarteraFactura, 'disponible'>;
+}
+
+/**
+ * Movimiento del libro de saldo a favor que le toca a una factura al anular
+ * un abono que se le había aplicado (D-127):
+ *
+ * - Factura activa: vuelve a deber lo que el abono pagaba y, como en una
+ *   corrección que sube el total, primero recupera lo que había trasladado
+ *   al saldo a favor, hasta lo disponible; lo demás queda como saldo.
+ * - Factura anulada: al anularla, lo abonado pasó a saldo a favor; ese dinero
+ *   no se pagó, así que se recupera completo y debe estar disponible.
+ *
+ * @param factura - Factura, si está anulada, lo aplicado y su cartera.
+ * @param disponible - Saldo a favor disponible del tercero en este momento.
+ * @returns Movimiento del libro (0 o negativo).
+ * @throws {ErrorDeNegocio} Si la factura está anulada y el tercero ya usó ese saldo a favor.
+ *
+ * @example
+ * // 84772 corregida a 48,250 con el abono 15 de 70,000 y 21,750 trasladados:
+ * movimientoFavorAlAnularAbono({ numero: 84772, anulada: false, valor: 70000,
+ *   cartera: { total: 48250, aplicado: 70000, devuelto: 0, trasladado: 21750 } }, 21750); // -21750
+ */
+export function movimientoFavorAlAnularAbono(
+  factura: FacturaDeAbonoAnulado,
+  disponible: number,
+): number {
+  if (factura.anulada) {
+    if (factura.valor > disponible) {
+      invalido(
+        `No se puede anular el abono: la factura ${factura.numero} está anulada y los ` +
+          `${formatearPesos(factura.valor)} que este abono le pagó pasaron a saldo a favor, pero ya se ` +
+          `usó parte (quedan ${formatearPesos(Math.max(disponible, 0))}). Anule primero el abono o el ` +
+          'reintegro que usó ese saldo a favor.',
+      );
+    }
+    return factura.valor === 0 ? 0 : -factura.valor;
+  }
+  return ajustarCartera({
+    ...factura.cartera,
+    aplicado: factura.cartera.aplicado - factura.valor,
+    disponible,
+  }).movimientoFavor;
+}
+
+/**
  * Saldo a favor disponible de un tercero: la suma de su libro.
  *
  * @param movimientos - Valores de los movimientos del libro (con signo).
@@ -175,34 +231,13 @@ export function saldoFavorDisponible(movimientos: readonly number[]): number {
  */
 export function validarUsoSaldoFavor(valor: number, disponible: number): number {
   if (!Number.isSafeInteger(valor) || valor <= 0) {
-    invalido('El valor debe ser un valor en pesos mayor que cero.');
+    invalido('El valor no es válido. Escriba un valor en pesos mayor que cero.');
   }
   if (valor > disponible) {
     invalido(
-      `El valor (${formatearPesos(valor)}) supera el saldo a favor disponible (${formatearPesos(Math.max(disponible, 0))}).`,
+      `El valor (${formatearPesos(valor)}) supera el saldo a favor disponible ` +
+        `(${formatearPesos(Math.max(disponible, 0))}). Escriba un valor igual o menor.`,
     );
   }
   return valor;
-}
-
-/**
- * Valida que se pueda reversar un uso del saldo a favor al anular el abono o
- * el reintegro que lo usó: siempre se puede (el saldo vuelve). En cambio,
- * reversar un saldo a favor **generado** (anular una devolución que lo
- * generó) exige que siga disponible.
- *
- * @param generado - Lo que el documento había generado en el libro (positivo).
- * @param disponible - Saldo a favor disponible del tercero.
- * @throws {ErrorDeNegocio} Si el tercero ya usó parte de lo generado.
- *
- * @example
- * validarReversoGenerado(89500, 125100); // no lanza
- */
-export function validarReversoGenerado(generado: number, disponible: number): void {
-  if (generado > disponible) {
-    invalido(
-      `Este documento generó ${formatearPesos(generado)} de saldo a favor y el tercero ya usó parte ` +
-        `(le quedan ${formatearPesos(Math.max(disponible, 0))}). Anule primero el abono o el reintegro que lo usó.`,
-    );
-  }
 }

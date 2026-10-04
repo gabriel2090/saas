@@ -106,6 +106,8 @@ export interface CreditoCliente {
   vencidaMasAntigua: FacturaVencida | null;
   /** Plazo de su última factura a crédito no anulada, o `null` si no tiene (D-94). */
   ultimoPlazo: number | null;
+  /** Saldo a favor disponible (solo se muestra en Facturar, D-124). */
+  saldoFavor: number;
 }
 
 /**

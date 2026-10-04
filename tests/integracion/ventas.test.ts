@@ -202,6 +202,7 @@ describe('factura de cliente', () => {
       deuda: { total: 79_250, vencido: 0 },
       vencidaMasAntigua: null,
       ultimoPlazo: 8,
+      saldoFavor: 0,
     });
   });
 
@@ -217,6 +218,7 @@ describe('factura de cliente', () => {
       deuda: { total: 79_250, vencido: 79_250 },
       vencidaMasAntigua: { numero: 1, vence: '2026-09-18' },
       ultimoPlazo: 8,
+      saldoFavor: 0,
     });
     expect(() => ventas.guardar(factura({ ...credito, clienteCodigo: conTope }))).toThrow(
       'No se puede vender a crédito a 10001 - JUAN JJ FERTILIA: Tiene facturas vencidas por ' +

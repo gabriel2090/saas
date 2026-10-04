@@ -284,19 +284,68 @@ export function listarAbonos(
 }
 
 /**
+ * Forma de pago con que se registró un abono.
+ *
+ * @param db - Conexión abierta.
+ * @param id - Id del abono.
+ * @returns Id de la forma de pago.
+ * @throws {Error} Si el abono no existe.
+ */
+export function formaPagoDeAbono(db: BaseDeDatos, id: number): number {
+  const fila = db.prepare('SELECT forma_pago_id AS id FROM abonos WHERE id = ?').get(id) as
+    { id: number } | undefined;
+  if (!fila) {
+    throw new Error(`No existe el abono ${id}.`);
+  }
+  return fila.id;
+}
+
+/**
+ * Estado de cada factura a la que se aplicó un abono.
+ *
+ * @param db - Conexión abierta.
+ * @param abono - Id y tipo del abono.
+ * @returns Id de la factura → si está anulada.
+ */
+export function facturasAnuladasDeAbono(
+  db: BaseDeDatos,
+  abono: { id: number; tipo: TipoAbono },
+): Map<number, boolean> {
+  const sql =
+    abono.tipo === 'cliente'
+      ? `SELECT f.id, f.estado = 'anulada' AS anulada FROM abonos_aplicaciones ap
+         JOIN facturas_cliente f ON f.id = ap.factura_cliente_id WHERE ap.abono_id = ?`
+      : `SELECT f.id, f.estado = 'anulada' AS anulada FROM abonos_aplicaciones ap
+         JOIN facturas_proveedor f ON f.id = ap.factura_proveedor_id WHERE ap.abono_id = ?`;
+  const filas = db.prepare(sql).all(abono.id) as { id: number; anulada: number }[];
+  return new Map(filas.map((f) => [f.id, f.anulada === 1]));
+}
+
+/**
  * Anula un abono (el saldo vuelve a las facturas, porque se deriva de los
  * abonos activos) y registra la anulación en el historial con su motivo.
  *
  * @param ctx - Contexto de la transacción en curso.
  * @param abono - Abono activo.
  * @param motivo - Motivo (puede ser vacío).
+ * @param recuperado - Saldo a favor que recupera cada factura al anular (D-127), por id.
+ * @returns `true` si se anuló; `false` si ya estaba anulado.
  */
-export function anularAbono(ctx: ContextoTransaccion, abono: AbonoResumen, motivo: string): void {
-  ctx.db
+export function anularAbono(
+  ctx: ContextoTransaccion,
+  abono: AbonoResumen,
+  motivo: string,
+  recuperado: ReadonlyMap<number, number> = new Map(),
+): boolean {
+  const resultado = ctx.db
     .prepare(
-      `UPDATE abonos SET estado = 'anulado', anulado_en = ?, motivo_anulacion = ? WHERE id = ?`,
+      `UPDATE abonos SET estado = 'anulado', anulado_en = ?, motivo_anulacion = ?
+       WHERE id = ? AND estado = 'activo'`,
     )
     .run(ctx.fecha, motivo === '' ? null : motivo, abono.id);
+  if (resultado.changes !== 1) {
+    return false;
+  }
   ctx.registrarCambio({
     entidad: entidadAbono(abono.tipo),
     entidadId: abono.numero,
@@ -308,9 +357,10 @@ export function anularAbono(ctx: ContextoTransaccion, abono: AbonoResumen, motiv
         [abono.tipo === 'cliente' ? 'facturaNumero' : 'compraNumero']: a.facturaNumero,
         valor: a.valor,
         saldoAntes: a.saldoActual,
-        saldoDespues: a.saldoActual + a.valor,
+        saldoDespues: a.saldoActual + a.valor - (recuperado.get(a.facturaId) ?? 0),
       })),
     },
     motivo,
   });
+  return true;
 }

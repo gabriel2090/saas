@@ -152,7 +152,11 @@ describe('abonos de cliente (§8)', () => {
     const { db, ventas, abonos, cliente } = crear();
     const f1 = ventas.guardar(facturaCredito(cliente, 2));
     const f2 = ventas.guardar(facturaCredito(cliente, 4));
-    expect(abonos.contexto('cliente')).toEqual({ siguienteNumero: 1, hoy: HOY });
+    expect(abonos.contexto('cliente')).toEqual({
+      siguienteNumero: 1,
+      hoy: HOY,
+      formaSaldoFavor: { id: expect.any(Number) as number, nombre: 'Saldo a favor' },
+    });
     expect(abonos.contexto('proveedor').siguienteNumero).toBe(1);
 
     const contexto = abonos.contextoTercero('cliente', cliente);

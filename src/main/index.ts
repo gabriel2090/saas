@@ -14,6 +14,7 @@ import {
 } from './impresion/impresora';
 import { registrarIpcAutenticacion } from './ipc/autenticacion.ipc';
 import { registrarIpcCompras } from './ipc/compras.ipc';
+import { registrarIpcCorrecciones } from './ipc/correcciones.ipc';
 import { registrarIpcImportador } from './ipc/importador.ipc';
 import { registrarIpcImpresion } from './ipc/impresion.ipc';
 import { registrarIpcInterfaz } from './ipc/interfaz.ipc';
@@ -27,6 +28,8 @@ import { crearServicioAjustes } from './servicios/ajustes';
 import { crearServicioAutenticacion } from './servicios/autenticacion';
 import { crearServicioCatalogos } from './servicios/catalogos';
 import { crearServicioCompras } from './servicios/compras';
+import { crearServicioCorrecciones } from './servicios/correcciones';
+import { crearServicioDevoluciones } from './servicios/devoluciones';
 import { crearServicioImportador } from './servicios/importador';
 import { crearServicioImpresion } from './servicios/impresion';
 import { crearServicioInterfaz } from './servicios/interfaz';
@@ -34,6 +37,7 @@ import { crearServicioNegocio } from './servicios/negocio';
 import { crearServicioProductos } from './servicios/productos';
 import { crearServicioTerceros } from './servicios/terceros';
 import { crearServicioRespaldos, type ServicioRespaldos } from './servicios/respaldos';
+import { crearServicioSaldoFavor } from './servicios/saldoFavor';
 import { crearServicioVentas } from './servicios/ventas';
 import { crearVentanaPrincipal, type VentanaPrincipal } from './ventana-principal';
 
@@ -150,6 +154,11 @@ function iniciar(): void {
     compras: crearServicioCompras(db, ejecutar),
     abonos,
     ajustes: crearServicioAjustes(db, ejecutar),
+  });
+  registrarIpcCorrecciones(registrar, {
+    correcciones: crearServicioCorrecciones(db, ejecutar),
+    devoluciones: crearServicioDevoluciones(db, ejecutar),
+    saldoFavor: crearServicioSaldoFavor(db, ejecutar),
   });
   const ventas = crearServicioVentas(db, ejecutar);
   registrarIpcVentas(registrar, {

@@ -4,6 +4,7 @@ import type { FacturaPendiente } from '../../shared/abonos';
 import type { ResumenDeuda } from '../../shared/compras';
 import type { BaseDeDatos } from '../conexion';
 import type { ContextoTransaccion } from '../transaccion';
+import { sqlSaldo } from './cartera.sql';
 
 /**
  * Línea de compra ya calculada, lista para guardar.
@@ -213,17 +214,12 @@ export function ultimoPlazoProveedor(db: BaseDeDatos, proveedorCodigo: number): 
 }
 
 /**
- * Consulta de las facturas activas de un proveedor con su saldo (total menos
- * lo aplicado por abonos activos). El saldo no se guarda: siempre se deriva.
+ * Consulta de las facturas activas de un proveedor con su saldo (D-127). El
+ * saldo no se guarda: siempre se deriva.
  */
 const CONSULTA_SALDOS = `
   SELECT f.id, f.numero, f.numero_proveedor AS referencia, f.origen = 'saldo_inicial' AS saldoInicial,
-         f.fecha, f.vence, f.total,
-         f.total - COALESCE((
-           SELECT SUM(ap.valor) FROM abonos_aplicaciones ap
-           JOIN abonos a ON a.id = ap.abono_id
-           WHERE ap.factura_proveedor_id = f.id AND a.estado = 'activo'
-         ), 0) AS saldo
+         f.fecha, f.vence, f.total, ${sqlSaldo('proveedor', 'f')} AS saldo
   FROM facturas_proveedor f
   WHERE f.proveedor_codigo = ? AND f.estado = 'activa'`;
 
