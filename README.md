@@ -52,17 +52,18 @@ npx electron . --carpeta-datos="C:\ruta\temporal"
 
 ## Scripts
 
-| Script                     | Qué hace                                                                        |
-| -------------------------- | ------------------------------------------------------------------------------- |
-| `npm run dev`              | Inicia la app en modo desarrollo.                                               |
-| `npm run build`            | Verifica tipos y compila a `out/`.                                              |
-| `npm run typecheck`        | TypeScript estricto para el proceso principal y la interfaz.                    |
-| `npm run lint`             | ESLint (incluye la obligación de TSDoc en todo), sin advertencias permitidas.   |
-| `npm run format`           | Formatea con Prettier.                                                          |
-| `npm run test`             | Pruebas unitarias (dominio, formatos, atajos, gestor de ventanas, componentes). |
-| `npm run test:integracion` | Pruebas de migraciones, repositorios y servicios contra SQLite en memoria.      |
-| `npm run test:todo`        | Ambas suites.                                                                   |
-| `npm run empaquetar`       | Genera el instalador `.exe` en `release/` (se completa en la Fase 6).           |
+| Script                     | Qué hace                                                                                                                                                                                        |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`              | Inicia la app en modo desarrollo.                                                                                                                                                               |
+| `npm run build`            | Verifica tipos y compila a `out/`.                                                                                                                                                              |
+| `npm run typecheck`        | TypeScript estricto para el proceso principal y la interfaz.                                                                                                                                    |
+| `npm run lint`             | ESLint (incluye la obligación de TSDoc en todo), sin advertencias permitidas.                                                                                                                   |
+| `npm run format`           | Formatea con Prettier.                                                                                                                                                                          |
+| `npm run test`             | Pruebas unitarias (dominio, formatos, atajos, gestor de ventanas, componentes).                                                                                                                 |
+| `npm run test:integracion` | Pruebas de migraciones, repositorios y servicios contra SQLite en memoria.                                                                                                                      |
+| `npm run test:todo`        | Ambas suites.                                                                                                                                                                                   |
+| `npm run test:e2e`         | Prueba de punta a punta de las ventanas en la app real, con carpeta temporal. `-- --veces=8` la repite para detectar fallas intermitentes; el registro queda en `%TEMP%\saas-e2e\registro.log`. |
+| `npm run empaquetar`       | Genera el instalador `.exe` en `release/` (se completa en la Fase 6).                                                                                                                           |
 
 ## Dónde quedan los datos
 
