@@ -40,11 +40,8 @@ import { crearServicioRespaldos, type ServicioRespaldos } from './servicios/resp
 import { crearServicioSaldoFavor } from './servicios/saldoFavor';
 import { crearServicioVentas } from './servicios/ventas';
 import { crearVentanaPrincipal, type VentanaPrincipal } from './ventana-principal';
-
-/**
- * Nombre del archivo de la base de datos dentro de la carpeta de datos.
- */
-const ARCHIVO_BASE_DATOS = 'inventario.db';
+import { prepararDatosDemo, type AccionDatosDemo } from './demo/carpeta';
+import { ARCHIVO_BASE_DATOS, CARPETA_DATOS } from './rutas';
 
 /**
  * Recursos abiertos que hay que liberar al salir.
@@ -86,7 +83,7 @@ function iniciar(): void {
   registrarInfo(`Iniciando versión ${app.getVersion()}`);
   Menu.setApplicationMenu(null);
 
-  const carpetaDatos = asegurarCarpeta(join(carpetaUsuario, 'datos'));
+  const carpetaDatos = asegurarCarpeta(join(carpetaUsuario, CARPETA_DATOS));
   const rutaBaseDatos = join(carpetaDatos, ARCHIVO_BASE_DATOS);
   const existiaBase = existsSync(rutaBaseDatos);
   const db = abrirBaseDeDatos(rutaBaseDatos);
@@ -290,8 +287,46 @@ if (!app.isPackaged) {
   );
 }
 
-// Una sola instancia: dos procesos escribiendo la misma base SQLite causarían bloqueos.
-if (!app.requestSingleInstanceLock()) {
+/**
+ * Parámetro que carga (`--datos-demo`) o borra (`--datos-demo=borrar`) los
+ * datos de ejemplo de la carpeta de desarrollo y termina sin abrir ventanas
+ * (D-142). Solo se acepta sin empaquetar.
+ */
+const PARAMETRO_DATOS_DEMO = 'datos-demo';
+
+/**
+ * Carga o borra los datos de ejemplo y termina el proceso. Exige que la app
+ * de desarrollo esté cerrada, porque reemplaza su base de datos.
+ *
+ * @param accion - Cargar o borrar.
+ */
+function ejecutarDatosDemo(accion: AccionDatosDemo): void {
+  if (!app.requestSingleInstanceLock()) {
+    process.stderr.write(
+      'La app de desarrollo está abierta: ciérrela (detenga npm run dev) y vuelva a ejecutar el comando.\n',
+    );
+    app.exit(1);
+    return;
+  }
+  try {
+    const resultado = prepararDatosDemo(app.getPath('userData'), accion);
+    process.stdout.write(`${resultado.lineas.join('\n')}\n`);
+    app.exit(resultado.ok ? 0 : 1);
+  } catch (error) {
+    process.stderr.write(
+      `No se pudieron ${accion === 'cargar' ? 'cargar' : 'borrar'} los datos de ejemplo: ` +
+        `${error instanceof Error ? error.message : String(error)}\n`,
+    );
+    app.exit(1);
+  }
+}
+
+if (!app.isPackaged && app.commandLine.hasSwitch(PARAMETRO_DATOS_DEMO)) {
+  ejecutarDatosDemo(
+    app.commandLine.getSwitchValue(PARAMETRO_DATOS_DEMO) === 'borrar' ? 'borrar' : 'cargar',
+  );
+} else if (!app.requestSingleInstanceLock()) {
+  // Una sola instancia: dos procesos escribiendo la misma base SQLite causarían bloqueos.
   app.quit();
 } else {
   app.on('second-instance', () => {

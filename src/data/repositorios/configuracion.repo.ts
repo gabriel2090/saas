@@ -17,6 +17,8 @@ export interface EsquemaConfiguracion {
   'negocio.datos': DatosNegocio;
   /** Impresora térmica de Windows para las facturas, o `null` para el diálogo de impresión (D-88). */
   'facturacion.impresora': string | null;
+  /** Fecha ISO en que se cargaron los datos de ejemplo (solo bases de desarrollo, D-142). */
+  'demo.cargada': string;
 }
 
 /**

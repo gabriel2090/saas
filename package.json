@@ -7,6 +7,8 @@
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
+    "dev:datos-demo": "electron-vite build && electron . --datos-demo",
+    "dev:datos-demo:borrar": "electron-vite build && electron . --datos-demo=borrar",
     "build": "npm run typecheck && electron-vite build",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
