@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, renameSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 import { abrirBaseDeDatos } from '../../data/conexion';
 import { migracionesDelProyecto } from '../../data/migraciones';
 import { aplicarMigraciones } from '../../data/migrador';
@@ -55,6 +55,24 @@ function leerBaseExistente(ruta: string): BaseExistente {
 }
 
 /**
+ * Indica si una carpeta es la de datos del negocio o está dentro de ella. Se
+ * compara sin distinguir mayúsculas (rutas de Windows).
+ *
+ * @param carpeta - Carpeta pedida.
+ * @param carpetaReal - Carpeta de datos de la app instalada.
+ * @returns `true` si no se debe tocar.
+ *
+ * @example
+ * esCarpetaProtegida('C:\\Users\\a\\AppData\\Roaming\\Inventario y Facturación\\', 'C:\\Users\\a\\AppData\\Roaming\\Inventario y Facturación'); // true
+ * esCarpetaProtegida('C:\\Users\\a\\AppData\\Roaming\\Inventario y Facturación (desarrollo)', 'C:\\Users\\a\\AppData\\Roaming\\Inventario y Facturación'); // false
+ */
+export function esCarpetaProtegida(carpeta: string, carpetaReal: string): boolean {
+  const pedida = resolve(carpeta).toLowerCase();
+  const real = resolve(carpetaReal).toLowerCase();
+  return pedida === real || pedida.startsWith(`${real}${sep}`);
+}
+
+/**
  * Sello de fecha y hora para el nombre de la carpeta guardada aparte.
  *
  * @param fecha - Momento.
@@ -77,8 +95,12 @@ function sello(fecha: Date): string {
  * Al cargar, se conserva la impresora configurada en la base anterior, para
  * no tener que elegirla otra vez antes de probar la impresión.
  *
+ * Nunca actúa sobre la carpeta de la app instalada ni dentro de ella, aunque
+ * se pida con `--carpeta-datos`.
+ *
  * @param carpetaUsuario - Carpeta de la app de desarrollo (contiene `datos`).
  * @param accion - Cargar o borrar.
+ * @param carpetaReal - Carpeta de datos de la app instalada (la del negocio).
  * @param ahora - Momento actual (para el sello de la carpeta guardada aparte).
  * @returns Si se hizo y los mensajes para la terminal.
  * @throws {Error} Si falla el sistema de archivos o la carga.
@@ -86,8 +108,18 @@ function sello(fecha: Date): string {
 export function prepararDatosDemo(
   carpetaUsuario: string,
   accion: AccionDatosDemo,
+  carpetaReal: string,
   ahora: Date = new Date(),
 ): ResultadoDatosDemo {
+  if (esCarpetaProtegida(carpetaUsuario, carpetaReal)) {
+    return {
+      ok: false,
+      lineas: [
+        `${carpetaUsuario} es la carpeta de datos del negocio: los datos de ejemplo nunca se cargan ni se borran ahí.`,
+        'Use npm run dev:datos-demo sin --carpeta-datos (carga en la carpeta de desarrollo).',
+      ],
+    };
+  }
   const carpetaDatos = join(carpetaUsuario, CARPETA_DATOS);
   const ruta = join(carpetaDatos, ARCHIVO_BASE_DATOS);
   const lineas: string[] = [];

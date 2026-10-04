@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { abrirBaseDeDatos } from '../../src/data/conexion';
 import { migracionesDelProyecto } from '../../src/data/migraciones';
 import { aplicarMigraciones } from '../../src/data/migrador';
-import { prepararDatosDemo } from '../../src/main/demo/carpeta';
+import { esCarpetaProtegida, prepararDatosDemo } from '../../src/main/demo/carpeta';
 import { obtenerConfiguracion } from '../../src/data/repositorios/configuracion.repo';
 import { leerCartera } from '../../src/data/repositorios/correcciones.repo';
 import { saldoFavorDe } from '../../src/data/repositorios/saldosFavor.repo';
@@ -121,18 +121,33 @@ describe('carpeta de los datos de ejemplo', () => {
   };
   const ruta = (carpeta: string): string => join(carpeta, 'datos', 'inventario.db');
   const ahora = new Date(2026, 9, 4, 17, 30, 5);
+  /** Carpeta de la app instalada, ficticia: nunca se crea. */
+  const REAL = join(tmpdir(), 'saas-carpeta-real-ficticia', 'Inventario y Facturación');
+
+  it('nunca toca la carpeta de datos del negocio ni lo que está dentro', () => {
+    expect(esCarpetaProtegida(REAL, REAL)).toBe(true);
+    expect(esCarpetaProtegida(`${REAL.toUpperCase()}\\`, REAL)).toBe(true);
+    expect(esCarpetaProtegida(join(REAL, 'otra'), REAL)).toBe(true);
+    expect(esCarpetaProtegida(`${REAL} (desarrollo)`, REAL)).toBe(false);
+    for (const accion of ['cargar', 'borrar'] as const) {
+      const r = prepararDatosDemo(REAL, accion, REAL, ahora);
+      expect(r.ok).toBe(false);
+      expect(r.lineas[0]).toContain('es la carpeta de datos del negocio');
+    }
+    expect(existsSync(REAL)).toBe(false);
+  });
 
   it('cargar reemplaza una base de ejemplo y borrar la quita', () => {
     enCarpeta((carpeta) => {
-      expect(prepararDatosDemo(carpeta, 'cargar', ahora).ok).toBe(true);
-      const segunda = prepararDatosDemo(carpeta, 'cargar', ahora);
+      expect(prepararDatosDemo(carpeta, 'cargar', REAL, ahora).ok).toBe(true);
+      const segunda = prepararDatosDemo(carpeta, 'cargar', REAL, ahora);
       expect(segunda.ok).toBe(true);
       expect(segunda.lineas[0]).toBe('Se borró la base de ejemplo anterior.');
       expect(readdirSync(carpeta)).toEqual(['datos']);
-      const borrado = prepararDatosDemo(carpeta, 'borrar', ahora);
+      const borrado = prepararDatosDemo(carpeta, 'borrar', REAL, ahora);
       expect(borrado.ok).toBe(true);
       expect(existsSync(ruta(carpeta))).toBe(false);
-      expect(prepararDatosDemo(carpeta, 'borrar', ahora).lineas[0]).toBe(
+      expect(prepararDatosDemo(carpeta, 'borrar', REAL, ahora).lineas[0]).toBe(
         'No había datos de ejemplo.',
       );
     });
@@ -145,11 +160,11 @@ describe('carpeta de los datos de ejemplo', () => {
       aplicarMigraciones(propia, migracionesDelProyecto());
       propia.close();
 
-      const borrar = prepararDatosDemo(carpeta, 'borrar', ahora);
+      const borrar = prepararDatosDemo(carpeta, 'borrar', REAL, ahora);
       expect(borrar.ok).toBe(false);
       expect(existsSync(ruta(carpeta))).toBe(true);
 
-      const cargar = prepararDatosDemo(carpeta, 'cargar', ahora);
+      const cargar = prepararDatosDemo(carpeta, 'cargar', REAL, ahora);
       expect(cargar.ok).toBe(true);
       expect(readdirSync(carpeta).sort()).toEqual(['datos', 'datos-anterior-20261004-173005']);
       expect(existsSync(join(carpeta, 'datos-anterior-20261004-173005', 'inventario.db'))).toBe(

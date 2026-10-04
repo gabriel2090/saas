@@ -42,7 +42,7 @@ import { crearServicioRespaldos, type ServicioRespaldos } from './servicios/resp
 import { crearServicioSaldoFavor } from './servicios/saldoFavor';
 import { crearServicioVentas } from './servicios/ventas';
 import { crearVentanaPrincipal, type VentanaPrincipal } from './ventana-principal';
-import { prepararDatosDemo, type AccionDatosDemo } from './demo/carpeta';
+import { esCarpetaProtegida, prepararDatosDemo, type AccionDatosDemo } from './demo/carpeta';
 import { ARCHIVO_BASE_DATOS, CARPETA_DATOS } from './rutas';
 
 /**
@@ -305,6 +305,16 @@ const PARAMETRO_DATOS_DEMO = 'datos-demo';
  * @param accion - Cargar o borrar.
  */
 function ejecutarDatosDemo(accion: AccionDatosDemo): void {
+  const carpetaReal = join(app.getPath('appData'), app.getName());
+  // Antes del bloqueo de instancia única, que escribe su archivo en la carpeta de datos.
+  if (esCarpetaProtegida(app.getPath('userData'), carpetaReal)) {
+    process.stderr.write(
+      'Los datos de ejemplo nunca se cargan en la carpeta de datos del negocio. ' +
+        'Use npm run dev:datos-demo sin --carpeta-datos.\n',
+    );
+    app.exit(1);
+    return;
+  }
   if (!app.requestSingleInstanceLock()) {
     process.stderr.write(
       'La app de desarrollo está abierta: ciérrela (detenga npm run dev) y vuelva a ejecutar el comando.\n',
@@ -313,7 +323,7 @@ function ejecutarDatosDemo(accion: AccionDatosDemo): void {
     return;
   }
   try {
-    const resultado = prepararDatosDemo(app.getPath('userData'), accion);
+    const resultado = prepararDatosDemo(app.getPath('userData'), accion, carpetaReal);
     process.stdout.write(`${resultado.lineas.join('\n')}\n`);
     app.exit(resultado.ok ? 0 : 1);
   } catch (error) {
