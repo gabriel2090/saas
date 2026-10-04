@@ -150,12 +150,8 @@ export async function recorrerReimpresiones(a, registrar, captura, dormir) {
     return html;
   };
 
-  await dormir(500);
-  await a.js(
-    `[...document.querySelectorAll('.barra-iconos__boton')].find(b => b.textContent.includes('Reimpresiones')).click()`,
-  );
-  await a.esperar(`!!document.querySelector('${VENTANA}')`);
-  await dormir(300);
+  // Sin espera: los atajos deben estar registrados apenas se ve el escritorio.
+  await a.abrir('reimpresiones', 'Reimpresiones');
   await a.tecla('O', { ctrl: true, shift: true });
   await a.tecla('M');
   await dormir(300);

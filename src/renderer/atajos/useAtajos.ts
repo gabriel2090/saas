@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, type ContextType } from 'react';
+import { useContext, useLayoutEffect, useRef, type ContextType } from 'react';
 import { ATAJOS, type IdAtajo } from '../../shared/keymap';
 import type { ManejadorCapa, PrioridadCapa } from './capas';
 import { normalizarCombinacion } from './combinacion';
@@ -50,11 +50,11 @@ export function useAtajosPorCombinacion(
   const activo = opciones.activo ?? true;
   const combinaciones = Object.keys(acciones).sort().join('|');
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     accionesRef.current = acciones;
   });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!activo || combinaciones === '') {
       return undefined;
     }
@@ -74,7 +74,8 @@ export function useAtajosPorCombinacion(
  *
  * Las acciones se leen siempre en su versión más reciente (no hace falta
  * memorizarlas); la capa solo se vuelve a registrar si cambian los atajos
- * usados, la prioridad o `activo`.
+ * usados, la prioridad o `activo`. Se registra antes de pintar (efecto de
+ * diseño): una pantalla nunca se ve sin sus atajos.
  *
  * @param acciones - Atajo del keymap → acción.
  * @param opciones - Prioridad y si está activa.
@@ -92,11 +93,11 @@ export function useAtajos(
   const activo = opciones.activo ?? true;
   const ids = (Object.keys(acciones) as IdAtajo[]).sort().join('|');
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     accionesRef.current = acciones;
   });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!activo || ids === '') {
       return undefined;
     }
