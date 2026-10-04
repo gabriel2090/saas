@@ -30,6 +30,7 @@ const TAMANOS_INICIALES: Partial<Record<IdProceso, TamanoVentana>> = {
   'correccion-proveedor': { ancho: 1236, alto: 680 },
   'devolucion-venta': { ancho: 1236, alto: 740 },
   'devolucion-compra': { ancho: 1236, alto: 740 },
+  reimpresiones: { ancho: 1040, alto: 600 },
 };
 
 /**
@@ -57,6 +58,7 @@ const MINIMOS: Partial<Record<IdProceso, TamanoVentana>> = {
   'correccion-proveedor': { ancho: 720, alto: 460 },
   'devolucion-venta': { ancho: 720, alto: 480 },
   'devolucion-compra': { ancho: 720, alto: 480 },
+  reimpresiones: { ancho: 640, alto: 420 },
   productos: MINIMO_MAESTRO,
   clientes: MINIMO_MAESTRO,
   proveedores: MINIMO_MAESTRO,

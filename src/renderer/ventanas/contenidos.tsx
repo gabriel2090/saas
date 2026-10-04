@@ -13,6 +13,7 @@ import { Facturar } from '../pantallas/Facturar';
 import { Importador } from '../pantallas/Importador';
 import { PendienteFase } from '../pantallas/PendienteFase';
 import { Productos } from '../pantallas/Productos';
+import { Reimpresiones } from '../pantallas/Reimpresiones';
 import { Terceros } from '../pantallas/Terceros';
 
 /**
@@ -37,6 +38,7 @@ const CONTENIDOS: Partial<Record<IdProceso, ComponentType>> = {
   'correccion-proveedor': CorreccionProveedor,
   'devolucion-venta': DevolucionVenta,
   'devolucion-compra': DevolucionCompra,
+  reimpresiones: Reimpresiones,
 };
 
 /**

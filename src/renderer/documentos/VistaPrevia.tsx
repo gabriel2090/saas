@@ -14,21 +14,32 @@ interface PropiedadesVistaPrevia {
   titulo: string;
   /** Se llama al cerrar. */
   alCerrar: () => void;
+  /** Solo muestra el documento, sin «Imprimir» ni «Guardar PDF» (Reimpresiones, Ctrl+D). */
+  soloVer?: boolean;
+  /** Muestra el documento con el ancho de la tirilla de 80 mm. */
+  tirilla?: boolean;
 }
 
 /**
- * Vista previa de un documento en hoja carta con «Imprimir» y «Guardar PDF»
- * (D-52, D-72). El HTML lo arma el proceso principal y se muestra en un
+ * Vista previa de un documento con «Imprimir» y «Guardar PDF» (D-52, D-72),
+ * o solo para verlo. El HTML lo arma el proceso principal y se muestra en un
  * marco aislado, sin scripts. Esc cierra.
  *
  * @param props - Propiedades del componente.
  * @returns El diálogo modal.
  */
-export function VistaPrevia({ documento, titulo, alCerrar }: PropiedadesVistaPrevia): ReactNode {
+export function VistaPrevia({
+  documento,
+  titulo,
+  alCerrar,
+  soloVer = false,
+  tirilla = false,
+}: PropiedadesVistaPrevia): ReactNode {
   const [html, setHtml] = useState<string | null>(null);
   const [aviso, setAviso] = useState<{ tipo: TipoAviso; texto: string } | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const botonImprimir = useRef<HTMLButtonElement>(null);
+  const botonCerrar = useRef<HTMLButtonElement>(null);
   const focoAnterior = useRef<Element | null>(null);
 
   useEffect(() => {
@@ -46,7 +57,7 @@ export function VistaPrevia({ documento, titulo, alCerrar }: PropiedadesVistaPre
       if (!vigente) return;
       if (r.ok) {
         setHtml(r.datos);
-        botonImprimir.current?.focus();
+        (botonImprimir.current ?? botonCerrar.current)?.focus();
       } else {
         setAviso({ tipo: 'error', texto: r.error.mensaje });
       }
@@ -77,7 +88,7 @@ export function VistaPrevia({ documento, titulo, alCerrar }: PropiedadesVistaPre
   return (
     <div className="capa-modal" role="presentation">
       <div
-        className="dialogo vista-previa"
+        className={`dialogo vista-previa${tirilla ? ' vista-previa--tirilla' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="vista-previa-titulo"
@@ -94,24 +105,28 @@ export function VistaPrevia({ documento, titulo, alCerrar }: PropiedadesVistaPre
         </div>
         {aviso && <Aviso tipo={aviso.tipo}>{aviso.texto}</Aviso>}
         <div className="dialogo__botones">
-          <button
-            ref={botonImprimir}
-            type="button"
-            className="boton boton--primario"
-            disabled={html === null || ocupado}
-            onClick={() => void ejecutar('impresion:imprimir')}
-          >
-            Imprimir
-          </button>
-          <button
-            type="button"
-            className="boton"
-            disabled={html === null || ocupado}
-            onClick={() => void ejecutar('impresion:pdf')}
-          >
-            Guardar PDF
-          </button>
-          <button type="button" className="boton" onClick={alCerrar}>
+          {!soloVer && (
+            <>
+              <button
+                ref={botonImprimir}
+                type="button"
+                className="boton boton--primario"
+                disabled={html === null || ocupado}
+                onClick={() => void ejecutar('impresion:imprimir')}
+              >
+                Imprimir
+              </button>
+              <button
+                type="button"
+                className="boton"
+                disabled={html === null || ocupado}
+                onClick={() => void ejecutar('impresion:pdf')}
+              >
+                Guardar PDF
+              </button>
+            </>
+          )}
+          <button ref={botonCerrar} type="button" className="boton" onClick={alCerrar}>
             Cerrar
           </button>
         </div>

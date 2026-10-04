@@ -8,8 +8,9 @@
  * frente al de la página; eventos de captura del puntero).
  *
  * Uso: `npm run test:e2e -- [--veces=N] [--salida=carpeta] [--capturas] [--sin-compilar]
- * [--escenario=correcciones]`. El escenario `correcciones` recorre las ventanas
- * de la Fase 4a (ver `escenarioCorrecciones.mjs`).
+ * [--escenario=correcciones|reimpresiones]`. El escenario `correcciones` recorre
+ * las ventanas de la Fase 4a (ver `escenarioCorrecciones.mjs`); `reimpresiones`,
+ * la de la Fase 4b sobre los datos de ejemplo (ver `escenarioReimpresiones.mjs`).
  */
 import { spawn, spawnSync } from 'node:child_process';
 import { appendFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -18,6 +19,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { recorrerCorrecciones } from './escenarioCorrecciones.mjs';
+import { cargarDatosDemo, ingresarDemo, recorrerReimpresiones } from './escenarioReimpresiones.mjs';
 
 /**
  * Acciones de prueba sobre la página (ver {@link crearAcciones}).
@@ -561,6 +563,9 @@ async function correrUnaVez(vez, op, registrar) {
   const puerto = 9400 + vez;
   const datos = mkdtempSync(join(tmpdir(), 'saas-e2e-datos-'));
   const electron = /** @type {string} */ (createRequire(import.meta.url)('electron'));
+  if (op.escenario === 'reimpresiones') {
+    registrar(cargarDatosDemo(electron, RAIZ, datos).trim());
+  }
   const app = spawn(
     electron,
     [
@@ -593,6 +598,10 @@ async function correrUnaVez(vez, op, registrar) {
       await a.pantalla(1366, 690);
       await primerArranque(a);
       await recorrerCorrecciones(a, registrar, captura, dormir);
+    } else if (op.escenario === 'reimpresiones') {
+      await a.pantalla(1366, 690);
+      await ingresarDemo(a);
+      await recorrerReimpresiones(a, registrar, captura, dormir);
     } else {
       await recorrer(a, registrar, captura);
     }

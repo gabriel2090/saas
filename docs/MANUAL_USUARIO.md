@@ -1,6 +1,6 @@
 # Manual de usuario
 
-Guía de uso diario de Inventario y Facturación. Se completa fase a fase; por ahora cubre las ventanas y cómo organizarlas, la configuración de la facturación, la ventana Facturar, el abono de cliente y la importación de saldos iniciales.
+Guía de uso diario de Inventario y Facturación. Se completa fase a fase; por ahora cubre las ventanas y cómo organizarlas, la configuración de la facturación, la ventana Facturar, las reimpresiones, el abono de cliente y la importación de saldos iniciales.
 
 ## Ventanas y «Organizar»
 
@@ -58,7 +58,18 @@ Abra Facturar con su ícono o con Ctrl+K y «facturar». La ventana tiene **6 bo
 
 ### Impresión
 
-Al guardar, la factura queda registrada (descuenta el inventario y, si es a crédito, queda en la cartera del cliente) y se imprime la tirilla. Si la impresora falla o está apagada, la factura **ya quedó guardada**: arregle la impresora y pulse «Reintentar impresión». La reimpresión de facturas anteriores llega en una fase próxima.
+Al guardar, la factura queda registrada (descuenta el inventario y, si es a crédito, queda en la cartera del cliente) y se imprime la tirilla. Si la impresora falla o está apagada, la factura **ya quedó guardada**: arregle la impresora y pulse «Reintentar impresión». Para volver a imprimir una factura anterior, use la ventana **Reimpresiones**.
+
+## Reimpresiones
+
+Abra «Reimpresiones» desde la barra superior (o Ctrl+K y «reimpresiones»).
+
+1. Elija el **documento**: factura de cliente, factura de proveedor, abono de cliente o abono a proveedor. La lista muestra los más recientes primero.
+2. Para encontrar uno, escriba en **Buscar** el número del documento, el código o parte del nombre del cliente o proveedor (en facturas de proveedor, también el número de la factura del proveedor). **Desde** y **Hasta** (`dd/mm/aaaa`) limitan las fechas; vacías, no limitan.
+3. Con las flechas elija el documento y pulse **Ctrl+D** (o Intro) para **verlo**: solo se muestra, no se imprime. Esc cierra la vista.
+4. **Ctrl+P** lo **imprime** en la impresora térmica (tirilla de 80 mm).
+
+Todo lo que se reimprime sale con la leyenda **REIMPRESION**. Las facturas anuladas salen además con **ANULADA**, los abonos anulados con **ANULADO**, y las facturas corregidas con **CORREGIDA**, su versión y el recuadro de la corrección. Los saldos iniciales importados no aparecen: no se emitieron en esta aplicación.
 
 ## Abono de cliente
 

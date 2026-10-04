@@ -1043,7 +1043,8 @@ textarea {
   color: #fff;
 }
 
-.tabla tr.fila--seleccionada .texto-error {
+.tabla tr.fila--seleccionada .texto-error,
+.tabla tr.fila--seleccionada .estado-anulado {
   color: #ffd2cc;
 }
 
@@ -1671,6 +1672,53 @@ textarea {
 
 .vista-previa .aviso {
   margin: 0 16px 10px;
+}
+
+/* La tirilla de 80 mm se ve a su ancho real, más el margen del marco. */
+.vista-previa--tirilla {
+  width: min(440px, 92vw);
+}
+
+/* Debajo de la barra superior (36 px) y centrada en lo que queda. */
+.capa-modal:has(.vista-previa--tirilla) {
+  place-items: center;
+  padding: 44px 0 8px;
+}
+
+.vista-previa--tirilla .vista-previa__hoja {
+  height: min(70vh, calc(100vh - 170px));
+}
+
+/* ---------- Reimpresiones ---------- */
+.reimpresiones {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+}
+
+.reimpresiones__filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: end;
+}
+
+.reimpresiones__buscar {
+  flex: 1 1 260px;
+}
+
+.reimpresiones__buscar input {
+  width: 100%;
+}
+
+.reimpresiones__fecha input {
+  width: 110px;
+}
+
+.reimpresiones .tabla-contenedor {
+  flex: 1 1 auto;
+  min-height: 160px;
 }
 
 /* ---------- Facturar (maqueta docs/maquetas/facturar.html) ---------- */
