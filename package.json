@@ -16,6 +16,7 @@
     "test": "vitest run --project unitarias",
     "test:integracion": "vitest run --project integracion",
     "test:todo": "npm run test && npm run test:integracion",
+    "test:e2e": "node tests/e2e/ventanas.mjs",
     "empaquetar": "npm run build && electron-builder --win"
   },
   "dependencies": {

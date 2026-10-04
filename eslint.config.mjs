@@ -55,7 +55,20 @@ export default tseslint.config(
     files: ['src/main/**/*.ts', 'src/preload/**/*.ts', 'src/data/**/*.ts', 'tests/**/*.ts', '*.ts'],
     languageOptions: { globals: globals.node },
   },
+  {
+    // Pruebas de punta a punta en JavaScript (fuera del proyecto de TypeScript).
+    files: ['tests/e2e/**/*.mjs'],
+    ...tseslint.configs.disableTypeChecked,
+    languageOptions: {
+      ...tseslint.configs.disableTypeChecked.languageOptions,
+      globals: globals.node,
+    },
+  },
   jsdoc.configs['flat/recommended-typescript-error'],
+  {
+    files: ['tests/e2e/**/*.mjs'],
+    ...jsdoc.configs['flat/recommended-typescript-flavor-error'],
+  },
   {
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
