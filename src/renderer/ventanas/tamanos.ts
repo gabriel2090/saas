@@ -25,6 +25,11 @@ const TAMANOS_INICIALES: Partial<Record<IdProceso, TamanoVentana>> = {
   'ajustes-inventario': { ancho: 1040, alto: 600 },
   // Según la maqueta aprobada (docs/maquetas/facturar.html).
   facturar: { ancho: 1236, alto: 740 },
+  // Según las maquetas aprobadas (docs/maquetas/correccion-*.html y devoluciones.html).
+  'correccion-cliente': { ancho: 1236, alto: 680 },
+  'correccion-proveedor': { ancho: 1236, alto: 680 },
+  'devolucion-venta': { ancho: 1236, alto: 740 },
+  'devolucion-compra': { ancho: 1236, alto: 740 },
 };
 
 /**
@@ -48,6 +53,10 @@ const MINIMOS: Partial<Record<IdProceso, TamanoVentana>> = {
   'abono-cliente': { ancho: 560, alto: 440 },
   'abono-proveedor': { ancho: 560, alto: 440 },
   'ajustes-inventario': { ancho: 560, alto: 420 },
+  'correccion-cliente': { ancho: 720, alto: 460 },
+  'correccion-proveedor': { ancho: 720, alto: 460 },
+  'devolucion-venta': { ancho: 720, alto: 480 },
+  'devolucion-compra': { ancho: 720, alto: 480 },
   productos: MINIMO_MAESTRO,
   clientes: MINIMO_MAESTRO,
   proveedores: MINIMO_MAESTRO,

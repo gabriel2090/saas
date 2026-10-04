@@ -12,7 +12,7 @@ import { invocar } from '../servicios/api';
  *
  * @param enfocar - Elemento que recibe el foco al abrir.
  */
-function useFocoDialogo(enfocar: () => HTMLElement | null): void {
+export function useFocoDialogo(enfocar: () => HTMLElement | null): void {
   const enfocarRef = useRef(enfocar);
   useEffect(() => {
     const anterior = document.activeElement;

@@ -1110,6 +1110,12 @@ function RecuadroCredito({
       >
         {disponible === null ? 'Sin límite' : formatearPesos(disponible)}
       </strong>
+      {credito.saldoFavor > 0 && (
+        <span className="credito__favor">
+          Saldo a favor: <strong>{formatearPesos(credito.saldoFavor)}</strong> (se usa en Abono de
+          cliente)
+        </span>
+      )}
     </div>
   );
 }

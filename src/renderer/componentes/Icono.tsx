@@ -15,6 +15,10 @@ const TRAZOS: Partial<Record<IdProceso, string>> = {
   proveedores: 'M3 21V9l6-4v4l6-4v4l6-4v16zM7 17h2M11 17h2M15 17h2',
   reimpresiones: 'M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z',
   'cambiar-contrasena': 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4',
+  'correccion-cliente': 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4',
+  'correccion-proveedor': 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4M3 3h6',
+  'devolucion-venta': 'M9 14L4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3',
+  'devolucion-compra': 'M15 14l5-5-5-5M20 9H9a5 5 0 0 0 0 10h3',
 };
 
 /**

@@ -1,7 +1,7 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { ModoBarra } from '../../shared/interfaz';
 import { ATAJOS, ATAJOS_PROCESOS } from '../../shared/keymap';
-import { PROCESOS, type IdProceso } from '../../shared/procesos';
+import { obtenerProceso, PROCESOS, type IdProceso } from '../../shared/procesos';
 import { textoCombinacion } from '../atajos/combinacion';
 import { useAtajos } from '../atajos/useAtajos';
 import { ATRIBUTO_BOTON_ORGANIZAR } from '../ventanas/MenuOrganizar';
@@ -89,6 +89,84 @@ function MenuModoBarra({
 }
 
 /**
+ * Ventanas que abre el botón «Correcciones», en el orden del menú.
+ */
+const PROCESOS_CORRECCIONES: readonly IdProceso[] = [
+  'correccion-cliente',
+  'correccion-proveedor',
+  'devolucion-venta',
+  'devolucion-compra',
+];
+
+/**
+ * Trazo del ícono del botón «Correcciones» (lápiz).
+ */
+const TRAZO_CORRECCIONES = 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4';
+
+/**
+ * Propiedades de {@link MenuCorrecciones}.
+ */
+interface PropiedadesMenuCorrecciones {
+  /** Esquina inferior izquierda del botón. */
+  posicion: { x: number; y: number };
+  /** Abre la ventana elegida. */
+  alElegir: (id: IdProceso) => void;
+  /** Cierra el menú sin elegir. */
+  alCerrar: () => void;
+}
+
+/**
+ * Menú del botón «Correcciones»: las ventanas de corrección y de devolución
+ * (no se anclan a la barra). El foco va a la primera opción; las flechas
+ * recorren las opciones, Enter abre y Esc cierra.
+ *
+ * @param props - Propiedades del componente.
+ * @returns El menú.
+ */
+function MenuCorrecciones({
+  posicion,
+  alElegir,
+  alCerrar,
+}: PropiedadesMenuCorrecciones): ReactNode {
+  const primera = useRef<HTMLButtonElement>(null);
+  useAtajos({ retroceder: alCerrar }, { prioridad: 'modal' });
+  useEffect(() => {
+    primera.current?.focus();
+  }, []);
+  return (
+    <div
+      className="capa-menu"
+      role="presentation"
+      onPointerDown={(e) => e.target === e.currentTarget && alCerrar()}
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      <div
+        className="menu-organizar menu-correcciones"
+        role="menu"
+        aria-label="Correcciones"
+        style={{ left: posicion.x, top: posicion.y }}
+      >
+        <div className="menu-organizar__titulo">Correcciones</div>
+        {PROCESOS_CORRECCIONES.map((id, i) => (
+          <button
+            key={id}
+            ref={i === 0 ? primera : undefined}
+            type="button"
+            role="menuitem"
+            className="menu-organizar__opcion"
+            onClick={() => alElegir(id)}
+          >
+            <Icono proceso={id} />
+            <span>{obtenerProceso(id).titulo}</span>
+            <span />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
  * Barra superior con los procesos anclados (§10, `DISENO.md` §11.4): ícono
  * y nombre en una línea (por defecto) o solo íconos con ayuda emergente que
  * muestra el nombre y el atajo. A la derecha, «Organizar» y «Buscar». El
@@ -110,6 +188,7 @@ export function BarraIconos({
   alCambiarModo,
 }: PropiedadesBarraIconos): ReactNode {
   const [menuModo, setMenuModo] = useState<{ x: number; y: number } | null>(null);
+  const [menuCorrecciones, setMenuCorrecciones] = useState<{ x: number; y: number } | null>(null);
   const anclados = PROCESOS.filter((p) => p.anclado);
   const soloIconos = modo === 'iconos';
 
@@ -147,6 +226,31 @@ export function BarraIconos({
           <span>{proceso.titulo}</span>
         </button>
       ))}
+      <button
+        type="button"
+        className={`barra-iconos__boton${menuCorrecciones ? ' barra-iconos__boton--abierto' : ''}`}
+        tabIndex={-1}
+        aria-haspopup="menu"
+        {...ayuda('Correcciones y devoluciones', null)}
+        onClick={(e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          setMenuCorrecciones((abierto) => (abierto ? null : { x: r.left, y: r.bottom + 2 }));
+        }}
+      >
+        <svg
+          className="icono"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.7}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d={TRAZO_CORRECCIONES} />
+        </svg>
+        <span>Correcciones</span>
+      </button>
       <button
         type="button"
         className={`barra-iconos__boton barra-iconos__organizar${organizarAbierto ? ' barra-iconos__boton--abierto' : ''}`}
@@ -195,6 +299,16 @@ export function BarraIconos({
             alCambiarModo(m);
           }}
           alCerrar={() => setMenuModo(null)}
+        />
+      )}
+      {menuCorrecciones && (
+        <MenuCorrecciones
+          posicion={menuCorrecciones}
+          alElegir={(id) => {
+            setMenuCorrecciones(null);
+            alAbrir(id);
+          }}
+          alCerrar={() => setMenuCorrecciones(null)}
         />
       )}
     </nav>

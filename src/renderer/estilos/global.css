@@ -1842,3 +1842,162 @@ textarea {
 .totales select {
   width: 160px;
 }
+
+/* ---------- Corrección y devolución (maquetas correccion-*.html y devoluciones.html) ---------- */
+
+.correccion__numero {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.correccion__numero input {
+  width: 110px;
+  padding: 4px 7px;
+  border: 1px solid var(--color-borde);
+  border-radius: 2px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.correccion__version {
+  margin-left: auto;
+  font-size: 12px;
+}
+
+.correccion__encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: flex-end;
+}
+
+.correccion__encabezado > .campo {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+/* El tercero (código, nombre e identificación) es el texto más largo. */
+.correccion__encabezado > .campo:first-child {
+  flex: 3 1 260px;
+}
+
+.correccion__encabezado > .campo--ancho {
+  flex: 2 1 210px;
+}
+
+.correccion__encabezado > .recuadro-cartera {
+  flex: 0 0 auto;
+}
+
+/* Cifras en medio de un párrafo: el «$» no se separa del número. */
+.sin-corte {
+  white-space: nowrap;
+}
+
+.correccion__encabezado .campo input,
+.correccion__encabezado .campo select {
+  width: 100%;
+  min-width: 0;
+}
+
+.recuadro-cartera {
+  display: grid;
+  gap: 0 14px;
+  padding: 4px 10px;
+  border: 1px solid var(--color-borde);
+  border-radius: 4px;
+  background: var(--color-solo-lectura);
+  font-size: 12px;
+  color: var(--color-tenue);
+}
+
+.recuadro-cartera strong {
+  color: var(--color-texto);
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.correccion__paneles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.correccion__tabla-chica {
+  max-height: 180px;
+}
+
+.correccion__devoluciones {
+  max-height: 120px;
+}
+
+.correccion__nota {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px dashed var(--color-borde);
+  border-radius: 4px;
+  color: var(--color-tenue);
+}
+
+.nota-inventario {
+  margin: 0;
+  font-size: 13px;
+}
+
+.tabla .valor-anterior {
+  display: block;
+  font-size: 11px;
+  line-height: 1.1;
+  color: var(--color-tenue);
+  text-decoration: line-through;
+}
+
+.documento__lineas td input.campo--cambiado {
+  border-color: var(--color-primario);
+  background: #eef4fb;
+  font-weight: 700;
+}
+
+.totales__favor th,
+.totales__favor td {
+  color: var(--color-exito);
+  font-weight: 600;
+}
+
+.aviso__linea {
+  display: block;
+}
+
+.credito .credito__favor {
+  grid-column: 1 / -1;
+  color: var(--color-exito);
+}
+
+.credito .credito__favor strong {
+  color: inherit;
+  font-size: inherit;
+}
+
+.abono__reintegros {
+  height: 96px;
+}
+
+.menu-correcciones {
+  width: 260px;
+}
+
+.menu-correcciones .menu-organizar__opcion {
+  width: 100%;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+}
+
+.menu-correcciones .menu-organizar__opcion:focus,
+.menu-correcciones .menu-organizar__opcion:hover {
+  outline: none;
+  background: var(--color-primario);
+  color: #fff;
+}

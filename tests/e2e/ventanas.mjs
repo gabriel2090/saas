@@ -7,7 +7,9 @@
  * Cada falla deja su diagnóstico en el registro (D-119: tamaño del escritorio
  * frente al de la página; eventos de captura del puntero).
  *
- * Uso: `npm run test:e2e -- [--veces=N] [--salida=carpeta] [--capturas] [--sin-compilar]`
+ * Uso: `npm run test:e2e -- [--veces=N] [--salida=carpeta] [--capturas] [--sin-compilar]
+ * [--escenario=correcciones]`. El escenario `correcciones` recorre las ventanas
+ * de la Fase 4a (ver `escenarioCorrecciones.mjs`).
  */
 import { spawn, spawnSync } from 'node:child_process';
 import { appendFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -15,6 +17,7 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { recorrerCorrecciones } from './escenarioCorrecciones.mjs';
 
 /**
  * Acciones de prueba sobre la página (ver {@link crearAcciones}).
@@ -44,7 +47,7 @@ function dormir(ms) {
 /**
  * Lee los parámetros de la línea de comandos.
  *
- * @returns {{ veces: number, salida: string, capturas: boolean, compilar: boolean }} Parámetros.
+ * @returns {{ veces: number, salida: string, capturas: boolean, compilar: boolean, escenario: string }} Parámetros.
  */
 function leerParametros() {
   const args = process.argv.slice(2);
@@ -55,6 +58,7 @@ function leerParametros() {
     salida: resolve(valor('salida') ?? join(tmpdir(), 'saas-e2e')),
     capturas: args.includes('--capturas'),
     compilar: !args.includes('--sin-compilar'),
+    escenario: valor('escenario') ?? 'ventanas',
   };
 }
 
@@ -148,7 +152,15 @@ function crearAcciones(ws, registrar) {
     throw new Error(`Tiempo agotado esperando: ${expr}`);
   };
   /** @type {Record<string, number>} */
-  const codigos = { Escape: 27, Enter: 13, ArrowDown: 40, ArrowUp: 38, F6: 117, Tab: 9 };
+  const codigos = {
+    Escape: 27,
+    Enter: 13,
+    ArrowDown: 40,
+    ArrowUp: 38,
+    F6: 117,
+    Tab: 9,
+    PageDown: 34,
+  };
   /** @type {(key: string, mod?: { ctrl?: boolean, shift?: boolean }) => Promise<void>} */
   const tecla = async (key, { ctrl = false, shift = false } = {}) => {
     const code =
@@ -259,22 +271,16 @@ function crearAcciones(ws, registrar) {
 }
 
 /**
- * Recorre los casos de la Fase 3c sobre la app ya abierta.
+ * Primer arranque con la carpeta temporal: activa los eventos de CDP, crea la
+ * contraseña y acepta la clave de recuperación hasta llegar al escritorio.
  *
  * @param {Acciones} a - Acciones de {@link crearAcciones}.
- * @param {(texto: string) => void} registrar - Escribe una línea en el registro.
- * @param {((nombre: string) => Promise<void>) | null} captura - Guarda una captura, o `null`.
- * @returns {Promise<void>} Promesa que se cumple al terminar el recorrido.
+ * @returns {Promise<void>} Promesa que se cumple con el escritorio a la vista.
  */
-async function recorrer(a, registrar, captura) {
-  const foto = async (/** @type {string} */ nombre) => captura && (await captura(nombre));
-  const alto = async () => (await a.js('innerHeight')) - BARRAS;
+async function primerArranque(a) {
   await a.send('Runtime.enable');
   await a.send('Page.enable');
   await a.send('Emulation.setFocusEmulationEnabled', { enabled: true });
-  await a.pantalla(1366, 634);
-
-  // Primer arranque: crear contraseña y aceptar la clave de recuperación.
   await a.esperar(`document.querySelectorAll('input[type=password]').length >= 2`, 15000);
   for (const i of [0, 1]) {
     await a.js(`document.querySelectorAll('input[type=password]')[${i}].focus()`);
@@ -289,7 +295,21 @@ async function recorrer(a, registrar, captura) {
   );
   await a.esperar(`!!document.querySelector('.escritorio')`);
   await dormir(500);
+}
 
+/**
+ * Recorre los casos de la Fase 3c sobre la app ya abierta.
+ *
+ * @param {Acciones} a - Acciones de {@link crearAcciones}.
+ * @param {(texto: string) => void} registrar - Escribe una línea en el registro.
+ * @param {((nombre: string) => Promise<void>) | null} captura - Guarda una captura, o `null`.
+ * @returns {Promise<void>} Promesa que se cumple al terminar el recorrido.
+ */
+async function recorrer(a, registrar, captura) {
+  const foto = async (/** @type {string} */ nombre) => captura && (await captura(nombre));
+  const alto = async () => (await a.js('innerHeight')) - BARRAS;
+  await a.pantalla(1366, 634);
+  await primerArranque(a);
   // 1366: medidas de las barras y del escritorio.
   a.verificar(
     'barra, escritorio y estado en 1366',
@@ -533,7 +553,7 @@ async function recorrer(a, registrar, captura) {
  * casos y la cierra.
  *
  * @param {number} vez - Número de corrida (1, 2…).
- * @param {{ salida: string, capturas: boolean }} op - Carpeta de salida y si se guardan capturas.
+ * @param {{ salida: string, capturas: boolean, escenario: string }} op - Carpeta de salida, si se guardan capturas y el escenario.
  * @param {(texto: string) => void} registrar - Escribe una línea en el registro.
  * @returns {Promise<number>} Cantidad de verificaciones fallidas (1 si la corrida se cayó).
  */
@@ -569,7 +589,13 @@ async function correrUnaVez(vez, op, registrar) {
           writeFileSync(join(carpeta, `${nombre}.png`), Buffer.from(data, 'base64'));
         }
       : null;
-    await recorrer(a, registrar, captura);
+    if (op.escenario === 'correcciones') {
+      await a.pantalla(1366, 690);
+      await primerArranque(a);
+      await recorrerCorrecciones(a, registrar, captura, dormir);
+    } else {
+      await recorrer(a, registrar, captura);
+    }
     fallos = a.fallos();
     registrar(
       a.errores.length
@@ -579,6 +605,12 @@ async function correrUnaVez(vez, op, registrar) {
     fallos += a.errores.length;
   } catch (error) {
     registrar(`CORRIDA CAÍDA: ${error instanceof Error ? error.message : String(error)}`);
+    if (a && op.capturas) {
+      const { data } = await a.send('Page.captureScreenshot', { format: 'png' });
+      mkdirSync(join(op.salida, `corrida-${vez}`), { recursive: true });
+      writeFileSync(join(op.salida, `corrida-${vez}`, 'caida.png'), Buffer.from(data, 'base64'));
+    }
+    if (a?.errores.length) registrar(`ERRORES EN LA PÁGINA:\n${a.errores.join('\n')}`);
     fallos = Math.max(1, a?.fallos() ?? 0);
   } finally {
     a?.cerrar();

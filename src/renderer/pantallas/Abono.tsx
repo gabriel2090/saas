@@ -10,6 +10,7 @@ import type {
   FacturaPendiente,
   TipoAbono,
 } from '../../shared/abonos';
+import type { ReintegroResumen } from '../../shared/correcciones';
 import { formatearFecha, leerFecha } from '../../shared/formato/fechas';
 import { agruparMiles, formatearPesos, leerPesos } from '../../shared/formato/moneda';
 import type { DocumentoImprimible } from '../../shared/impresion';
@@ -27,6 +28,9 @@ import {
   DialogoAnularAbono,
   textoFacturaAbonada,
 } from '../documentos/DialogosAbono';
+import { DialogoMotivo } from '../documentos/DialogoMotivo';
+import { DialogoReintegro, TablaReintegros } from '../documentos/SaldoFavor';
+import { useCandado } from '../documentos/useCandado';
 import { VistaPrevia } from '../documentos/VistaPrevia';
 import { invocar } from '../servicios/api';
 import { useVentana } from '../ventanas/ContextoVentana';
@@ -150,7 +154,11 @@ function PantallaAbono({ tipo }: PropiedadesPantallaAbono): ReactNode {
   const [guardado, setGuardado] = useState<(AbonoGuardado & { valor: number }) | null>(null);
   const [vista, setVista] = useState<DocumentoImprimible | null>(null);
   const [anulando, setAnulando] = useState<AbonoResumen | null>(null);
+  const [reintegros, setReintegros] = useState<ReintegroResumen[]>([]);
+  const [reintegrando, setReintegrando] = useState(false);
+  const [anulandoReintegro, setAnulandoReintegro] = useState<ReintegroResumen | null>(null);
   const campoTercero = useRef<HTMLInputElement>(null);
+  const conCandado = useCandado();
   const cargado = f !== null;
 
   // La ventana abre mientras se cargan los datos: al terminar, el foco va al tercero.
@@ -196,11 +204,15 @@ function PantallaAbono({ tipo }: PropiedadesPantallaAbono): ReactNode {
    */
   const cargarTercero = useCallback(
     async (codigo: number): Promise<void> => {
-      const r = await invocar('abonos:contextoTercero', { tipo, codigo });
+      const [r, favor] = await Promise.all([
+        invocar('abonos:contextoTercero', { tipo, codigo }),
+        invocar('saldoFavor:consultar', { tipo, codigo }),
+      ]);
       if (!r.ok) {
         setAviso({ tipo: 'error', texto: r.error.mensaje });
         return;
       }
+      setReintegros(favor.ok ? favor.datos.reintegros : []);
       setDatosTercero(r.datos);
       setF((actual) =>
         actual ? { ...actual, aplicar: repartoEscrito(actual.valor, r.datos.facturas) } : actual,
@@ -224,6 +236,7 @@ function PantallaAbono({ tipo }: PropiedadesPantallaAbono): ReactNode {
   const elegirTercero = (t: Tercero): void => {
     setTercero(t);
     setDatosTercero(null);
+    setReintegros([]);
     setAviso(null);
     void cargarTercero(t.codigo);
   };
@@ -244,6 +257,7 @@ function PantallaAbono({ tipo }: PropiedadesPantallaAbono): ReactNode {
     }
     setTercero(null);
     setDatosTercero(null);
+    setReintegros([]);
     setF(formularioVacio(contexto.hoy));
     setAviso(null);
   };
@@ -257,9 +271,17 @@ function PantallaAbono({ tipo }: PropiedadesPantallaAbono): ReactNode {
   const aplicado = aplicadoPorFactura.reduce((suma, a) => suma + (a.valor ?? 0), 0);
   const valor = f ? leerPesos(f.valor) : null;
 
+  const saldoFavor = datosTercero?.saldoFavor ?? 0;
+  const formaSaldoFavor = contexto?.formaSaldoFavor ?? null;
+  const conSaldoFavor = formaSaldoFavor !== null && f?.formaPagoId === String(formaSaldoFavor.id);
+
   const guardar = async (): Promise<void> => {
     if (!f || ocupado) return;
-    const error = validarFormulario(f, tercero, config, valor, aplicadoPorFactura);
+    const error =
+      validarFormulario(f, tercero, config, valor, aplicadoPorFactura) ??
+      (conSaldoFavor && valor !== null && valor > saldoFavor
+        ? `El valor (${formatearPesos(valor)}) supera el saldo a favor disponible (${formatearPesos(saldoFavor)}). Escriba un valor igual o menor, o elija otra forma de pago.`
+        : null);
     if (error !== null) {
       setAviso({ tipo: 'error', texto: error });
       return;
@@ -301,8 +323,32 @@ function PantallaAbono({ tipo }: PropiedadesPantallaAbono): ReactNode {
     return r.datos ? null : 'La impresión se canceló. Puede intentarlo de nuevo.';
   };
 
-  const hayDialogo = guardado !== null || vista !== null || anulando !== null;
-  useAtajos({ guardarDocumento: () => void guardar() }, { activo: activa && !hayDialogo });
+  const anularReintegro = async (motivo: string): Promise<string | null> => {
+    if (!anulandoReintegro) return null;
+    const r = await invocar('saldoFavor:anularReintegro', {
+      id: anulandoReintegro.id,
+      motivo,
+    });
+    if (!r.ok) return r.error.mensaje;
+    setAviso({
+      tipo: 'exito',
+      texto: `Reintegro ${anulandoReintegro.numero} anulado: sus ${formatearPesos(anulandoReintegro.valor)} vuelven al saldo a favor.`,
+    });
+    setAnulandoReintegro(null);
+    if (tercero) await cargarTercero(tercero.codigo);
+    return null;
+  };
+
+  const hayDialogo =
+    guardado !== null ||
+    vista !== null ||
+    anulando !== null ||
+    reintegrando ||
+    anulandoReintegro !== null;
+  useAtajos(
+    { guardarDocumento: () => void conCandado(guardar) },
+    { activo: activa && !hayDialogo },
+  );
 
   if (!f) {
     return (
@@ -327,7 +373,7 @@ function PantallaAbono({ tipo }: PropiedadesPantallaAbono): ReactNode {
           className="boton boton--primario"
           tabIndex={-1}
           disabled={ocupado}
-          onClick={() => void guardar()}
+          onClick={() => void conCandado(guardar)}
         >
           Guardar
           <span className="atajo">{textoCombinacion(ATAJOS.guardarDocumento.combinacion)}</span>
@@ -379,6 +425,11 @@ function PantallaAbono({ tipo }: PropiedadesPantallaAbono): ReactNode {
                   {fp.nombre}
                 </option>
               ))}
+            {formaSaldoFavor && (saldoFavor > 0 || conSaldoFavor) && (
+              <option value={String(formaSaldoFavor.id)}>
+                {formaSaldoFavor.nombre} (disponible {formatearPesos(saldoFavor)})
+              </option>
+            )}
           </select>
         </label>
         <label className="campo campo--num">
@@ -401,6 +452,27 @@ function PantallaAbono({ tipo }: PropiedadesPantallaAbono): ReactNode {
           />
         </label>
       </div>
+
+      {tercero && saldoFavor > 0 && (
+        <div className="aviso__acciones">
+          <Aviso tipo="exito">
+            {tercero.nombre} tiene <strong>{formatearPesos(saldoFavor)} de saldo a favor</strong>.
+            Puede usarlo en este abono con la forma de pago «
+            {formaSaldoFavor?.nombre ?? 'Saldo a favor'}», o{' '}
+            {tipo === 'cliente' ? 'devolvérselo' : 'registrar que se lo devolvieron'} en dinero.
+          </Aviso>
+          <button
+            type="button"
+            className="boton"
+            onClick={() => {
+              setAviso(null);
+              setReintegrando(true);
+            }}
+          >
+            {tipo === 'cliente' ? 'Devolver en dinero…' : 'Registrar devolución en dinero…'}
+          </button>
+        </div>
+      )}
 
       <fieldset className="grupo">
         <legend>
@@ -570,6 +642,53 @@ function PantallaAbono({ tipo }: PropiedadesPantallaAbono): ReactNode {
           </table>
         </div>
       </fieldset>
+
+      {reintegros.length > 0 && (
+        <fieldset className="grupo">
+          <legend>Reintegros (devoluciones en dinero) de este {terceroMinuscula}</legend>
+          <TablaReintegros
+            reintegros={reintegros}
+            alAnular={(r) => {
+              setAviso(null);
+              setAnulandoReintegro(r);
+            }}
+          />
+        </fieldset>
+      )}
+
+      {reintegrando && tercero && (
+        <DialogoReintegro
+          tipo={tipo}
+          terceroCodigo={tercero.codigo}
+          terceroNombre={tercero.nombre}
+          disponible={saldoFavor}
+          formasPago={formasPago}
+          alCancelar={() => setReintegrando(false)}
+          alRegistrar={(r) => {
+            setReintegrando(false);
+            setAviso({
+              tipo: 'exito',
+              texto: `Reintegro ${r.numero} registrado: ${formatearPesos(r.valor)} en ${r.formaPagoNombre}.`,
+            });
+            void cargarTercero(tercero.codigo);
+          }}
+        />
+      )}
+      {anulandoReintegro && (
+        <DialogoMotivo
+          titulo={`¿Anular el reintegro ${anulandoReintegro.numero}?`}
+          textoAceptar="Anular reintegro"
+          ejemploMotivo="el dinero no se entregó"
+          alAceptar={anularReintegro}
+          alCancelar={() => setAnulandoReintegro(null)}
+        >
+          <p className="dialogo__mensaje">
+            El reintegro {anulandoReintegro.numero} por {formatearPesos(anulandoReintegro.valor)}{' '}
+            queda marcado como <strong>ANULADO</strong> (no se borra) y ese valor vuelve al saldo a
+            favor de {tercero?.nombre ?? `este ${terceroMinuscula}`}.
+          </p>
+        </DialogoMotivo>
+      )}
 
       {guardado && (
         <DialogoAbonoGuardado

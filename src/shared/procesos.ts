@@ -16,7 +16,8 @@ export type IdProceso =
   | 'importador'
   | 'correccion-cliente'
   | 'correccion-proveedor'
-  | 'devoluciones'
+  | 'devolucion-venta'
+  | 'devolucion-compra'
   | 'ajustes-inventario'
   | 'reimpresiones'
   | 'reporte-inventario'
@@ -128,9 +129,16 @@ export const PROCESOS: readonly DefinicionProceso[] = [
     anclado: false,
   },
   {
-    id: 'devoluciones',
-    titulo: 'Devoluciones',
-    palabrasClave: ['devolucion venta', 'devolucion compra'],
+    id: 'devolucion-venta',
+    titulo: 'Devolución de venta',
+    palabrasClave: ['devoluciones', 'cliente', 'reingreso'],
+    fase: 4,
+    anclado: false,
+  },
+  {
+    id: 'devolucion-compra',
+    titulo: 'Devolución de compra',
+    palabrasClave: ['devoluciones', 'proveedor', 'salida'],
     fase: 4,
     anclado: false,
   },

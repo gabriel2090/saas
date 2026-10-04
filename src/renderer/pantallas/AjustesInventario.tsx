@@ -11,6 +11,8 @@ import { textoCombinacion } from '../atajos/combinacion';
 import { useAtajos } from '../atajos/useAtajos';
 import { Aviso, type TipoAviso } from '../componentes/Aviso';
 import { Buscador } from '../documentos/Buscador';
+import { DialogoMotivo } from '../documentos/DialogoMotivo';
+import { useCandado } from '../documentos/useCandado';
 import { invocar } from '../servicios/api';
 import { useVentana } from '../ventanas/ContextoVentana';
 
@@ -55,7 +57,9 @@ export function AjustesInventario(): ReactNode {
   );
   const [aviso, setAviso] = useState<{ tipo: TipoAviso; texto: string } | null>(null);
   const [ocupado, setOcupado] = useState(false);
+  const [anulando, setAnulando] = useState<AjusteResumen | null>(null);
   const campoProducto = useRef<HTMLInputElement>(null);
+  const conCandado = useCandado();
 
   const cargarRecientes = useCallback(async (): Promise<void> => {
     const r = await invocar('ajustes:listar', undefined);
@@ -126,6 +130,19 @@ export function AjustesInventario(): ReactNode {
     }
   }
 
+  const anular = async (motivoAnulacion: string): Promise<string | null> => {
+    if (!anulando) return null;
+    const r = await invocar('ajustes:anular', { id: anulando.id, motivo: motivoAnulacion });
+    if (!r.ok) return r.error.mensaje;
+    setAnulando(null);
+    setAviso({
+      tipo: 'exito',
+      texto: `Ajuste ${r.datos.numero} anulado: se devolvió ${cantidadConSigno(-r.datos.cantidad, r.datos.unidad)} ${r.datos.unidad} de ${r.datos.productoNombre} en ${r.datos.bodegaNombre}.`,
+    });
+    void cargarRecientes();
+    return null;
+  };
+
   const guardar = async (): Promise<void> => {
     if (ocupado) return;
     if (!producto) {
@@ -168,7 +185,10 @@ export function AjustesInventario(): ReactNode {
     campoProducto.current?.focus();
   };
 
-  useAtajos({ guardarDocumento: () => void guardar() }, { activo: activa });
+  useAtajos(
+    { guardarDocumento: () => void conCandado(guardar) },
+    { activo: activa && anulando === null },
+  );
 
   const limpiarAviso = (): void => setAviso(null);
 
@@ -318,18 +338,20 @@ export function AjustesInventario(): ReactNode {
                 <th className="num">Stock antes</th>
                 <th className="num">Movimiento</th>
                 <th>Motivo</th>
+                <th>Estado</th>
+                <th />
               </tr>
             </thead>
             <tbody>
               {recientes.length === 0 && (
                 <tr>
-                  <td className="tabla__vacia" colSpan={8}>
+                  <td className="tabla__vacia" colSpan={10}>
                     Aún no hay ajustes de inventario.
                   </td>
                 </tr>
               )}
               {recientes.map((a) => (
-                <tr key={a.id}>
+                <tr key={a.id} className={a.estado === 'anulado' ? 'fila--inactiva' : undefined}>
                   <td className="num">{a.numero}</td>
                   <td>{formatearFechaHora(a.fecha)}</td>
                   <td>
@@ -342,12 +364,50 @@ export function AjustesInventario(): ReactNode {
                     {cantidadConSigno(a.cantidad, a.unidad)}
                   </td>
                   <td>{a.motivo}</td>
+                  <td
+                    className={a.estado === 'anulado' ? 'estado-anulado' : undefined}
+                    title={a.motivoAnulacion ?? undefined}
+                  >
+                    {a.estado === 'anulado' ? 'ANULADO' : 'Activo'}
+                  </td>
+                  <td className="num">
+                    {a.estado === 'activo' && (
+                      <button
+                        type="button"
+                        className="boton"
+                        onClick={() => {
+                          limpiarAviso();
+                          setAnulando(a);
+                        }}
+                      >
+                        Anular…
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </fieldset>
+
+      {anulando && (
+        <DialogoMotivo
+          titulo={`¿Anular el ajuste ${anulando.numero}?`}
+          textoAceptar="Anular ajuste"
+          ejemploMotivo="se contó en la bodega equivocada"
+          alAceptar={anular}
+          alCancelar={() => setAnulando(null)}
+        >
+          <p className="dialogo__mensaje">
+            El ajuste {anulando.numero} conserva su número y queda marcado como{' '}
+            <strong>ANULADO</strong>; no se puede deshacer. Se registra en el kardex el movimiento
+            contrario: {anulando.productoCodigo} - {anulando.productoNombre}{' '}
+            {cantidadConSigno(-anulando.cantidad, anulando.unidad)} {anulando.unidad} en{' '}
+            {anulando.bodegaNombre}.
+          </p>
+        </DialogoMotivo>
+      )}
     </div>
   );
 }

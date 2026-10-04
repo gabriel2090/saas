@@ -4,7 +4,10 @@ import { AbonoCliente, AbonoProveedor } from '../pantallas/Abono';
 import { AjustesInventario } from '../pantallas/AjustesInventario';
 import { CambiarContrasena } from '../pantallas/CambiarContrasena';
 import { Catalogos } from '../pantallas/Catalogos';
+import { CorreccionCliente } from '../pantallas/CorreccionCliente';
+import { CorreccionProveedor } from '../pantallas/CorreccionProveedor';
 import { DatosNegocio } from '../pantallas/DatosNegocio';
+import { DevolucionCompra, DevolucionVenta } from '../pantallas/Devolucion';
 import { FacturaProveedor } from '../pantallas/FacturaProveedor';
 import { Facturar } from '../pantallas/Facturar';
 import { Importador } from '../pantallas/Importador';
@@ -30,6 +33,10 @@ const CONTENIDOS: Partial<Record<IdProceso, ComponentType>> = {
   'abono-cliente': AbonoCliente,
   'ajustes-inventario': AjustesInventario,
   facturar: Facturar,
+  'correccion-cliente': CorreccionCliente,
+  'correccion-proveedor': CorreccionProveedor,
+  'devolucion-venta': DevolucionVenta,
+  'devolucion-compra': DevolucionCompra,
 };
 
 /**
