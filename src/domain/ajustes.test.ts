@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { movimientoAjuste } from './ajustes';
+import { movimientoAjuste, movimientoAnulacionAjuste } from './ajustes';
 
 describe('ajustes de inventario (D-46)', () => {
   it('la merma y el daño restan la cantidad indicada', () => {
@@ -39,5 +39,17 @@ describe('ajustes de inventario (D-46)', () => {
     expect(() =>
       movimientoAjuste({ tipo: 'dano', unidad: 'KG', cantidad: -1000, stockActual: 5000 }),
     ).toThrow(/no es válida/);
+  });
+});
+
+describe('anulación de un ajuste (D-73, D-133)', () => {
+  it('registra el movimiento contrario', () => {
+    expect(movimientoAnulacionAjuste(-1500, 'activo')).toBe(1500);
+    expect(movimientoAnulacionAjuste(2000, 'activo')).toBe(-2000);
+  });
+
+  it('no anula dos veces ni acepta cantidades inválidas', () => {
+    expect(() => movimientoAnulacionAjuste(-1500, 'anulado')).toThrow(/ya está anulado/);
+    expect(() => movimientoAnulacionAjuste(0, 'activo')).toThrow(/no es válida/);
   });
 });

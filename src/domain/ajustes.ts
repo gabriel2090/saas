@@ -60,3 +60,28 @@ export function movimientoAjuste(entrada: EntradaAjuste): number {
   }
   return -cantidad;
 }
+
+/**
+ * Movimiento de kardex que revierte un ajuste anulado (D-73, D-133): el
+ * contrario de lo que movió. El stock puede quedar negativo (§5.1).
+ *
+ * @param cantidadAjuste - Milésimas con signo que movió el ajuste.
+ * @param estado - Estado actual del ajuste.
+ * @returns Milésimas con signo del movimiento `anulacion_ajuste`.
+ * @throws {ErrorDeNegocio} Si el ajuste ya está anulado o su cantidad no es válida.
+ *
+ * @example
+ * movimientoAnulacionAjuste(-1500, 'activo'); // 1500
+ */
+export function movimientoAnulacionAjuste(
+  cantidadAjuste: number,
+  estado: 'activo' | 'anulado',
+): number {
+  if (estado === 'anulado') {
+    throw new ErrorDeNegocio('VALIDACION', 'El ajuste ya está anulado.');
+  }
+  if (!Number.isSafeInteger(cantidadAjuste) || cantidadAjuste === 0) {
+    throw new ErrorDeNegocio('VALIDACION', 'La cantidad del ajuste no es válida.');
+  }
+  return -cantidadAjuste;
+}

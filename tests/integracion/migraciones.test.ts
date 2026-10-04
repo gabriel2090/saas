@@ -28,7 +28,7 @@ describe('migraciones del proyecto', () => {
   it('crean el esquema con sus datos iniciales', () => {
     const db = abrirBaseDeDatos(':memory:');
     expect(aplicarMigraciones(db, migracionesDelProyecto(), () => FECHA_PRUEBA)).toEqual([
-      1, 2, 3, 4, 5, 6,
+      1, 2, 3, 4, 5, 6, 7,
     ]);
     expect(tablas(db)).toEqual([
       'abonos',
@@ -39,6 +39,8 @@ describe('migraciones del proyecto', () => {
       'clientes',
       'configuracion',
       'consecutivos',
+      'devoluciones',
+      'devoluciones_lineas',
       'facturas_cliente',
       'facturas_cliente_lineas',
       'facturas_cliente_versiones',
@@ -51,15 +53,20 @@ describe('migraciones del proyecto', () => {
       'preferencias_interfaz',
       'productos',
       'proveedores',
+      'reintegros',
+      'saldos_favor',
       'schema_migraciones',
     ]);
     expect(db.prepare('SELECT nombre, es_principal FROM bodegas').all()).toEqual([
       { nombre: 'Principal', es_principal: 1 },
     ]);
-    expect(db.prepare('SELECT nombre, calcula_cambio FROM formas_pago ORDER BY id').all()).toEqual([
-      { nombre: 'Efectivo', calcula_cambio: 1 },
-      { nombre: 'Transferencia', calcula_cambio: 0 },
-      { nombre: 'Tarjeta', calcula_cambio: 0 },
+    expect(
+      db.prepare('SELECT nombre, calcula_cambio, es_sistema FROM formas_pago ORDER BY id').all(),
+    ).toEqual([
+      { nombre: 'Efectivo', calcula_cambio: 1, es_sistema: 0 },
+      { nombre: 'Transferencia', calcula_cambio: 0, es_sistema: 0 },
+      { nombre: 'Tarjeta', calcula_cambio: 0, es_sistema: 0 },
+      { nombre: 'Saldo a favor', calcula_cambio: 0, es_sistema: 1 },
     ]);
     expect(db.prepare('SELECT codigo, nombre, es_sistema FROM clientes').all()).toEqual([
       { codigo: 0, nombre: 'CONSUMIDOR FINAL', es_sistema: 1 },
@@ -73,9 +80,12 @@ describe('migraciones del proyecto', () => {
       { clave: 'ajuste', siguiente: 1 },
       { clave: 'cliente', siguiente: 10001 },
       { clave: 'compra', siguiente: 1 },
+      { clave: 'devolucion_compra', siguiente: 1 },
+      { clave: 'devolucion_venta', siguiente: 1 },
       { clave: 'factura_cliente', siguiente: 1 },
       { clave: 'producto', siguiente: 101 },
       { clave: 'proveedor', siguiente: 10001 },
+      { clave: 'reintegro', siguiente: 1 },
     ]);
     expect(verificarIntegridad(db).ok).toBe(true);
   });

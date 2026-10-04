@@ -36,7 +36,9 @@ const ENTIDADES: Readonly<Record<TipoCatalogo, string>> = {
 };
 
 /**
- * Consulta base de cada catálogo.
+ * Consulta base de cada catálogo, con su condición `WHERE` (se le puede
+ * añadir `AND …`). Las formas de pago de sistema («Saldo a favor», D-130) no
+ * forman parte del catálogo editable ni se ofrecen al facturar.
  *
  * @param tipo - Catálogo.
  * @returns SQL.
@@ -46,7 +48,8 @@ function consulta(tipo: TipoCatalogo): string {
     tipo === 'bodega'
       ? 'es_principal AS esPrincipal, 0 AS calculaCambio'
       : '0 AS esPrincipal, calcula_cambio AS calculaCambio';
-  return `SELECT id, nombre, activo, ${extras} FROM ${TABLAS[tipo]}`;
+  const filtro = tipo === 'forma-pago' ? 'es_sistema = 0' : '1 = 1';
+  return `SELECT id, nombre, activo, ${extras} FROM ${TABLAS[tipo]} WHERE ${filtro}`;
 }
 
 /**
@@ -89,7 +92,7 @@ export function obtenerCatalogo(
   tipo: TipoCatalogo,
   id: number,
 ): RegistroCatalogo | null {
-  const fila = db.prepare(`${consulta(tipo)} WHERE id = ?`).get(id) as FilaCatalogo | undefined;
+  const fila = db.prepare(`${consulta(tipo)} AND id = ?`).get(id) as FilaCatalogo | undefined;
   return fila ? aRegistro(fila) : null;
 }
 

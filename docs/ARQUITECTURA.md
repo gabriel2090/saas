@@ -337,6 +337,83 @@ La 3b no crea tablas: reutiliza `abonos`, `abonos_aplicaciones` y las facturas d
 - **Saldo inicial (D-101):** una factura con `total` = saldo pendiente, sin líneas ni kardex, en la bodega Principal, versión 1 con el motivo «Saldo inicial importado del sistema anterior» e historial. El de cliente toma el número del archivo y ajusta `consecutivos.factura_cliente` si lo alcanza (`ajustarConsecutivo`); el de proveedor toma un número interno del consecutivo `compra` y guarda el del proveedor en `numero_proveedor`. Toda la importación es una sola transacción.
 - **Abonos genéricos (D-100):** `ServicioAbonos` recibe el `TipoAbono` (`cliente` | `proveedor`) y usa el consecutivo y la entidad de historial de cada uno (`abono_cliente`, `abono_proveedor`). Los saldos se derivan igual en ambos lados (`total` − aplicaciones de abonos activos), así que la deuda, el bloqueo de crédito (S-03) y los abonos incluyen los saldos iniciales sin código aparte.
 
+## Modelo de datos (Fase 4a: `0007_correcciones`)
+
+Las correcciones reutilizan las versiones de factura (`*_lineas.version` y `*_versiones`, de la 0003 y la 0004): corregir sube `version`, inserta las líneas de la versión nueva y su contenido JSON con el motivo. Anular cambia `estado`, `anulada_en` y `motivo_anulacion`.
+
+```mermaid
+erDiagram
+  facturas_cliente ||--o{ devoluciones : "devolución de venta"
+  facturas_proveedor ||--o{ devoluciones : "devolución de compra"
+  devoluciones ||--|{ devoluciones_lineas : "tiene"
+  productos ||--o{ devoluciones_lineas : "devuelto en"
+  clientes ||--o{ saldos_favor : "saldo a favor"
+  proveedores ||--o{ saldos_favor : "saldo a favor"
+  facturas_cliente ||--o{ saldos_favor : "excedente de"
+  facturas_proveedor ||--o{ saldos_favor : "excedente de"
+  clientes ||--o{ reintegros : "recibe o entrega"
+  proveedores ||--o{ reintegros : "recibe o entrega"
+  formas_pago ||--o{ reintegros : "pagado con"
+
+  devoluciones {
+    INTEGER id PK
+    TEXT tipo "venta | compra"
+    INTEGER numero "consecutivo por tipo"
+    INTEGER factura_cliente_id FK
+    INTEGER factura_proveedor_id FK
+    INTEGER factura_version
+    TEXT fecha
+    TEXT dia
+    INTEGER bodega_id FK
+    INTEGER total
+    TEXT motivo
+    TEXT estado "activa | anulada"
+  }
+  devoluciones_lineas {
+    INTEGER id PK
+    INTEGER devolucion_id FK
+    INTEGER renglon
+    INTEGER factura_renglon
+    INTEGER producto_codigo FK
+    INTEGER cantidad "milésimas"
+    INTEGER valor_unitario
+    INTEGER total
+    INTEGER costo_unitario
+  }
+  saldos_favor {
+    INTEGER id PK
+    TEXT tipo "cliente | proveedor"
+    INTEGER cliente_codigo FK
+    INTEGER proveedor_codigo FK
+    TEXT fecha
+    INTEGER valor "con signo"
+    TEXT origen
+    TEXT documento_tipo
+    INTEGER documento_id
+    INTEGER factura_cliente_id FK
+    INTEGER factura_proveedor_id FK
+  }
+  reintegros {
+    INTEGER id PK
+    INTEGER numero UK
+    TEXT tipo "cliente | proveedor"
+    TEXT sentido "entrega | recibe"
+    TEXT origen "saldo_favor | documento"
+    TEXT documento_tipo
+    INTEGER documento_id
+    TEXT fecha
+    TEXT dia
+    INTEGER forma_pago_id FK
+    INTEGER valor
+    TEXT estado "activo | anulado"
+  }
+```
+
+- **Saldo de una factura (D-127)** = `total` − abonos activos aplicados − devoluciones activas + lo que la factura trasladó a `saldos_favor`. Tras cada operación nunca queda negativo: el excedente se traslada al libro del tercero (`origen` `correccion`, `devolucion` o `anulacion`, con la factura). El saldo a favor disponible es la suma del libro; lo usan los abonos con la forma de pago de sistema «Saldo a favor» (`formas_pago.es_sistema`, D-130) y los reintegros en dinero (D-128).
+- **Reglas en la base:** las devoluciones, sus líneas, el libro y los reintegros no se borran; las devoluciones y los reintegros solo se anulan; los reintegros de una venta de contado (`origen = 'documento'`) no se anulan solos; la forma de pago de sistema no se modifica; y una factura con devoluciones activas no cambia de versión ni de estado (D-131).
+- **Dominio:** `domain/saldo-favor.ts` (ajuste de cartera, anulación, uso del saldo a favor), `domain/correcciones.ts` (corrección de venta y de compra, anulación, costo de la última compra, D-126) y `domain/devoluciones.ts`. Kardex: tipos `correccion_*`, `anulacion_*`, `devolucion_*` y `anulacion_ajuste` (D-132).
+- Consecutivos nuevos: `devolucion_venta`, `devolucion_compra` y `reintegro`.
+
 ## Impresión (D-52, D-72, D-88)
 
 1. La pantalla pide un documento por tipo e id (`impresion:html`, `impresion:imprimir`, `impresion:pdf`); el proceso principal arma el HTML desde la base (`main/impresion/plantillas.ts` y `tirilla.ts`, funciones puras con pruebas), con los datos del negocio y las leyendas REIMPRESION y ANULADO/ANULADA.

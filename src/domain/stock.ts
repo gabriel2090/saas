@@ -7,10 +7,28 @@ import { ErrorDeNegocio } from './errores';
  * - `compra`: entrada por una factura de proveedor (§6).
  * - `ajuste`: merma, daño o conteo físico (§9.2, D-46).
  * - `venta`: salida por una factura de cliente (§7).
- *
- * Las fases siguientes agregan devoluciones y anulaciones.
+ * - `correccion_venta` y `correccion_compra`: diferencia de cantidad al
+ *   corregir una factura (§9.1, D-132).
+ * - `anulacion_venta` y `anulacion_compra`: devuelven todo lo que movió la
+ *   factura anulada.
+ * - `devolucion_venta` y `devolucion_compra`: reingreso o salida por una
+ *   devolución (§9.2, D-131), y `anulacion_devolucion_*` su reverso.
+ * - `anulacion_ajuste`: reverso de un ajuste anulado (D-73, D-133).
  */
-export type TipoMovimiento = 'inicial' | 'compra' | 'ajuste' | 'venta';
+export type TipoMovimiento =
+  | 'inicial'
+  | 'compra'
+  | 'ajuste'
+  | 'venta'
+  | 'correccion_venta'
+  | 'correccion_compra'
+  | 'anulacion_venta'
+  | 'anulacion_compra'
+  | 'devolucion_venta'
+  | 'devolucion_compra'
+  | 'anulacion_devolucion_venta'
+  | 'anulacion_devolucion_compra'
+  | 'anulacion_ajuste';
 
 /**
  * Lo que se necesita para fijar el stock inicial de un producto en una bodega.
