@@ -139,6 +139,18 @@ export interface ApiVentanas {
    * @param tamano - Tamaño en píxeles.
    */
   ajustarEscritorio: (tamano: TamanoVentana) => void;
+  /**
+   * Registra la función que mide el escritorio en el momento, o la quita con `null`.
+   *
+   * @param medidor - Devuelve el tamaño actual del escritorio, o `null` si no está montado.
+   */
+  registrarMedidor: (medidor: (() => TamanoVentana | null) | null) => void;
+  /**
+   * Mide el escritorio en el momento y actualiza el estado si cambió (D-119):
+   * el aviso del `ResizeObserver` puede llegar tarde y un diseño calculado
+   * con el tamaño anterior queda mal.
+   */
+  medirEscritorio: () => void;
   /** Modo de la barra superior (D-108). */
   modoBarra: ModoBarra;
   /**
@@ -286,6 +298,17 @@ export function ProveedorVentanas({ children }: PropiedadesProveedorVentanas): R
     [],
   );
 
+  const medidor = useRef<(() => TamanoVentana | null) | null>(null);
+  const registrarMedidor = useCallback((nuevo: (() => TamanoVentana | null) | null) => {
+    medidor.current = nuevo;
+  }, []);
+  const medirEscritorio = useCallback(() => {
+    const tamano = medidor.current?.();
+    if (tamano) {
+      despachar({ tipo: 'escritorio', tamano });
+    }
+  }, []);
+
   const solicitarCerrar = useCallback(
     async (id: IdProceso): Promise<boolean> => {
       const ventana = estadoRef.current.ventanas.find((v) => v.id === id);
@@ -358,7 +381,10 @@ export function ProveedorVentanas({ children }: PropiedadesProveedorVentanas): R
       redimensionar: (id, rect) => despachar({ tipo: 'redimensionar', id, rect }),
       maximizar: (id) => despachar({ tipo: 'maximizar', id }),
       encajar: (id, rect) => despachar({ tipo: 'encajar', id, rect }),
-      organizar: (diseno) => despachar({ tipo: 'organizar', diseno }),
+      organizar: (diseno) => {
+        medirEscritorio();
+        despachar({ tipo: 'organizar', diseno });
+      },
       restablecer: (id) => {
         delete guardadas.current[id];
         pendientes.current.delete(id);
@@ -372,6 +398,8 @@ export function ProveedorVentanas({ children }: PropiedadesProveedorVentanas): R
         void invocar('interfaz:restablecerVentanas', null);
       },
       ajustarEscritorio,
+      registrarMedidor,
+      medirEscritorio,
       modoBarra,
       cambiarModoBarra: (modo) => {
         setModoBarra(modo);
@@ -382,7 +410,15 @@ export function ProveedorVentanas({ children }: PropiedadesProveedorVentanas): R
       solicitarCerrar,
       solicitarCerrarTodas,
     }),
-    [estado, modoBarra, ajustarEscritorio, solicitarCerrar, solicitarCerrarTodas],
+    [
+      estado,
+      modoBarra,
+      ajustarEscritorio,
+      registrarMedidor,
+      medirEscritorio,
+      solicitarCerrar,
+      solicitarCerrarTodas,
+    ],
   );
 
   return <ContextoVentanas.Provider value={api}>{children}</ContextoVentanas.Provider>;

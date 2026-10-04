@@ -145,7 +145,7 @@ function vistaPrevia(arrastre: Arrastre | null, estado: EstadoVentanas): VistaPr
  */
 export function Escritorio(): ReactNode {
   const ventanas = useVentanas();
-  const { estado, ajustarEscritorio } = ventanas;
+  const { estado, ajustarEscritorio, registrarMedidor, medirEscritorio } = ventanas;
   const [buscadorAbierto, setBuscadorAbierto] = useState(false);
   // `punto` es el clic derecho en un título; `null` abre el menú bajo su botón.
   const [menu, setMenu] = useState<{ punto: PuntoPuntero | null } | null>(null);
@@ -165,10 +165,24 @@ export function Escritorio(): ReactNode {
     const medir = (): void =>
       ajustarEscritorio({ ancho: elemento.clientWidth, alto: elemento.clientHeight });
     medir();
+    registrarMedidor(() => ({ ancho: elemento.clientWidth, alto: elemento.clientHeight }));
     const observador = new ResizeObserver(medir);
     observador.observe(elemento);
-    return () => observador.disconnect();
-  }, [ajustarEscritorio]);
+    return () => {
+      observador.disconnect();
+      registrarMedidor(null);
+    };
+  }, [ajustarEscritorio, registrarMedidor]);
+
+  /**
+   * Abre el menú «Organizar» con el escritorio recién medido (D-119).
+   *
+   * @param punto - Clic derecho en un título, o `null` para abrirlo bajo su botón.
+   */
+  const abrirMenu = (punto: PuntoPuntero | null): void => {
+    medirEscritorio();
+    setMenu({ punto });
+  };
 
   useAtajos(
     {
@@ -182,7 +196,7 @@ export function Escritorio(): ReactNode {
       cerrarTodas: () => void ventanas.solicitarCerrarTodas(),
       buscarProceso: () => setBuscadorAbierto(true),
       siguienteVentana: () => ventanas.siguiente(),
-      organizarVentanas: () => setMenu({ punto: null }),
+      organizarVentanas: () => abrirMenu(null),
     },
     { prioridad: 'global' },
   );
@@ -210,6 +224,9 @@ export function Escritorio(): ReactNode {
     const caja = escritorio.current?.getBoundingClientRect();
     if (!caja) {
       return;
+    }
+    if (!arrastreRef.current) {
+      medirEscritorio();
     }
     const sobre = document
       .elementFromPoint(puntero.x, puntero.y)
@@ -306,7 +323,7 @@ export function Escritorio(): ReactNode {
         organizarAbierto={menu !== null && menu.punto === null}
         alAbrir={ventanas.abrir}
         alBuscar={() => setBuscadorAbierto(true)}
-        alOrganizar={() => setMenu((actual) => (actual ? null : { punto: null }))}
+        alOrganizar={() => (menu ? setMenu(null) : abrirMenu(null))}
         alCambiarModo={ventanas.cambiarModoBarra}
       />
       <main className="escritorio" ref={escritorio}>
@@ -331,7 +348,7 @@ export function Escritorio(): ReactNode {
                 activa={ventana === activa}
                 alArrastrar={(punto) => alArrastrar(ventana.id, punto)}
                 alSoltar={() => alSoltar(ventana.id)}
-                alMenu={(punto) => setMenu({ punto })}
+                alMenu={abrirMenu}
               >
                 <Contenido />
               </VentanaInterna>
