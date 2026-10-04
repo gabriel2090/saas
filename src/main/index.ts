@@ -152,8 +152,9 @@ function iniciar(): void {
     abonos,
     ajustes: crearServicioAjustes(db, ejecutar),
   });
+  const correcciones = crearServicioCorrecciones(db, ejecutar);
   registrarIpcCorrecciones(registrar, {
-    correcciones: crearServicioCorrecciones(db, ejecutar),
+    correcciones,
     devoluciones: crearServicioDevoluciones(db, ejecutar),
     saldoFavor: crearServicioSaldoFavor(db, ejecutar),
   });
@@ -163,7 +164,7 @@ function iniciar(): void {
     impresoras: () => listarImpresoras(ventana.ventana.webContents),
   });
   registrarIpcImpresion(registrar, {
-    servicio: crearServicioImpresion({ negocio, abonos, ventas }),
+    servicio: crearServicioImpresion({ negocio, abonos, ventas, correcciones }),
     imprimir: (html, formato) =>
       formato === 'tirilla'
         ? imprimirTirilla(html, ventas.configuracion().impresora)

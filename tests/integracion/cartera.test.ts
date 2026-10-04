@@ -4,6 +4,7 @@ import { consultarConsecutivo } from '../../src/data/repositorios/consecutivos.r
 import { listarHistorial } from '../../src/data/repositorios/historial.repo';
 import { crearEjecutorTransacciones } from '../../src/data/transaccion';
 import { crearServicioAbonos } from '../../src/main/servicios/abonos';
+import { crearServicioCorrecciones } from '../../src/main/servicios/correcciones';
 import { crearServicioImportador } from '../../src/main/servicios/importador';
 import { crearServicioImpresion, formatoDocumento } from '../../src/main/servicios/impresion';
 import { crearServicioNegocio } from '../../src/main/servicios/negocio';
@@ -86,6 +87,7 @@ function crear(): {
       negocio: crearServicioNegocio(db, ejecutar),
       abonos,
       ventas,
+      correcciones: crearServicioCorrecciones(db, ejecutar),
       reloj,
     }),
     cliente,
@@ -336,7 +338,9 @@ describe('recibo de abono de cliente (D-93)', () => {
     expect(formatoDocumento(carta)).toBe('carta');
     expect(
       formatoDocumento({ tipo: 'abono-proveedor', id, reimpresion: false, tirilla: true }),
-    ).toBe('carta');
+    ).toBe('tirilla');
+    expect(formatoDocumento({ tipo: 'abono-proveedor', id, reimpresion: false })).toBe('carta');
+    expect(formatoDocumento({ tipo: 'factura-proveedor', id, reimpresion: false })).toBe('tirilla');
 
     const html = impresion.html(tirilla);
     expect(html).toContain('RECIBO DE ABONO');

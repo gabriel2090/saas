@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { AbonoDetalle } from '../../data/repositorios/abonos.repo';
 import type { FacturaClienteDetalle } from '../../data/repositorios/ventas.repo';
-import { tirillaFactura, tirillaReciboAbono } from './tirilla';
+import type { FacturaProveedorParaCorregir } from '../../shared/correcciones';
+import { tirillaFactura, tirillaFacturaProveedor, tirillaReciboAbono } from './tirilla';
 
 /** Datos del negocio del encabezado. */
 const negocio = {
@@ -264,5 +265,177 @@ describe('tirillaReciboAbono', () => {
     });
     expect(html).toContain('REIMPRESION');
     expect(html).toContain('ANULADO');
+  });
+
+  it('imprime el abono a proveedor con la factura del proveedor y sin el agradecimiento', () => {
+    const html = tirillaReciboAbono({
+      negocio,
+      abono: {
+        ...abono,
+        tipo: 'proveedor',
+        terceroCodigo: 3,
+        terceroNombre: 'AGRINA S.A.S.',
+        terceroIdentificacion: 'NIT 900123456',
+        aplicaciones: [
+          {
+            facturaId: 7,
+            valor: 150_000,
+            facturaNumero: 15,
+            referencia: 'FE-881',
+            saldoInicial: false,
+            saldoActual: 40_000,
+          },
+        ],
+      },
+      deudaActual: 40_000,
+      reimpresion: true,
+      impresoEn,
+    });
+    expect(html).toContain('ABONO A PROVEEDOR');
+    expect(html).toContain('PROVEEDOR: 3-AGRINA S.A.S.');
+    expect(html).toContain('<th>Compra</th>');
+    expect(html).toContain('15<div class="detalle">FE-881</div>');
+    expect(html).toContain('<span>SALDO PENDIENTE</span><span>40,000</span>');
+    expect(html).toContain('REIMPRESION');
+    expect(html).not.toContain('GRACIAS POR SU PAGO');
+  });
+});
+
+describe('tirillaFacturaProveedor', () => {
+  /** Compra a crédito de 2 líneas con flete del proveedor y 2 % de descuento. */
+  const compra: FacturaProveedorParaCorregir = {
+    id: 7,
+    numero: 15,
+    plazoDias: 30,
+    vence: '2026-10-31',
+    bodegaId: 1,
+    bodegaNombre: 'Principal',
+    version: 1,
+    estado: 'activa',
+    anuladaEn: null,
+    motivoAnulacion: null,
+    tercero: { codigo: 3, nombre: 'AGRINA <S.A.S.>', identificacion: 'NIT 900123456' },
+    cartera: { total: 205_000, aplicado: 50_000, devuelto: 0, trasladado: 0, saldo: 155_000 },
+    saldoFavor: 0,
+    abonos: [],
+    versiones: [
+      { version: 1, fecha: '2026-10-01T10:00:00.000-05:00', total: 205_000, motivo: null },
+    ],
+    devoluciones: [],
+    yaDevuelto: [],
+    fecha: '2026-10-01',
+    numeroProveedor: 'FE-881',
+    origen: 'compra',
+    subtotal: 200_000,
+    flete: 9_000,
+    fleteProveedor: true,
+    descuento: { modo: 'porcentaje', valor: 200 },
+    descuentoPesos: 4_000,
+    descuentoEnCosto: true,
+    abonoContado: null,
+    lineas: [
+      {
+        renglon: 1,
+        producto: {
+          codigo: 231,
+          nombre: 'PAPA FRANCESA',
+          unidad: 'UND',
+          costo: 12_000,
+          precios: { mayor: 16_000, menor: 17_500, minimo: 14_000 },
+          proveedorCodigo: 3,
+        },
+        cantidad: 10_000,
+        costoUnitario: 12_000,
+        total: 120_000,
+        flete: 5_400,
+        descuento: 2_400,
+        costoNuevo: 12_300,
+      },
+      {
+        renglon: 2,
+        producto: {
+          codigo: 232,
+          nombre: 'QUESO',
+          unidad: 'KG',
+          costo: 16_000,
+          precios: { mayor: 20_000, menor: 22_000, minimo: 18_000 },
+          proveedorCodigo: 3,
+        },
+        cantidad: 5_000,
+        costoUnitario: 16_000,
+        total: 80_000,
+        flete: 3_600,
+        descuento: 1_600,
+        costoNuevo: 16_400,
+      },
+    ],
+    costos: [],
+  };
+  const impresoEn = '2026-10-04T11:00:00.000-05:00';
+
+  it('imprime la compra a crédito con flete, descuento, pagado y saldo', () => {
+    const html = tirillaFacturaProveedor({ negocio, compra, reimpresion: true, impresoEn });
+    expect(html).toContain('size: 80mm auto');
+    expect(html).toContain('FACTURA DE PROVEEDOR');
+    expect(html).toContain('<div class="numero">FE-881</div>');
+    expect(html).toContain('Compra No.: 15');
+    expect(html).toContain('Fecha: 01/10/2026');
+    expect(html).toContain('Bodega: Principal');
+    expect(html).toContain('CREDITO, 30 DIAS');
+    expect(html).toContain('31/10/2026');
+    expect(html).toContain('PROVEEDOR: 3-AGRINA &lt;S.A.S.&gt;');
+    expect(html).toContain('x UNIDAD');
+    expect(html).toContain('x KILO');
+    expect(html).toContain('LINEAS: 2');
+    expect(html).toContain('<span>SUBTOTAL</span><span>200,000</span>');
+    expect(html).toContain('<span>FLETE</span><span>9,000</span>');
+    expect(html).toContain('<span>DESCUENTO</span><span>-4,000</span>');
+    expect(html).toContain('SON: DOSCIENTOS CINCO MIL PESOS M/L');
+    expect(html).toContain('<span>PAGADO</span><span>50,000</span>');
+    expect(html).toContain('<span>SALDO</span><span>155,000</span>');
+    expect(html).not.toContain('DEVUELTO');
+    expect(html).toContain('REIMPRESION');
+    expect(html).not.toContain('CORREGIDA');
+    expect(html).not.toContain('ANULADA');
+    expect(html).not.toContain('<script');
+  });
+
+  it('marca la compra de contado anulada con saldo cero', () => {
+    const html = tirillaFacturaProveedor({
+      negocio,
+      compra: {
+        ...compra,
+        estado: 'anulada',
+        anuladaEn: '2026-10-02T08:00:00.000-05:00',
+        abonoContado: { id: 9, numero: 20 },
+      },
+      reimpresion: true,
+      impresoEn,
+    });
+    expect(html).toContain('PAGADA DE CONTADO');
+    expect(html).toContain('ANULADA');
+    expect(html).toContain('<span>SALDO</span><span>0</span>');
+  });
+
+  it('imprime la compra corregida con la versión y el recuadro de corrección', () => {
+    const html = tirillaFacturaProveedor({
+      negocio,
+      compra: {
+        ...compra,
+        version: 2,
+        cartera: { total: 145_000, aplicado: 150_000, devuelto: 0, trasladado: 5_000, saldo: 0 },
+        versiones: [
+          ...compra.versiones,
+          { version: 2, fecha: '2026-10-03T16:45:00.000-05:00', total: 145_000, motivo: 'Precio' },
+        ],
+      },
+      reimpresion: true,
+      impresoEn,
+    });
+    expect(html).toContain('CORREGIDA');
+    expect(html).toContain('Versión 2 · 03/10/2026 04:45:00 PM');
+    expect(html).toContain('<span>Total anterior</span><span>205,000</span>');
+    expect(html).toContain('<span>Diferencia</span><span>-60,000</span>');
+    expect(html).toContain('<span>SALDO A FAVOR</span><span>5,000</span>');
   });
 });

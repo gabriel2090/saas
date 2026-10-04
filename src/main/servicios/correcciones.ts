@@ -65,6 +65,14 @@ export interface ServicioCorrecciones {
    */
   buscarCompra(texto: string): FacturaProveedorParaCorregir;
   /**
+   * Obtiene una factura de proveedor por su id interno (para imprimirla).
+   *
+   * @param id - Id de la compra.
+   * @returns La compra.
+   * @throws {ErrorDeNegocio} Si no existe.
+   */
+  obtenerCompra(id: number): FacturaProveedorParaCorregir;
+  /**
    * Guarda la corrección de una factura de cliente: versión nueva, kardex
    * por la diferencia, saldo a favor o reintegro (D-127 a D-129).
    *
@@ -486,6 +494,8 @@ export function crearServicioCorrecciones(
       }
       return exigirCompra(db, unica.id);
     },
+
+    obtenerCompra: (id) => exigirCompra(db, id),
 
     corregirVenta(p) {
       const motivo = validarTextoAbono(p.motivo, 'Motivo');

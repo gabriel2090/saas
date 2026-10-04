@@ -10,6 +10,7 @@ const TIPOS_DOCUMENTO: readonly TipoDocumentoImprimible[] = [
   'abono-proveedor',
   'abono-cliente',
   'factura-cliente',
+  'factura-proveedor',
 ];
 
 /**

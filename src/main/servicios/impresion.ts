@@ -1,8 +1,9 @@
 import { aIsoLocal } from '../../shared/formato/fechas';
 import type { DocumentoImprimible } from '../../shared/impresion';
 import { reciboAbono } from '../impresion/plantillas';
-import { tirillaFactura, tirillaReciboAbono } from '../impresion/tirilla';
+import { tirillaFactura, tirillaFacturaProveedor, tirillaReciboAbono } from '../impresion/tirilla';
 import type { ServicioAbonos } from './abonos';
+import type { ServicioCorrecciones } from './correcciones';
 import type { ServicioNegocio } from './negocio';
 import type { ServicioVentas } from './ventas';
 
@@ -52,22 +53,25 @@ export interface DependenciasImpresion {
   abonos: ServicioAbonos;
   /** Facturas de venta. */
   ventas: ServicioVentas;
+  /** Facturas de proveedor con su cartera y versiones. */
+  correcciones: Pick<ServicioCorrecciones, 'obtenerCompra'>;
   /** Reloj (inyectable en pruebas). */
   reloj?: () => string;
 }
 
 /**
- * Formato de papel de un documento: la factura de venta es tirilla; el
- * recibo de cliente, tirilla solo si se pide (D-93); lo demás, carta.
+ * Formato de papel de un documento: las facturas de cliente y de proveedor
+ * son tirilla; los recibos de abono, tirilla solo si se pide (D-93, D-143);
+ * si no, carta.
  *
  * @param documento - Documento pedido.
  * @returns Formato.
  */
 export function formatoDocumento(documento: DocumentoImprimible): FormatoImpresion {
-  if (documento.tipo === 'factura-cliente') {
+  if (documento.tipo === 'factura-cliente' || documento.tipo === 'factura-proveedor') {
     return 'tirilla';
   }
-  return documento.tipo === 'abono-cliente' && documento.tirilla === true ? 'tirilla' : 'carta';
+  return documento.tirilla === true ? 'tirilla' : 'carta';
 }
 
 /**
@@ -106,8 +110,8 @@ export function crearServicioImpresion(dependencias: DependenciasImpresion): Ser
             return tirillaReciboAbono({
               negocio,
               abono,
-              deudaActual: dependencias.abonos.contextoTercero('cliente', abono.terceroCodigo).deuda
-                .total,
+              deudaActual: dependencias.abonos.contextoTercero(abono.tipo, abono.terceroCodigo)
+                .deuda.total,
               reimpresion: documento.reimpresion,
               impresoEn: reloj(),
             });
@@ -125,6 +129,13 @@ export function crearServicioImpresion(dependencias: DependenciasImpresion): Ser
             factura: dependencias.ventas.obtener(documento.id),
             reimpresion: documento.reimpresion,
           });
+        case 'factura-proveedor':
+          return tirillaFacturaProveedor({
+            negocio,
+            compra: dependencias.correcciones.obtenerCompra(documento.id),
+            reimpresion: documento.reimpresion,
+            impresoEn: reloj(),
+          });
       }
     },
     nombreArchivo: (documento) => {
@@ -134,6 +145,8 @@ export function crearServicioImpresion(dependencias: DependenciasImpresion): Ser
           return `Recibo de abono ${abonoDe(documento).numero}.pdf`;
         case 'factura-cliente':
           return `Factura ${dependencias.ventas.obtener(documento.id).numero}.pdf`;
+        case 'factura-proveedor':
+          return `Compra ${dependencias.correcciones.obtenerCompra(documento.id).numero}.pdf`;
       }
     },
     formato: formatoDocumento,
