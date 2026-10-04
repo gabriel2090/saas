@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Maqueta: devoluciones de venta y de compra (Fase 4a)</title>
+    <!-- Estilo real de la app. -->
+    <link rel="stylesheet" href="../../src/renderer/estilos/global.css" />
+    <style>
+      /* Estilos nuevos de la maqueta; al aprobarse pasan a global.css. */
+      .correccion__buscar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .correccion__buscar input {
+        width: 120px;
+        padding: 4px 7px;
+        border: 1px solid var(--color-borde);
+        border-radius: 2px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .resumen-factura {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1.5fr 1fr auto;
+        gap: 8px 14px;
+        align-items: end;
+      }
+      .resumen-factura .campo input {
+        background: var(--color-solo-lectura);
+      }
+      .cartera-factura {
+        display: grid;
+        grid-template-columns: repeat(4, auto);
+        gap: 0 16px;
+        justify-content: end;
+        padding: 4px 10px;
+        border: 1px solid var(--color-borde);
+        border-radius: 4px;
+        background: var(--color-solo-lectura);
+        font-size: 12px;
+        color: var(--color-tenue);
+      }
+      .cartera-factura strong {
+        white-space: nowrap;
+        color: var(--color-texto);
+        font-size: 15px;
+        text-align: right;
+      }
+      .tabla td input.chico {
+        width: 80px;
+      }
+      .tabla td.devolver input {
+        border-color: var(--color-primario);
+        background: #e8f0fb;
+        font-weight: 600;
+      }
+      .tabla tr.agotada td {
+        color: var(--color-tenue);
+      }
+      .totales .a-favor th,
+      .totales .a-favor td {
+        color: var(--color-exito);
+        font-weight: 600;
+      }
+      .solo-compra {
+        display: none;
+      }
+      .ver-compra span.solo-compra {
+        display: inline;
+      }
+      .ver-compra input.solo-compra {
+        display: inline-block;
+      }
+      .ver-compra .resumen-factura.solo-compra {
+        display: grid;
+      }
+      .ver-compra .aviso.solo-compra {
+        display: flex;
+      }
+      .ver-compra tbody.solo-compra {
+        display: table-row-group;
+      }
+      .ver-compra .solo-venta {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="raiz">
+      <div class="aplicacion">
+        <nav class="barra-iconos">
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2zM9 7h6M9 11h6M9 15h4" /></svg><span>Facturar</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h13v10H3zM16 10h3l2 3v4h-5zM7 19a2 2 0 1 0 0-.01M17 19a2 2 0 1 0 0-.01" /></svg><span>Factura de proveedor</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h20v10H2zM12 12m-2.5 0a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0M5 10v4M19 10v4" /></svg><span>Abono de cliente</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h20v10H2zM8 12h8M13 9l3 3-3 3" /></svg><span>Abono a proveedor</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7zM3 7l9 5 9-5M12 12v10" /></svg><span>Productos</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8m-4 0a4 4 0 1 0 8 0a4 4 0 1 0-8 0M4 21c0-4 4-6 8-6s8 2 8 6" /></svg><span>Clientes</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l6-4v4l6-4v4l6-4v16zM7 17h2M11 17h2M15 17h2" /></svg><span>Proveedores</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z" /></svg><span>Reimpresiones</span></button>
+          <button class="barra-iconos__boton barra-iconos__organizar"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z" /></svg><span>Organizar</span></button>
+          <button class="barra-iconos__boton barra-iconos__buscar"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10 10m-6 0a6 6 0 1 0 12 0a6 6 0 1 0-12 0M15 15l6 6" /></svg><span>Buscar (Ctrl+K)</span></button>
+        </nav>
+
+        <main class="escritorio">
+          <section class="ventana ventana--activa ventana--con-tamano" id="devolucion" style="left: 12px; top: 6px; width: 1236px; height: 708px">
+            <div class="ventana__titulo">
+              <span class="ventana__nombre"><span class="solo-venta">Devolución de venta</span><span class="solo-compra">Devolución de compra</span><span class="ventana__cambios"> • sin guardar</span></span>
+              <span class="ventana__botones"><button class="ventana__maximizar">□</button><button class="ventana__cerrar">×</button></span>
+            </div>
+            <div class="ventana__contenido documento">
+              <div class="barra-herramientas">
+                <span class="correccion__buscar">
+                  <span class="solo-venta">Factura No.</span><span class="solo-compra">Compra No.</span>
+                  <input class="solo-venta" value="84790" />
+                  <input class="solo-compra" value="37" />
+                </span>
+                <span class="barra-herramientas__separador"></span>
+                <button class="boton boton--primario">Guardar devolución<span class="atajo">Av. Pág</span></button>
+                <button class="boton">Devolver todo</button>
+                <button class="boton">Limpiar</button>
+                <span class="barra-herramientas__resumen"><span class="solo-venta">Devolución de venta No. 4 (se confirma al guardar)</span><span class="solo-compra">Devolución de compra No. 2 (se confirma al guardar)</span></span>
+              </div>
+
+              <div class="resumen-factura solo-venta">
+                <label class="campo"><span>Cliente</span><input value="10071 - RESTAURANTE EL FOGÓN · NIT 901222333" readonly /></label>
+                <label class="campo"><span>Fecha de la factura</span><input value="01/10/2026 11:40 a. m." readonly /></label>
+                <label class="campo"><span>Condición</span><input value="Crédito, 15 días · vence 16/10/2026" readonly /></label>
+                <label class="campo"><span>Reingresa a</span><select><option>Principal</option></select></label>
+                <div class="cartera-factura">
+                  <span>Total</span><span>Abonado</span><span>Devuelto</span><span>Saldo</span>
+                  <strong>$ 489,000</strong><strong>$ 100,000</strong><strong>$ 37,800</strong><strong>$ 351,200</strong>
+                </div>
+              </div>
+              <div class="resumen-factura solo-compra">
+                <label class="campo"><span>Proveedor</span><input value="10012 - AGRINA S.A.S. · FE-5521" readonly /></label>
+                <label class="campo"><span>Fecha de la compra</span><input value="28/09/2026" readonly /></label>
+                <label class="campo"><span>Condición</span><input value="Pagada de contado (abono 58)" readonly /></label>
+                <label class="campo"><span>Sale de</span><select><option>Principal</option></select></label>
+                <div class="cartera-factura">
+                  <span>Total</span><span>Pagado</span><span>Devuelto</span><span>Saldo</span>
+                  <strong>$ 924,400</strong><strong>$ 960,000</strong><strong>$ 0</strong><strong>$ 0</strong>
+                </div>
+              </div>
+
+              <div class="tabla-contenedor documento__lineas">
+                <table class="tabla tabla--precios">
+                  <thead>
+                    <tr>
+                      <th class="num">#</th>
+                      <th class="num">Código</th>
+                      <th>Producto</th>
+                      <th>Und</th>
+                      <th class="num"><span class="solo-venta">Vendido</span><span class="solo-compra">Comprado</span></th>
+                      <th class="num">Ya devuelto</th>
+                      <th class="num">Puede devolver</th>
+                      <th class="num">Devolver</th>
+                      <th class="num"><span class="solo-venta">Precio vendido</span><span class="solo-compra">Costo unitario</span></th>
+                      <th class="num">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody class="solo-venta">
+                    <tr>
+                      <td class="num">1</td><td class="num">101</td><td>CAJA PIZZA 35*35 FD</td><td>UND</td>
+                      <td class="num">100</td><td class="num">0</td><td class="num">100</td>
+                      <td class="num devolver"><input class="chico" value="40" /></td>
+                      <td class="num">1,950</td><td class="num">78,000</td>
+                    </tr>
+                    <tr>
+                      <td class="num">2</td><td class="num">305</td><td>QUESO MOZZARELLA BLOQUE</td><td>KG</td>
+                      <td class="num">10.000</td><td class="num">2.000 <span class="texto-tenue">(dev. 3)</span></td><td class="num">8.000</td>
+                      <td class="num"><input class="chico" value="" placeholder="0" /></td>
+                      <td class="num">18,900</td><td class="num texto-tenue">0</td>
+                    </tr>
+                    <tr>
+                      <td class="num">3</td><td class="num">231</td><td>PAPA FRANCESA AGRINA PREMIUM *2.5 KG</td><td>UND</td>
+                      <td class="num">6</td><td class="num">0</td><td class="num">6</td>
+                      <td class="num"><input class="chico" value="" placeholder="0" /></td>
+                      <td class="num">17,500</td><td class="num texto-tenue">0</td>
+                    </tr>
+                  </tbody>
+                  <tbody class="solo-compra">
+                    <tr>
+                      <td class="num">1</td><td class="num">231</td><td>PAPA FRANCESA AGRINA PREMIUM *2.5 KG</td><td>UND</td>
+                      <td class="num">48</td><td class="num">0</td><td class="num">48</td>
+                      <td class="num"><input class="chico" value="" placeholder="0" /></td>
+                      <td class="num">11,800</td><td class="num texto-tenue">0</td>
+                    </tr>
+                    <tr>
+                      <td class="num">2</td><td class="num">305</td><td>QUESO MOZZARELLA BLOQUE</td><td>KG</td>
+                      <td class="num">20.000</td><td class="num">0</td><td class="num">20.000</td>
+                      <td class="num devolver"><input class="chico" value="5.000" /></td>
+                      <td class="num">17,900</td><td class="num">89,500</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="documento__pie">
+                <div class="documento__avisos">
+                  <p class="aviso solo-venta"><svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7zM3 7l9 5 9-5M12 12v10" /></svg><span>Inventario al guardar: vuelven <strong>40 UND</strong> de 101 CAJA PIZZA 35*35 a Principal, a su costo de la venta.</span></p>
+                  <p class="aviso aviso--exito solo-venta"><svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M8 12l3 3 5-6" /></svg><span>La devolución ($ 78,000) se descuenta del saldo de la factura 84790: queda en <strong>$ 273,200</strong>. Si pasara del saldo, el resto quedaría a favor del cliente; en una factura de contado, se le devuelve el dinero.</span></p>
+                  <p class="aviso solo-compra"><svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7zM3 7l9 5 9-5M12 12v10" /></svg><span>Inventario al guardar: salen <strong>5 KG</strong> de 305 QUESO MOZZARELLA de Principal. El costo del producto no cambia.</span></p>
+                  <p class="aviso aviso--exito solo-compra"><svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M8 12l3 3 5-6" /></svg><span>La compra ya estaba pagada: los <strong>$ 89,500</strong> quedan a favor con AGRINA S.A.S. (se suman a los $ 35,600 de la corrección).</span></p>
+                  <label class="campo"><span>Motivo (opcional)</span><input class="solo-venta" value="Cajas mojadas" /><input class="solo-compra" value="Queso vencido" /></label>
+                </div>
+                <table class="totales">
+                  <tbody class="solo-venta">
+                    <tr><th>Líneas a devolver</th><td class="num">1</td></tr>
+                    <tr class="totales__total"><th>Total devolución</th><td class="num">$ 78,000</td></tr>
+                    <tr><th>Saldo de la factura antes</th><td class="num">351,200</td></tr>
+                    <tr><th>Saldo de la factura después</th><td class="num"><strong>273,200</strong></td></tr>
+                    <tr class="a-favor"><th>A favor del cliente</th><td class="num">0</td></tr>
+                  </tbody>
+                  <tbody class="solo-compra">
+                    <tr><th>Líneas a devolver</th><td class="num">1</td></tr>
+                    <tr class="totales__total"><th>Total devolución</th><td class="num">$ 89,500</td></tr>
+                    <tr><th>Saldo de la compra antes</th><td class="num">0</td></tr>
+                    <tr><th>Saldo de la compra después</th><td class="num">0</td></tr>
+                    <tr class="a-favor"><th>A favor con el proveedor</th><td class="num">89,500</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <footer class="barra-estado">
+          <span>Versión 0.1.0</span>
+          <span>Último respaldo: 04/10/2026 3:10 p. m.</span>
+          <span class="barra-estado__atajos">Av. Pág guardar devolución · ↑/↓ líneas · Esc cerrar</span>
+        </footer>
+      </div>
+    </div>
+    <script>
+      if (location.hash === '#compra') {
+        document.getElementById('devolucion').classList.add('ver-compra');
+      }
+    </script>
+  </body>
+</html>

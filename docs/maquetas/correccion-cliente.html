@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Maqueta: corrección de factura de cliente (Fase 4a)</title>
+    <!-- Estilo real de la app. -->
+    <link rel="stylesheet" href="../../src/renderer/estilos/global.css" />
+    <style>
+      /* Estilos nuevos de la maqueta; al aprobarse pasan a global.css. */
+      .correccion__buscar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .correccion__buscar input {
+        width: 120px;
+        padding: 4px 7px;
+        border: 1px solid var(--color-borde);
+        border-radius: 2px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .resumen-factura {
+        display: grid;
+        grid-template-columns: 2fr 1.1fr 1.6fr 0.7fr auto;
+        gap: 8px 14px;
+        align-items: end;
+      }
+      .resumen-factura .campo input {
+        background: var(--color-solo-lectura);
+      }
+      .cartera-factura {
+        display: grid;
+        grid-template-columns: repeat(3, auto);
+        gap: 0 16px;
+        justify-content: end;
+        padding: 4px 10px;
+        border: 1px solid var(--color-borde);
+        border-radius: 4px;
+        background: var(--color-solo-lectura);
+        font-size: 12px;
+        color: var(--color-tenue);
+      }
+      .cartera-factura strong {
+        white-space: nowrap;
+        color: var(--color-texto);
+        font-size: 15px;
+        text-align: right;
+      }
+      /* Celda cambiada frente a la versión vigente: el valor anterior queda tachado encima. */
+      .tabla td.cambiada input {
+        border-color: var(--color-primario);
+        background: #e8f0fb;
+        font-weight: 600;
+      }
+      .tabla .anterior {
+        display: block;
+        font-size: 11px;
+        color: var(--color-tenue);
+        text-decoration: line-through;
+      }
+      .tabla tr.quitada td {
+        color: var(--color-tenue);
+        text-decoration: line-through;
+      }
+      .tabla td input.chico {
+        width: 70px;
+      }
+      .totales .diferencia td {
+        color: var(--color-error);
+        font-weight: 600;
+      }
+      .totales .a-favor th,
+      .totales .a-favor td {
+        color: var(--color-exito);
+        font-weight: 600;
+      }
+      .paneles {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .paneles .tabla-contenedor {
+        height: auto;
+      }
+      .panel__titulo {
+        margin: 0 0 4px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .ayuda-ctrl-d {
+        padding: 10px 14px;
+        border: 1px dashed var(--color-borde);
+        border-radius: 4px;
+        background: #f7f9fb;
+        color: var(--color-tenue);
+      }
+      .solo-resumen,
+      .solo-anular,
+      .solo-guardada,
+      .solo-impresion {
+        display: none;
+      }
+      .ver-resumen .solo-resumen {
+        display: block;
+      }
+      .ver-resumen span.solo-resumen,
+      .ver-resumen button.solo-resumen {
+        display: inline-flex;
+      }
+      .ver-resumen .solo-discriminada {
+        display: none;
+      }
+      .dialogo--ancho {
+        width: 560px;
+      }
+      .dialogo ul {
+        margin: 6px 0 0;
+        padding-left: 18px;
+        line-height: 1.5;
+      }
+      .dialogo .campo {
+        margin: 10px 16px 14px;
+      }
+      /* Tirilla de 80 mm (mismos estilos que main/impresion/tirilla.ts), a escala de pantalla. */
+      .hoja-tirilla {
+        width: 300px;
+        max-height: 640px;
+        margin: 10px auto;
+        padding: 10px 8px 16px;
+        overflow: auto;
+        border: 1px solid var(--color-borde);
+        background: #fff;
+        color: #000;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 12px;
+        line-height: 1.3;
+      }
+      .hoja-tirilla .centro {
+        text-align: center;
+      }
+      .hoja-tirilla .t-nombre {
+        font-size: 14px;
+        font-weight: bold;
+      }
+      .hoja-tirilla .t-titulo {
+        margin-top: 6px;
+        font-size: 14px;
+        font-weight: bold;
+        text-align: center;
+      }
+      .hoja-tirilla .t-numero {
+        font-size: 17px;
+        font-weight: bold;
+        text-align: center;
+      }
+      .hoja-tirilla .t-leyenda {
+        margin: 3px 0 0;
+        font-size: 14px;
+        font-weight: bold;
+        letter-spacing: 1px;
+        text-align: center;
+      }
+      .hoja-tirilla .t-bloque {
+        margin-top: 6px;
+      }
+      .hoja-tirilla .t-fila {
+        display: flex;
+        justify-content: space-between;
+        gap: 4px;
+      }
+      .hoja-tirilla .t-negrita {
+        font-weight: bold;
+      }
+      .hoja-tirilla table {
+        width: 100%;
+        margin-top: 6px;
+        border-collapse: collapse;
+      }
+      .hoja-tirilla th {
+        padding: 2px 0;
+        border-top: 1px dashed #000;
+        border-bottom: 1px dashed #000;
+        text-align: left;
+      }
+      .hoja-tirilla td {
+        padding: 2px 0;
+        vertical-align: top;
+      }
+      .hoja-tirilla .t-num {
+        padding-left: 4px;
+        text-align: right;
+        white-space: nowrap;
+      }
+      .hoja-tirilla .t-detalle {
+        font-size: 10px;
+      }
+      .hoja-tirilla .t-separador {
+        margin: 4px 0;
+        border-top: 1px dashed #000;
+      }
+      .hoja-tirilla .t-total {
+        font-size: 15px;
+        font-weight: bold;
+      }
+      .hoja-tirilla .t-recuadro {
+        margin: 6px 0;
+        padding: 4px;
+        border: 1px dashed #000;
+      }
+      .nota-maqueta {
+        position: absolute;
+        right: 16px;
+        bottom: 16px;
+        width: 360px;
+        padding: 10px 12px;
+        border: 1px solid var(--color-borde);
+        border-radius: 4px;
+        background: #fffef5;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="raiz">
+      <div class="aplicacion">
+        <nav class="barra-iconos">
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2zM9 7h6M9 11h6M9 15h4" /></svg><span>Facturar</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h13v10H3zM16 10h3l2 3v4h-5zM7 19a2 2 0 1 0 0-.01M17 19a2 2 0 1 0 0-.01" /></svg><span>Factura de proveedor</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h20v10H2zM12 12m-2.5 0a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0M5 10v4M19 10v4" /></svg><span>Abono de cliente</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h20v10H2zM8 12h8M13 9l3 3-3 3" /></svg><span>Abono a proveedor</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7zM3 7l9 5 9-5M12 12v10" /></svg><span>Productos</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8m-4 0a4 4 0 1 0 8 0a4 4 0 1 0-8 0M4 21c0-4 4-6 8-6s8 2 8 6" /></svg><span>Clientes</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l6-4v4l6-4v4l6-4v16zM7 17h2M11 17h2M15 17h2" /></svg><span>Proveedores</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z" /></svg><span>Reimpresiones</span></button>
+          <button class="barra-iconos__boton barra-iconos__organizar"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z" /></svg><span>Organizar</span></button>
+          <button class="barra-iconos__boton barra-iconos__buscar"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10 10m-6 0a6 6 0 1 0 12 0a6 6 0 1 0-12 0M15 15l6 6" /></svg><span>Buscar (Ctrl+K)</span></button>
+        </nav>
+
+        <main class="escritorio">
+          <section class="ventana ventana--activa ventana--con-tamano" style="left: 12px; top: 6px; width: 1236px; height: 708px">
+            <div class="ventana__titulo">
+              <span class="ventana__nombre">Corrección de factura de cliente<span class="ventana__cambios solo-discriminada"> • sin guardar</span></span>
+              <span class="ventana__botones"><button class="ventana__maximizar">□</button><button class="ventana__cerrar">×</button></span>
+            </div>
+            <div class="ventana__contenido documento" id="correccion">
+              <div class="barra-herramientas">
+                <span class="correccion__buscar">
+                  <span>Factura No.</span>
+                  <input value="84772" />
+                </span>
+                <span class="barra-herramientas__separador"></span>
+                <button class="boton solo-resumen">Ver discriminada<span class="atajo">Ctrl+D</span></button>
+                <button class="boton boton--primario solo-discriminada">Guardar corrección<span class="atajo">Av. Pág</span></button>
+                <button class="boton">Anular factura<span class="atajo">Ctrl+X</span></button>
+                <button class="boton solo-resumen">Devolución…</button>
+                <span class="barra-herramientas__resumen solo-discriminada">Versión vigente: 1 · se guardará como versión 2</span>
+                <span class="barra-herramientas__resumen solo-resumen"><span class="etiqueta etiqueta--activo">Activa</span> · versión 1</span>
+              </div>
+
+              <div class="resumen-factura">
+                <label class="campo"><span>Cliente</span><input value="10065 - JUAN JJ FERTILIA · NIT 212121354" readonly /></label>
+                <label class="campo"><span>Fecha</span><input value="02/10/2026 3:15 p. m." readonly /></label>
+                <label class="campo"><span>Condición</span><input value="Crédito, 8 días · vence 10/10/2026" readonly /></label>
+                <label class="campo"><span>Bodega</span><input value="Principal" readonly /></label>
+                <div class="cartera-factura">
+                  <span>Total</span><span>Abonado</span><span>Saldo</span>
+                  <strong>$ 79,250</strong><strong>$ 70,000</strong><strong>$ 9,250</strong>
+                </div>
+              </div>
+
+              <!-- Resumen: lo que se ve al buscar la factura, antes de Ctrl+D. -->
+              <div class="solo-resumen">
+                <div class="paneles">
+                  <div>
+                    <p class="panel__titulo">Abonos aplicados</p>
+                    <div class="tabla-contenedor">
+                      <table class="tabla">
+                        <thead><tr><th class="num">Abono</th><th>Fecha</th><th>Forma de pago</th><th class="num">Aplicado</th><th>Estado</th></tr></thead>
+                        <tbody><tr><td class="num">15</td><td>03/10/2026</td><td>Efectivo</td><td class="num">70,000</td><td>Activo</td></tr></tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <div>
+                    <p class="panel__titulo">Versiones</p>
+                    <div class="tabla-contenedor">
+                      <table class="tabla">
+                        <thead><tr><th class="num">Versión</th><th>Fecha</th><th class="num">Total</th><th>Motivo</th></tr></thead>
+                        <tbody><tr><td class="num">1</td><td>02/10/2026 3:15 p. m.</td><td class="num">79,250</td><td class="texto-tenue">Original</td></tr></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+                <p class="ayuda-ctrl-d" style="margin-top: 12px">3 líneas · Su ahorro fue de $ 12,000. Pulse <strong>Ctrl+D</strong> para verla línea por línea y corregir cantidades o precios. <strong>Ctrl+X</strong> la anula (pide confirmación). «Devolución…» abre la devolución de venta con esta factura.</p>
+              </div>
+
+              <!-- Discriminada (Ctrl+D): cantidades y precios editables. -->
+              <div class="tabla-contenedor documento__lineas solo-discriminada">
+                <table class="tabla tabla--precios">
+                  <thead>
+                    <tr>
+                      <th class="num">#</th>
+                      <th class="num">Código</th>
+                      <th>Producto</th>
+                      <th>Und</th>
+                      <th>Escala</th>
+                      <th class="num">Costo</th>
+                      <th class="num">Cantidad</th>
+                      <th class="num">Precio</th>
+                      <th class="num">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="num">1</td><td class="num">231</td><td>PAPA FRANCESA AGRINA PREMIUM *2.5 KG</td><td>UND</td><td>Menor · 17,500</td><td class="num">12,292</td>
+                      <td class="num cambiada"><span class="anterior">4</span><input class="chico" value="2" /></td>
+                      <td class="num"><input value="14,500" /></td>
+                      <td class="num"><span class="anterior">58,000</span>29,000</td>
+                    </tr>
+                    <tr>
+                      <td class="num">2</td><td class="num">101</td><td>CAJA PIZZA 35*35 FD</td><td>UND</td><td>Mayor · 1,950</td><td class="num">1,420</td>
+                      <td class="num"><input class="chico" value="5" /></td>
+                      <td class="num"><input value="1,950" /></td>
+                      <td class="num">9,750</td>
+                    </tr>
+                    <tr class="fila--alerta">
+                      <td class="num">3</td><td class="num">102</td><td>CAJA PIZZA 40*40 FD <span class="etiqueta etiqueta--alerta">bajo el costo</span></td><td>UND</td><td>Mayor · 2,300</td><td class="num texto-alerta">2,050</td>
+                      <td class="num"><input class="chico" value="5" /></td>
+                      <td class="num cambiada"><span class="anterior">2,300</span><input value="1,900" /></td>
+                      <td class="num"><span class="anterior">11,500</span>9,500</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="documento__pie solo-discriminada">
+                <div class="documento__avisos">
+                  <p class="aviso aviso--alerta"><svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2zM12 10v5M12 18v.01" /></svg><span>Línea 3 · 102 CAJA PIZZA 40*40 FD: $ 1,900 queda por debajo del costo ($ 2,050). En la corrección se permite; el precio anterior y el nuevo quedan en el historial.</span></p>
+                  <p class="aviso"><svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7zM3 7l9 5 9-5M12 12v10" /></svg><span>Inventario al guardar: vuelven <strong>2 UND</strong> de 231 PAPA FRANCESA a Principal (movimiento de corrección). Cantidad 0 quita la línea.</span></p>
+                  <p class="aviso aviso--exito"><svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M8 12l3 3 5-6" /></svg><span>Lo abonado ($ 70,000) supera el total corregido ($ 48,250): quedan <strong>$ 21,750 a favor</strong> de 10065 - JUAN JJ FERTILIA. Se ofrecerá en su próximo abono o se le puede devolver en efectivo.</span></p>
+                  <label class="campo"><span>Motivo de la corrección (opcional)</span><input value="Devolvió 2 papas y se le dejó la caja 40*40 a 1,900" /></label>
+                </div>
+                <table class="totales">
+                  <tbody>
+                    <tr><th>Total anterior</th><td class="num">79,250</td></tr>
+                    <tr class="totales__total"><th>Total corregido</th><td class="num">$ 48,250</td></tr>
+                    <tr class="diferencia"><th>Diferencia</th><td class="num">− 31,000</td></tr>
+                    <tr><th>Ya abonado</th><td class="num">70,000</td></tr>
+                    <tr><th>Saldo nuevo</th><td class="num">0</td></tr>
+                    <tr class="a-favor"><th>Saldo a favor del cliente</th><td class="num">21,750</td></tr>
+                    <tr><th class="texto-tenue">Su ahorro fue de</th><td class="num texto-tenue">8,000</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- Ctrl+X: confirmación de la anulación. -->
+          <div class="capa-modal solo-anular">
+            <div class="dialogo dialogo--ancho" role="alertdialog">
+              <div class="dialogo__titulo">¿Anular la factura 84772?</div>
+              <div class="dialogo__mensaje">
+                La factura conserva su número y queda marcada como <strong>ANULADA</strong>; no se puede deshacer. Al anularla:
+                <ul>
+                  <li>Vuelven a Principal las 3 líneas: 4 UND de 231, 5 UND de 101 y 5 UND de 102.</li>
+                  <li>Su saldo ($ 9,250) deja de deberse.</li>
+                  <li>Lo abonado ($ 70,000, abono 15) queda como <strong>saldo a favor</strong> de JUAN JJ FERTILIA. El abono 15 no se toca.</li>
+                </ul>
+              </div>
+              <label class="campo"><span>Motivo (opcional)</span><input value="" placeholder="Por ejemplo: se facturó al cliente equivocado" /></label>
+              <div class="dialogo__botones">
+                <button class="boton" style="outline: 2px solid var(--color-foco); outline-offset: 1px">Cancelar</button>
+                <button class="boton boton--peligro">Anular factura</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Av. Pág: corrección guardada; Enter imprime. -->
+          <div class="capa-modal solo-guardada">
+            <div class="dialogo dialogo--ancho" role="alertdialog">
+              <div class="dialogo__titulo">Factura 84772 corregida (versión 2)</div>
+              <div class="dialogo__mensaje">
+                Total: $ 79,250 → <strong>$ 48,250</strong>.
+                <ul>
+                  <li>Volvieron 2 UND de 231 a Principal.</li>
+                  <li>Quedaron $ 21,750 a favor de JUAN JJ FERTILIA.</li>
+                </ul>
+              </div>
+              <div class="dialogo__botones">
+                <button class="boton">Cerrar</button>
+                <button class="boton boton--primario" style="outline: 2px solid var(--color-foco); outline-offset: 1px">Imprimir factura corregida</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lo que se imprime (propuesta por defecto). -->
+          <div class="capa-modal solo-impresion" style="padding-top: 8px">
+            <div class="dialogo" style="width: 360px">
+              <div class="dialogo__titulo">Tirilla de la factura corregida</div>
+              <div class="hoja-tirilla">
+                <div class="centro"><div class="t-nombre">DISTRIBUIDORA EL EJEMPLO</div><div>NIT 900.123.456-7</div><div>No responsable de IVA</div><div>Cra 10 # 20-30 · Tel 300 000 0000</div></div>
+                <div class="t-titulo">FACTURA DE VENTA</div>
+                <div class="t-numero">84772</div>
+                <div class="t-bloque"><div>Fecha Generación: 02/10/2026 3:15 p. m.</div><div>Fecha Expedición: 02/10/2026 3:15 p. m.</div></div>
+                <div class="t-leyenda">CORREGIDA</div>
+                <div class="centro t-detalle">Versión 2 · 04/10/2026 3:20 p. m.</div>
+                <div class="t-bloque t-fila t-negrita"><span>CREDITO, 8 DIAS</span><span>10/10/2026</span></div>
+                <div class="t-bloque"><div class="t-negrita">CLIENTE: 10065-JUAN JJ FERTILIA</div><div>NIT 212121354</div></div>
+                <table>
+                  <thead><tr><th>Producto</th><th class="t-num">Cant</th><th class="t-num">Valor</th></tr></thead>
+                  <tbody>
+                    <tr><td>PAPA FRANCESA AGRINA PREMIUM *2.5 KG<div class="t-detalle">x UNIDAD · $14,500</div></td><td class="t-num">2</td><td class="t-num">29,000</td></tr>
+                    <tr><td>CAJA PIZZA 35*35 FD<div class="t-detalle">x UNIDAD · $1,950</div></td><td class="t-num">5</td><td class="t-num">9,750</td></tr>
+                    <tr><td>CAJA PIZZA 40*40 FD<div class="t-detalle">x UNIDAD · $1,900</div></td><td class="t-num">5</td><td class="t-num">9,500</td></tr>
+                  </tbody>
+                </table>
+                <div class="t-separador"></div>
+                <div>Líneas: 3</div>
+                <div class="t-bloque t-negrita">SON: CUARENTA Y OCHO MIL DOSCIENTOS CINCUENTA PESOS M/L</div>
+                <div class="t-bloque t-fila t-total"><span>TOTAL</span><span>48,250</span></div>
+                <div class="t-fila"><span>SALDO CREDITO</span><span>0</span></div>
+                <div class="t-fila"><span>CAMBIO</span><span>0</span></div>
+                <div class="t-recuadro">
+                  <div class="t-negrita centro">CORRECCION</div>
+                  <div class="t-fila"><span>Total anterior</span><span>79,250</span></div>
+                  <div class="t-fila"><span>Diferencia</span><span>-31,000</span></div>
+                  <div class="t-fila"><span>Abonado</span><span>70,000</span></div>
+                  <div class="t-fila t-negrita"><span>SALDO A FAVOR</span><span>21,750</span></div>
+                </div>
+                <div class="t-recuadro centro t-negrita">SU AHORRO FUE DE: $8,000</div>
+                <div class="t-bloque centro t-negrita">GRACIAS POR SU COMPRA</div>
+                <div class="t-bloque">No.Cajas Empaque: ______</div>
+              </div>
+            </div>
+            <div class="nota-maqueta">
+              <strong>Propuesta:</strong> la factura completa con su contenido nuevo, el mismo número y las fechas originales; la leyenda <strong>CORREGIDA</strong> con la versión y el momento de la corrección, y un recuadro con el total anterior, la diferencia y cómo queda el dinero (saldo a favor, devuelto en efectivo o saldo pendiente).<br /><br />
+              Desde «Reimpresiones» (4b) sale además con <strong>REIMPRESION</strong>; una anulada, con <strong>ANULADA</strong>.
+            </div>
+          </div>
+        </main>
+
+        <footer class="barra-estado">
+          <span>Versión 0.1.0</span>
+          <span>Último respaldo: 04/10/2026 3:10 p. m.</span>
+          <span class="barra-estado__atajos">Ctrl+D discriminada · Av. Pág guardar corrección · Ctrl+X anular · Esc cerrar</span>
+        </footer>
+      </div>
+    </div>
+    <script>
+      // Variantes: capturar.mjs ... <variante>
+      const variante = location.hash.slice(1);
+      const ventana = document.getElementById('correccion').closest('.ventana');
+      if (variante === 'resumen' || variante === 'anular') {
+        ventana.classList.add('ver-resumen');
+      }
+      for (const nombre of ['anular', 'guardada', 'impresion']) {
+        if (variante === nombre) {
+          document.querySelector(`.solo-${nombre}`).style.display = 'grid';
+        }
+      }
+    </script>
+  </body>
+</html>

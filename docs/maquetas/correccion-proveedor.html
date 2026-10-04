@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Maqueta: corrección de factura de proveedor (Fase 4a)</title>
+    <!-- Estilo real de la app. -->
+    <link rel="stylesheet" href="../../src/renderer/estilos/global.css" />
+    <style>
+      /* Estilos nuevos de la maqueta (los mismos de correccion-cliente.html); al aprobarse pasan a global.css. */
+      .correccion__buscar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .correccion__buscar input {
+        width: 120px;
+        padding: 4px 7px;
+        border: 1px solid var(--color-borde);
+        border-radius: 2px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .resumen-factura {
+        display: grid;
+        grid-template-columns: 2.3fr 0.9fr 0.8fr 1.6fr 0.7fr auto;
+        gap: 8px 14px;
+        align-items: end;
+      }
+      .resumen-factura .campo input {
+        background: var(--color-solo-lectura);
+      }
+      .cartera-factura {
+        display: grid;
+        grid-template-columns: repeat(3, auto);
+        gap: 0 16px;
+        justify-content: end;
+        padding: 4px 10px;
+        border: 1px solid var(--color-borde);
+        border-radius: 4px;
+        background: var(--color-solo-lectura);
+        font-size: 12px;
+        color: var(--color-tenue);
+      }
+      .cartera-factura strong {
+        white-space: nowrap;
+        color: var(--color-texto);
+        font-size: 15px;
+        text-align: right;
+      }
+      .tabla td.cambiada input {
+        border-color: var(--color-primario);
+        background: #e8f0fb;
+        font-weight: 600;
+      }
+      .tabla .anterior {
+        display: block;
+        font-size: 11px;
+        color: var(--color-tenue);
+        text-decoration: line-through;
+      }
+      .tabla td input.chico {
+        width: 80px;
+      }
+      .tabla td input.medio {
+        width: 92px;
+      }
+      .totales .diferencia td {
+        color: var(--color-error);
+        font-weight: 600;
+      }
+      .totales .a-favor th,
+      .totales .a-favor td {
+        color: var(--color-exito);
+        font-weight: 600;
+      }
+      .totales input.medio {
+        width: 110px;
+      }
+      .solo-anular {
+        display: none;
+      }
+      .dialogo--ancho {
+        width: 580px;
+      }
+      .dialogo ul {
+        margin: 6px 0 0;
+        padding-left: 18px;
+        line-height: 1.5;
+      }
+      .dialogo .campo {
+        margin: 10px 16px 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="raiz">
+      <div class="aplicacion">
+        <nav class="barra-iconos">
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2zM9 7h6M9 11h6M9 15h4" /></svg><span>Facturar</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h13v10H3zM16 10h3l2 3v4h-5zM7 19a2 2 0 1 0 0-.01M17 19a2 2 0 1 0 0-.01" /></svg><span>Factura de proveedor</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h20v10H2zM12 12m-2.5 0a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0M5 10v4M19 10v4" /></svg><span>Abono de cliente</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h20v10H2zM8 12h8M13 9l3 3-3 3" /></svg><span>Abono a proveedor</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7zM3 7l9 5 9-5M12 12v10" /></svg><span>Productos</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8m-4 0a4 4 0 1 0 8 0a4 4 0 1 0-8 0M4 21c0-4 4-6 8-6s8 2 8 6" /></svg><span>Clientes</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l6-4v4l6-4v4l6-4v16zM7 17h2M11 17h2M15 17h2" /></svg><span>Proveedores</span></button>
+          <button class="barra-iconos__boton"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z" /></svg><span>Reimpresiones</span></button>
+          <button class="barra-iconos__boton barra-iconos__organizar"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z" /></svg><span>Organizar</span></button>
+          <button class="barra-iconos__boton barra-iconos__buscar"><svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10 10m-6 0a6 6 0 1 0 12 0a6 6 0 1 0-12 0M15 15l6 6" /></svg><span>Buscar (Ctrl+K)</span></button>
+        </nav>
+
+        <main class="escritorio">
+          <section class="ventana ventana--activa ventana--con-tamano" style="left: 12px; top: 6px; width: 1236px; height: 708px">
+            <div class="ventana__titulo">
+              <span class="ventana__nombre">Corrección de factura de proveedor<span class="ventana__cambios"> • sin guardar</span></span>
+              <span class="ventana__botones"><button class="ventana__maximizar">□</button><button class="ventana__cerrar">×</button></span>
+            </div>
+            <div class="ventana__contenido documento">
+              <div class="barra-herramientas">
+                <span class="correccion__buscar">
+                  <span>Compra No.</span>
+                  <input value="37" />
+                </span>
+                <span class="texto-tenue">o factura del proveedor</span>
+                <span class="barra-herramientas__separador"></span>
+                <button class="boton boton--primario">Guardar corrección<span class="atajo">Av. Pág</span></button>
+                <button class="boton">Anular compra<span class="atajo">Ctrl+X</span></button>
+                <span class="barra-herramientas__resumen">Versión vigente: 1 · se guardará como versión 2</span>
+              </div>
+
+              <div class="resumen-factura">
+                <label class="campo"><span>Proveedor</span><input value="10012 - AGRINA S.A.S. · NIT 800111222" readonly /></label>
+                <label class="campo"><span>Factura del proveedor</span><input value="FE-5521" readonly /></label>
+                <label class="campo"><span>Fecha</span><input value="28/09/2026" readonly /></label>
+                <label class="campo"><span>Condición</span><input value="Pagada de contado (abono 58)" readonly /></label>
+                <label class="campo"><span>Bodega</span><input value="Principal" readonly /></label>
+                <div class="cartera-factura">
+                  <span>Total</span><span>Pagado</span><span>Saldo</span>
+                  <strong>$ 960,000</strong><strong>$ 960,000</strong><strong>$ 0</strong>
+                </div>
+              </div>
+
+              <div class="tabla-contenedor documento__lineas">
+                <table class="tabla tabla--precios">
+                  <thead>
+                    <tr>
+                      <th class="num">#</th>
+                      <th class="num">Código</th>
+                      <th>Producto</th>
+                      <th>Und</th>
+                      <th class="num">Cantidad</th>
+                      <th class="num">Costo unitario</th>
+                      <th class="num">Total</th>
+                      <th class="num">Flete</th>
+                      <th class="num">Costo nuevo</th>
+                      <th class="num">Costo del producto</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="fila--alerta">
+                      <td class="num">1</td><td class="num">231</td><td>PAPA FRANCESA AGRINA PREMIUM *2.5 KG <span class="etiqueta etiqueta--alerta">revisar precios</span></td><td>UND</td>
+                      <td class="num cambiada"><span class="anterior">50</span><input class="chico" value="48" /></td>
+                      <td class="num"><input class="medio" value="11,800" /></td>
+                      <td class="num"><span class="anterior">590,000</span>566,400</td>
+                      <td class="num">24,509</td>
+                      <td class="num"><span class="anterior">12,292</span>12,311</td>
+                      <td class="num">12,292 → <strong>12,311</strong></td>
+                    </tr>
+                    <tr>
+                      <td class="num">2</td><td class="num">305</td><td>QUESO MOZZARELLA BLOQUE</td><td>KG</td>
+                      <td class="num"><input class="chico" value="20.000" /></td>
+                      <td class="num cambiada"><span class="anterior">18,500</span><input class="medio" value="17,900" /></td>
+                      <td class="num"><span class="anterior">370,000</span>358,000</td>
+                      <td class="num">15,491</td>
+                      <td class="num"><span class="anterior">19,271</span>18,675</td>
+                      <td class="num texto-tenue">18,900 (no cambia)</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="documento__pie">
+                <div class="documento__avisos">
+                  <p class="aviso"><svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7zM3 7l9 5 9-5M12 12v10" /></svg><span>Inventario al guardar: salen <strong>2 UND</strong> de 231 PAPA FRANCESA de Principal (movimiento de corrección).</span></p>
+                  <p class="aviso aviso--alerta"><svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2zM12 10v5M12 18v.01" /></svg><span>231: esta compra es la última del producto, así que su costo pasa de $ 12,292 a <strong>$ 12,311</strong> y el precio Mínimo ($ 12,300) queda por debajo: revisar precios.<br />305: hubo una compra posterior (No. 41, 01/10/2026); el costo del producto se queda en $ 18,900.</span></p>
+                  <p class="aviso aviso--exito"><svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M8 12l3 3 5-6" /></svg><span>Se pagó de contado $ 960,000 y la compra corregida suma $ 924,400: quedan <strong>$ 35,600 a favor</strong> con AGRINA S.A.S., para descontar en el próximo abono o registrar como devuelto por el proveedor.</span></p>
+                  <label class="campo"><span>Motivo de la corrección (opcional)</span><input value="Llegaron 48 cajas y el queso se facturó a 17,900" /></label>
+                </div>
+                <table class="totales">
+                  <tbody>
+                    <tr><th>Flete (se reparte en el costo)</th><td><input class="medio" value="40,000" /></td></tr>
+                    <tr><th>Descuento</th><td><input class="medio" value="0" /></td></tr>
+                    <tr><th>Total anterior</th><td class="num">960,000</td></tr>
+                    <tr class="totales__total"><th>Total corregido</th><td class="num">$ 924,400</td></tr>
+                    <tr class="diferencia"><th>Diferencia</th><td class="num">− 35,600</td></tr>
+                    <tr><th>Ya pagado</th><td class="num">960,000</td></tr>
+                    <tr class="a-favor"><th>Saldo a favor con el proveedor</th><td class="num">35,600</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- Ctrl+X sobre otra compra, a crédito y con un abono manual. -->
+          <div class="capa-modal solo-anular">
+            <div class="dialogo dialogo--ancho" role="alertdialog">
+              <div class="dialogo__titulo">¿Anular la compra 39 (FE-880 de DISTRIBUIDORA LA 14)?</div>
+              <div class="dialogo__mensaje">
+                La compra conserva su número y queda marcada como <strong>ANULADA</strong>; no se puede deshacer. Al anularla:
+                <ul>
+                  <li>Salen de Principal 30 UND de 101 y 12 UND de 102. <span class="texto-alerta">102 quedaría en −4 UND (ya se vendió parte); se permite, como en los ajustes.</span></li>
+                  <li>Su saldo ($ 186,000) deja de deberse.</li>
+                  <li>Lo abonado ($ 200,000, abono 61) queda como <strong>saldo a favor</strong> con DISTRIBUIDORA LA 14. El abono 61 no se toca.</li>
+                  <li>El costo de los productos no cambia (queda en el historial para revisarlo con «Corregir costo…»).</li>
+                </ul>
+                <p class="texto-tenue" style="margin: 8px 0 0">Si la compra fue «Pagada de contado», su abono automático se anula con ella.</p>
+              </div>
+              <label class="campo"><span>Motivo (opcional)</span><input value="" placeholder="Por ejemplo: la factura se registró dos veces" /></label>
+              <div class="dialogo__botones">
+                <button class="boton" style="outline: 2px solid var(--color-foco); outline-offset: 1px">Cancelar</button>
+                <button class="boton boton--peligro">Anular compra</button>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <footer class="barra-estado">
+          <span>Versión 0.1.0</span>
+          <span>Último respaldo: 04/10/2026 3:10 p. m.</span>
+          <span class="barra-estado__atajos">Ctrl+D discriminada · Av. Pág guardar corrección · Ctrl+X anular · Esc cerrar</span>
+        </footer>
+      </div>
+    </div>
+    <script>
+      if (location.hash === '#anular') {
+        document.querySelector('.solo-anular').style.display = 'grid';
+      }
+    </script>
+  </body>
+</html>
