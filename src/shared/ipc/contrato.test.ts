@@ -72,6 +72,7 @@ const TODOS_LOS_CANALES = {
   'impresion:html': true,
   'impresion:imprimir': true,
   'impresion:pdf': true,
+  'reimpresiones:buscar': true,
   'interfaz:preferencias': true,
   'interfaz:guardarBarra': true,
   'interfaz:guardarVentana': true,

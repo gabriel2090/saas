@@ -37,6 +37,7 @@ import type {
 import type { DocumentoImprimible } from '../impresion';
 import type { ModoBarra, PeticionGuardarVentana, PreferenciasInterfaz } from '../interfaz';
 import type { IdProceso } from '../procesos';
+import type { PeticionBuscarReimpresion, ResultadoBuscarReimpresion } from '../reimpresiones';
 import type {
   PeticionGuardarReporte,
   PeticionImportacion,
@@ -243,6 +244,11 @@ export interface ContratoIpc {
   'impresion:imprimir': { peticion: DocumentoImprimible; respuesta: boolean };
   'impresion:pdf': { peticion: DocumentoImprimible; respuesta: boolean };
 
+  'reimpresiones:buscar': {
+    peticion: PeticionBuscarReimpresion;
+    respuesta: ResultadoBuscarReimpresion;
+  };
+
   'interfaz:preferencias': { peticion: void; respuesta: PreferenciasInterfaz };
   'interfaz:guardarBarra': { peticion: ModoBarra; respuesta: void };
   'interfaz:guardarVentana': { peticion: PeticionGuardarVentana; respuesta: void };
@@ -345,6 +351,7 @@ export const CANALES_IPC: readonly CanalIpc[] = [
   'impresion:html',
   'impresion:imprimir',
   'impresion:pdf',
+  'reimpresiones:buscar',
   'interfaz:preferencias',
   'interfaz:guardarBarra',
   'interfaz:guardarVentana',
