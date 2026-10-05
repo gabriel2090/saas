@@ -8,8 +8,11 @@ import {
   tercerosDeCartera,
 } from '../../data/repositorios/reportes.repo';
 import { diaDeIso } from '../../domain/calendario';
+import { ErrorDeNegocio } from '../../domain/errores';
+import { etiquetaAccion } from '../../domain/historial';
 import { armarCartera, armarInventario } from '../../domain/reportes';
-import { aIsoLocal } from '../../shared/formato/fechas';
+import { aIsoLocal, formatearFecha } from '../../shared/formato/fechas';
+import { TIPOS_DOCUMENTO_HISTORIAL, type PeticionHistorial } from '../../shared/historial';
 import type {
   PeticionCartera,
   PeticionInventario,
@@ -17,15 +20,23 @@ import type {
   ReporteCartera,
   ReporteInventario,
 } from '../../shared/reportes';
-import { reporteCarteraHtml, reporteInventarioHtml, TITULOS_CARTERA } from '../impresion/reportes';
+import {
+  reporteCarteraHtml,
+  reporteHistorialHtml,
+  reporteInventarioHtml,
+  reporteKardexHtml,
+  TITULOS_CARTERA,
+} from '../impresion/reportes';
 import { carteraXlsx, inventarioXlsx } from './excel-reportes';
 import type { ServicioNegocio } from './negocio';
+import { crearServicioVisores, type ServicioVisores } from './visores';
 
 /**
- * Servicio de los reportes de la Fase 5a: inventario valorizado y cuentas
- * por cobrar y por pagar, siempre «a hoy» (D-146). Solo consulta.
+ * Servicio de los reportes de la Fase 5: inventario valorizado y cuentas
+ * por cobrar y por pagar, siempre «a hoy» (D-146), más el kardex y el
+ * historial de cambios por periodo. Solo consulta.
  */
-export interface ServicioReportes {
+export interface ServicioReportes extends ServicioVisores {
   /**
    * Calcula el inventario valorizado.
    *
@@ -160,38 +171,90 @@ export function crearServicioReportes(
       .join(' · ');
   };
 
-  const titulo = (peticion: PeticionReporte): string =>
-    peticion.reporte === 'inventario'
-      ? 'Inventario valorizado'
-      : TITULOS_CARTERA[peticion.filtros.tipo];
+  /**
+   * Describe en palabras los filtros del historial.
+   *
+   * @param p - Filtros.
+   * @returns Texto de los filtros.
+   */
+  const filtrosHistorial = (p: PeticionHistorial): string =>
+    [
+      `Del ${formatearFecha(p.desde)} al ${formatearFecha(p.hasta)}`,
+      p.tipo === null
+        ? 'todos los tipos'
+        : (TIPOS_DOCUMENTO_HISTORIAL.find((t) => t.valor === p.tipo)?.etiqueta ?? p.tipo),
+      p.accion === null ? 'todas las acciones' : `acción ${etiquetaAccion(p.accion)}`,
+      p.texto.trim() ? `buscar «${p.texto.trim()}»` : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
+
+  /**
+   * Título del reporte (pie de página y nombre de archivo).
+   *
+   * @param peticion - Reporte y filtros.
+   * @returns Título.
+   */
+  const titulo = (peticion: PeticionReporte): string => {
+    switch (peticion.reporte) {
+      case 'inventario':
+        return 'Inventario valorizado';
+      case 'cartera':
+        return TITULOS_CARTERA[peticion.filtros.tipo];
+      case 'kardex':
+        return `Kardex ${peticion.filtros.productoCodigo}`;
+      case 'historial':
+        return 'Historial de cambios';
+    }
+  };
+
+  const visores = crearServicioVisores(db, { ahora });
 
   return {
+    ...visores,
     inventario,
     cartera,
     html(peticion) {
       const negocio = dependencias.negocio.obtener();
-      if (peticion.reporte === 'inventario') {
-        return reporteInventarioHtml({
-          negocio,
-          reporte: inventario(peticion.filtros),
-          filtros: filtrosInventario(peticion.filtros),
-        });
+      switch (peticion.reporte) {
+        case 'inventario':
+          return reporteInventarioHtml({
+            negocio,
+            reporte: inventario(peticion.filtros),
+            filtros: filtrosInventario(peticion.filtros),
+          });
+        case 'cartera':
+          return reporteCarteraHtml({
+            negocio,
+            reporte: cartera(peticion.filtros),
+            filtros: filtrosCartera(peticion.filtros),
+          });
+        case 'kardex':
+          return reporteKardexHtml({ negocio, reporte: visores.kardex(peticion.filtros) });
+        case 'historial':
+          return reporteHistorialHtml({
+            negocio,
+            reporte: visores.historial(peticion.filtros),
+            filtros: filtrosHistorial(peticion.filtros),
+          });
       }
-      return reporteCarteraHtml({
-        negocio,
-        reporte: cartera(peticion.filtros),
-        filtros: filtrosCartera(peticion.filtros),
-      });
     },
     excel(peticion) {
-      if (peticion.reporte === 'inventario') {
-        return inventarioXlsx(inventario(peticion.filtros), filtrosInventario(peticion.filtros));
+      switch (peticion.reporte) {
+        case 'inventario':
+          return inventarioXlsx(inventario(peticion.filtros), filtrosInventario(peticion.filtros));
+        case 'cartera':
+          return carteraXlsx(
+            cartera(peticion.filtros),
+            titulo(peticion),
+            filtrosCartera(peticion.filtros),
+          );
+        default:
+          throw new ErrorDeNegocio(
+            'VALIDACION',
+            `El reporte «${titulo(peticion)}» no se exporta a Excel; use «Imprimir o guardar PDF».`,
+          );
       }
-      return carteraXlsx(
-        cartera(peticion.filtros),
-        titulo(peticion),
-        filtrosCartera(peticion.filtros),
-      );
     },
     nombreArchivo(peticion, extension) {
       return `${titulo(peticion)} ${diaDeIso(ahora())}.${extension}`;

@@ -1,7 +1,10 @@
+import { etiquetaAccion } from '../../domain/historial';
 import { textoDias } from '../../domain/reportes';
 import { formatearCantidad } from '../../shared/formato/cantidades';
 import { formatearFecha, formatearFechaHora } from '../../shared/formato/fechas';
 import { agruparMiles, formatearPesos } from '../../shared/formato/moneda';
+import { MAXIMO_REGISTROS_HISTORIAL, type ReporteHistorial } from '../../shared/historial';
+import type { ReporteKardex } from '../../shared/kardex';
 import type { DatosNegocio } from '../../shared/maestros';
 import type { ReporteCartera, ReporteInventario } from '../../shared/reportes';
 import { escaparHtml, MARCA_SALDO_INICIAL } from './plantillas';
@@ -149,7 +152,7 @@ export function reporteCarteraHtml(datos: DatosImpresionCartera): string {
   const etiquetaDoc = cliente ? 'facturas' : 'compras';
   const encabezado = `<tr>${cliente ? '<th>Factura</th>' : '<th>Compra</th><th>Factura del proveedor</th>'}
     <th>Fecha</th><th>Vence</th><th class="num">Días</th><th class="num">Total</th>
-    <th class="num">${cliente ? 'Abonado' : 'Pagado'}</th><th class="num">Devuelto</th><th class="num">Saldo</th></tr>`;
+    <th class="num">${cliente ? 'Abonado' : 'Pagado'}</th><th class="num">Devuelto /<br />corregido</th><th class="num">Saldo</th></tr>`;
   const vacias = cliente ? 4 : 5;
   const cuerpo = reporte.grupos
     .map((g) => {
@@ -207,7 +210,7 @@ export function reporteCarteraHtml(datos: DatosImpresionCartera): string {
       ['Neto', formatearPesos(r.neto)],
     ],
     tabla,
-    nota: 'Saldo = total − abonado − devuelto. «Devuelto» incluye devoluciones y correcciones que bajaron el total.',
+    nota: `Saldo = total − ${cliente ? 'abonado' : 'pagado'} − devuelto / corregido (devoluciones y correcciones que bajaron el total).`,
   });
 }
 
@@ -275,5 +278,127 @@ export function reporteInventarioHtml(datos: DatosImpresionInventario): string {
     resumen,
     tabla,
     nota: 'Valorizado al costo actual de cada producto. El total suma solo las existencias positivas; las negativas se informan aparte.',
+  });
+}
+
+/**
+ * Datos para imprimir el kardex.
+ */
+export interface DatosImpresionKardex {
+  /** Datos del negocio. */
+  negocio: DatosNegocio;
+  /** Kardex ya calculado. */
+  reporte: ReporteKardex;
+}
+
+/**
+ * Arma el kardex de un producto en hoja carta: saldo anterior, movimientos
+ * con saldo corrido y totales del periodo. La columna «Bodega» solo aparece
+ * cuando el kardex junta todas las bodegas.
+ *
+ * @param datos - Negocio y kardex.
+ * @returns Documento HTML.
+ */
+export function reporteKardexHtml(datos: DatosImpresionKardex): string {
+  const { reporte } = datos;
+  const { unidad } = reporte.producto;
+  const todas = reporte.bodega === null;
+  /**
+   * Celda de una cantidad; vacía si es cero.
+   *
+   * @param milesimas - Cantidad.
+   * @param clase - Clase extra.
+   * @returns HTML de la celda.
+   */
+  const celda = (milesimas: number, clase = ''): string =>
+    `<td class="num${clase}">${milesimas === 0 ? '' : formatearCantidad(milesimas, unidad)}</td>`;
+  /**
+   * Celda del saldo (siempre visible, en negrita si es negativo).
+   *
+   * @param milesimas - Saldo.
+   * @returns HTML de la celda.
+   */
+  const celdaSaldo = (milesimas: number): string =>
+    `<td class="num${milesimas < 0 ? ' negativo' : ''}">${formatearCantidad(milesimas, unidad)}</td>`;
+  const encabezado = `<tr><th>Fecha</th><th>Movimiento</th><th>Documento</th><th>Tercero</th>${todas ? '<th>Bodega</th>' : ''}
+    <th class="num">Entrada</th><th class="num">Salida</th><th class="num">Saldo</th><th class="num">Costo unit.</th></tr>`;
+  const vacias = todas ? 5 : 4;
+  const cuerpo = reporte.filas
+    .map((f) => {
+      const marca = f.marca ? ` <strong>${escaparHtml(f.marca)}</strong>` : '';
+      return `<tr><td>${formatearFechaHora(f.fecha)}</td><td>${escaparHtml(f.movimiento)}</td>
+        <td>${escaparHtml(f.documento)}${marca}</td><td>${escaparHtml(f.tercero)}</td>${todas ? `<td>${escaparHtml(f.bodega)}</td>` : ''}
+        ${celda(f.entrada)}${celda(f.salida)}${celdaSaldo(f.saldo)}
+        <td class="num">${agruparMiles(f.costoUnitario)}</td></tr>`;
+    })
+    .join('');
+  const sinMovimientos =
+    reporte.filas.length === 0
+      ? `<tr><td colspan="${vacias + 4}">Sin movimientos en el periodo.</td></tr>`
+      : '';
+  const tabla = `<table><thead>${encabezado}</thead><tbody>
+    <tr class="subtotal"><td colspan="${vacias}">Saldo anterior al ${formatearFecha(reporte.desde)}</td><td></td><td></td>
+    ${celdaSaldo(reporte.saldoAnterior)}<td></td></tr>${cuerpo}${sinMovimientos}
+    <tr class="total"><td colspan="${vacias}">Totales del periodo · ${reporte.filas.length} movimientos</td>
+    ${celda(reporte.entradas)}${celda(reporte.salidas)}${celdaSaldo(reporte.saldoFinal)}<td></td></tr></tbody></table>`;
+  const p = reporte.producto;
+  return documentoReporte({
+    negocio: datos.negocio,
+    titulo: 'KARDEX',
+    corte: reporte.corte,
+    filtros: `Producto ${p.codigo} - ${p.nombre} (${p.unidad}) · ${reporte.bodega === null ? 'Todas las bodegas' : `Bodega ${reporte.bodega}`} · del ${formatearFecha(reporte.desde)} al ${formatearFecha(reporte.hasta)}`,
+    resumen: [
+      ['Saldo anterior', formatearCantidad(reporte.saldoAnterior, unidad)],
+      ['Entradas', formatearCantidad(reporte.entradas, unidad)],
+      ['Salidas', formatearCantidad(reporte.salidas, unidad)],
+      ['Saldo final', formatearCantidad(reporte.saldoFinal, unidad)],
+      ['Valor al costo actual', formatearPesos(reporte.valorCostoActual)],
+    ],
+    tabla,
+    nota: `Saldo anterior + entradas − salidas = saldo final. Costo actual: ${formatearPesos(p.costo)} por ${p.unidad === 'KG' ? 'kilo' : 'unidad'}.`,
+  });
+}
+
+/**
+ * Datos para imprimir el historial de cambios.
+ */
+export interface DatosImpresionHistorial {
+  /** Datos del negocio. */
+  negocio: DatosNegocio;
+  /** Consulta ya hecha. */
+  reporte: ReporteHistorial;
+  /** Filtros aplicados, en palabras. */
+  filtros: string;
+}
+
+/**
+ * Arma el listado del historial de cambios en hoja carta.
+ *
+ * @param datos - Negocio, consulta y filtros.
+ * @returns Documento HTML.
+ */
+export function reporteHistorialHtml(datos: DatosImpresionHistorial): string {
+  const { reporte } = datos;
+  const cuerpo = reporte.registros
+    .map(
+      (r) => `<tr><td>${formatearFechaHora(r.fecha)}</td><td>${escaparHtml(r.tipo)}</td>
+        <td>${escaparHtml(r.documento)}</td><td>${escaparHtml(etiquetaAccion(r.accion))}</td>
+        <td>${escaparHtml(r.resumen)}</td></tr>`,
+    )
+    .join('');
+  const tabla = `<table><thead><tr><th>Fecha y hora</th><th>Tipo</th><th>Documento</th><th>Acción</th>
+    <th>Resumen</th></tr></thead><tbody>${
+      cuerpo || '<tr><td colspan="5">Sin cambios con estos filtros.</td></tr>'
+    }</tbody></table>`;
+  return documentoReporte({
+    negocio: datos.negocio,
+    titulo: 'HISTORIAL DE CAMBIOS',
+    corte: reporte.corte,
+    filtros: datos.filtros,
+    resumen: [['Registros', agruparMiles(reporte.registros.length)]],
+    tabla,
+    nota: reporte.truncado
+      ? `Se muestran los ${agruparMiles(MAXIMO_REGISTROS_HISTORIAL)} cambios más recientes; acote el periodo o los filtros para ver el resto.`
+      : 'El historial no se puede editar ni borrar.',
   });
 }

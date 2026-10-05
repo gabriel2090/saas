@@ -1,4 +1,10 @@
 import {
+  ACCIONES_VISOR,
+  TIPOS_DOCUMENTO_HISTORIAL,
+  type PeticionHistorial,
+} from '../../shared/historial';
+import type { PeticionKardex } from '../../shared/kardex';
+import {
   REPORTES,
   TIPOS_CARTERA,
   type PeticionCartera,
@@ -9,6 +15,7 @@ import type { ServicioReportes } from '../servicios/reportes';
 import type { RegistrarManejador } from './registrar';
 import {
   exigirBooleano,
+  exigirEntero,
   exigirEnteroONulo,
   exigirObjeto,
   exigirOpcion,
@@ -82,6 +89,55 @@ export function leerPeticionCartera(valor: unknown): PeticionCartera {
 }
 
 /**
+ * Lee y verifica los filtros del kardex.
+ *
+ * @param valor - Dato recibido.
+ * @returns Filtros.
+ * @throws {ErrorDeNegocio} Si la forma no es la esperada.
+ */
+export function leerPeticionKardex(valor: unknown): PeticionKardex {
+  const d = exigirObjeto(valor);
+  return {
+    productoCodigo: exigirEntero(d.productoCodigo, 'producto'),
+    bodegaId: exigirEnteroONulo(d.bodegaId, 'bodega'),
+    desde: exigirTexto(d.desde, 'desde'),
+    hasta: exigirTexto(d.hasta, 'hasta'),
+  };
+}
+
+/**
+ * Lee y verifica los filtros del visor del historial.
+ *
+ * @param valor - Dato recibido.
+ * @returns Filtros.
+ * @throws {ErrorDeNegocio} Si la forma no es la esperada.
+ */
+export function leerPeticionHistorial(valor: unknown): PeticionHistorial {
+  const d = exigirObjeto(valor);
+  return {
+    desde: exigirTexto(d.desde, 'desde'),
+    hasta: exigirTexto(d.hasta, 'hasta'),
+    tipo:
+      d.tipo === null
+        ? null
+        : exigirOpcion(
+            d.tipo,
+            TIPOS_DOCUMENTO_HISTORIAL.map((t) => t.valor),
+            'tipo de documento',
+          ),
+    accion:
+      d.accion === null
+        ? null
+        : exigirOpcion(
+            d.accion,
+            ACCIONES_VISOR.map((a) => a.valor),
+            'acción',
+          ),
+    texto: exigirTexto(d.texto, 'buscar'),
+  };
+}
+
+/**
  * Lee y verifica la petición de un reporte para imprimir o exportar.
  *
  * @param valor - Dato recibido.
@@ -91,9 +147,16 @@ export function leerPeticionCartera(valor: unknown): PeticionCartera {
 export function leerPeticionReporte(valor: unknown): PeticionReporte {
   const d = exigirObjeto(valor);
   const reporte = exigirOpcion(d.reporte, REPORTES, 'reporte');
-  return reporte === 'inventario'
-    ? { reporte, filtros: leerPeticionInventario(d.filtros) }
-    : { reporte, filtros: leerPeticionCartera(d.filtros) };
+  switch (reporte) {
+    case 'inventario':
+      return { reporte, filtros: leerPeticionInventario(d.filtros) };
+    case 'cartera':
+      return { reporte, filtros: leerPeticionCartera(d.filtros) };
+    case 'kardex':
+      return { reporte, filtros: leerPeticionKardex(d.filtros) };
+    case 'historial':
+      return { reporte, filtros: leerPeticionHistorial(d.filtros) };
+  }
 }
 
 /**
@@ -112,6 +175,13 @@ export function registrarIpcReportes(
     servicio.inventario(leerPeticionInventario(peticion)),
   );
   registrar('reportes:cartera', (peticion) => servicio.cartera(leerPeticionCartera(peticion)));
+  registrar('reportes:kardex', (peticion) => servicio.kardex(leerPeticionKardex(peticion)));
+  registrar('reportes:historial', (peticion) =>
+    servicio.historial(leerPeticionHistorial(peticion)),
+  );
+  registrar('reportes:detalleHistorial', (id) =>
+    servicio.detalleHistorial(exigirEntero(id, 'registro')),
+  );
   registrar('reportes:html', (peticion) => servicio.html(leerPeticionReporte(peticion)));
   registrar('reportes:imprimir', (peticion) =>
     dependencias.imprimir(servicio.html(leerPeticionReporte(peticion))),

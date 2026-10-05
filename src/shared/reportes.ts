@@ -1,4 +1,6 @@
 import type { UnidadMedida } from './formato/cantidades';
+import type { PeticionHistorial } from './historial';
+import type { PeticionKardex } from './kardex';
 
 /**
  * Cartera de clientes (cuentas por cobrar) o de proveedores (cuentas por pagar).
@@ -212,9 +214,22 @@ export interface ReporteInventario {
  */
 export type PeticionReporte =
   | { reporte: 'inventario'; filtros: PeticionInventario }
-  | { reporte: 'cartera'; filtros: PeticionCartera };
+  | { reporte: 'cartera'; filtros: PeticionCartera }
+  | { reporte: 'kardex'; filtros: PeticionKardex }
+  | { reporte: 'historial'; filtros: PeticionHistorial };
 
 /**
  * Reportes aceptados, para validar peticiones.
  */
-export const REPORTES: readonly PeticionReporte['reporte'][] = ['inventario', 'cartera'];
+export const REPORTES: readonly PeticionReporte['reporte'][] = [
+  'inventario',
+  'cartera',
+  'kardex',
+  'historial',
+];
+
+/**
+ * Reportes que se exportan a Excel (el kardex y el historial solo se
+ * imprimen o se guardan en PDF, como en sus maquetas).
+ */
+export const REPORTES_CON_EXCEL: readonly PeticionReporte['reporte'][] = ['inventario', 'cartera'];
