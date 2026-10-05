@@ -21,6 +21,7 @@
     "test:e2e": "node tests/e2e/ventanas.mjs",
     "test:e2e:correcciones": "node tests/e2e/ventanas.mjs --escenario=correcciones --capturas",
     "test:e2e:reimpresiones": "node tests/e2e/ventanas.mjs --escenario=reimpresiones --capturas",
+    "test:e2e:reportes": "node tests/e2e/ventanas.mjs --escenario=reportes --capturas",
     "empaquetar": "npm run build && electron-builder --win"
   },
   "dependencies": {

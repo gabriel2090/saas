@@ -1,15 +1,22 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { DocumentoImprimible } from '../../shared/impresion';
+import type { PeticionReporte } from '../../shared/reportes';
+import type { Resultado } from '../../shared/resultado';
 import { useAtajos } from '../atajos/useAtajos';
 import { Aviso, type TipoAviso } from '../componentes/Aviso';
 import { invocar } from '../servicios/api';
 
 /**
+ * Qué se muestra: un documento (factura, abono) o un reporte de la Fase 5.
+ */
+type OrigenVistaPrevia =
+  | { documento: DocumentoImprimible; reporte?: undefined }
+  | { reporte: PeticionReporte; documento?: undefined };
+
+/**
  * Propiedades de {@link VistaPrevia}.
  */
-interface PropiedadesVistaPrevia {
-  /** Documento a mostrar. */
-  documento: DocumentoImprimible;
+type PropiedadesVistaPrevia = OrigenVistaPrevia & {
   /** Título del diálogo. */
   titulo: string;
   /** Se llama al cerrar. */
@@ -18,6 +25,45 @@ interface PropiedadesVistaPrevia {
   soloVer?: boolean;
   /** Muestra el documento con el ancho de la tirilla de 80 mm. */
   tirilla?: boolean;
+};
+
+/**
+ * Arma el origen de la vista previa con lo que llegó en las propiedades.
+ *
+ * @param documento - Documento, si es uno.
+ * @param reporte - Reporte, si es uno.
+ * @returns Origen.
+ * @throws {Error} Si no llegó ninguno (error de programación).
+ */
+function elegirOrigen(
+  documento: DocumentoImprimible | undefined,
+  reporte: PeticionReporte | undefined,
+): OrigenVistaPrevia {
+  if (reporte) return { reporte };
+  if (documento) return { documento };
+  throw new Error('La vista previa necesita un documento o un reporte.');
+}
+
+/**
+ * Pide al proceso principal el HTML, la impresión o el PDF del documento o
+ * del reporte.
+ *
+ * @param origen - Documento o reporte.
+ * @param accion - Qué se pide.
+ * @returns Resultado del canal.
+ */
+function invocarImpresion(
+  origen: OrigenVistaPrevia,
+  accion: 'html' | 'imprimir' | 'pdf',
+): Promise<Resultado<string | boolean>> {
+  if (origen.reporte) {
+    return accion === 'html'
+      ? invocar('reportes:html', origen.reporte)
+      : invocar(accion === 'imprimir' ? 'reportes:imprimir' : 'reportes:pdf', origen.reporte);
+  }
+  return accion === 'html'
+    ? invocar('impresion:html', origen.documento)
+    : invocar(accion === 'imprimir' ? 'impresion:imprimir' : 'impresion:pdf', origen.documento);
 }
 
 /**
@@ -28,13 +74,9 @@ interface PropiedadesVistaPrevia {
  * @param props - Propiedades del componente.
  * @returns El diálogo modal.
  */
-export function VistaPrevia({
-  documento,
-  titulo,
-  alCerrar,
-  soloVer = false,
-  tirilla = false,
-}: PropiedadesVistaPrevia): ReactNode {
+export function VistaPrevia(props: PropiedadesVistaPrevia): ReactNode {
+  const { documento, reporte, titulo, alCerrar, soloVer = false, tirilla = false } = props;
+  const origen = useMemo(() => elegirOrigen(documento, reporte), [documento, reporte]);
   const [html, setHtml] = useState<string | null>(null);
   const [aviso, setAviso] = useState<{ tipo: TipoAviso; texto: string } | null>(null);
   const [ocupado, setOcupado] = useState(false);
@@ -53,10 +95,10 @@ export function VistaPrevia({
 
   useEffect(() => {
     let vigente = true;
-    void invocar('impresion:html', documento).then((r) => {
+    void invocarImpresion(origen, 'html').then((r) => {
       if (!vigente) return;
       if (r.ok) {
-        setHtml(r.datos);
+        setHtml(String(r.datos));
         (botonImprimir.current ?? botonCerrar.current)?.focus();
       } else {
         setAviso({ tipo: 'error', texto: r.error.mensaje });
@@ -65,22 +107,21 @@ export function VistaPrevia({
     return () => {
       vigente = false;
     };
-  }, [documento]);
+  }, [origen]);
 
   useAtajos({ retroceder: alCerrar }, { prioridad: 'modal' });
 
-  const ejecutar = async (canal: 'impresion:imprimir' | 'impresion:pdf'): Promise<void> => {
+  const ejecutar = async (accion: 'imprimir' | 'pdf'): Promise<void> => {
     setOcupado(true);
     setAviso(null);
-    const r = await invocar(canal, documento);
+    const r = await invocarImpresion(origen, accion);
     setOcupado(false);
     if (!r.ok) {
       setAviso({ tipo: 'error', texto: r.error.mensaje });
     } else if (r.datos) {
       setAviso({
         tipo: 'exito',
-        texto:
-          canal === 'impresion:imprimir' ? 'Documento enviado a la impresora.' : 'PDF guardado.',
+        texto: accion === 'imprimir' ? 'Documento enviado a la impresora.' : 'PDF guardado.',
       });
     }
   };
@@ -112,7 +153,7 @@ export function VistaPrevia({
                 type="button"
                 className="boton boton--primario"
                 disabled={html === null || ocupado}
-                onClick={() => void ejecutar('impresion:imprimir')}
+                onClick={() => void ejecutar('imprimir')}
               >
                 Imprimir
               </button>
@@ -120,7 +161,7 @@ export function VistaPrevia({
                 type="button"
                 className="boton"
                 disabled={html === null || ocupado}
-                onClick={() => void ejecutar('impresion:pdf')}
+                onClick={() => void ejecutar('pdf')}
               >
                 Guardar PDF
               </button>

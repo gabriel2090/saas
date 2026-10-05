@@ -48,6 +48,8 @@ interface PropiedadesBuscador<R> {
   campo?: Ref<HTMLInputElement>;
   /** Etiqueta accesible del campo. */
   etiqueta: string;
+  /** Se llama cuando el usuario borra todo el campo (p. ej. para volver a «todos»). */
+  alVaciar?: () => void;
 }
 
 /**
@@ -145,6 +147,7 @@ export function Buscador<R>({ campo, ...props }: PropiedadesBuscador<R>): ReactN
         onChange={(e) => {
           setEscrito(e.target.value);
           setResaltada(0);
+          if (e.target.value.trim() === '') props.alVaciar?.();
         }}
         onBlur={() => setEscrito(props.vaciarAlElegir ? '' : null)}
       />

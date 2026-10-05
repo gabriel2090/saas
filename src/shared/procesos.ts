@@ -158,8 +158,8 @@ export const PROCESOS: readonly DefinicionProceso[] = [
   },
   {
     id: 'reporte-inventario',
-    titulo: 'Reporte de inventario',
-    palabrasClave: ['existencias', 'stock'],
+    titulo: 'Inventario valorizado',
+    palabrasClave: ['reporte de inventario', 'existencias', 'stock', 'valor', 'costo'],
     fase: 5,
     anclado: false,
   },

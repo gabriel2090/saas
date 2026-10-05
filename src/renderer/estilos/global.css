@@ -2049,3 +2049,144 @@ textarea {
   background: var(--color-primario);
   color: #fff;
 }
+
+/* ---------- Reportes (maquetas inventario.html y cuentas.html, Fase 5) ---------- */
+
+.reporte {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+}
+
+.reporte .barra-herramientas .boton {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.reporte__filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: end;
+}
+
+.reporte__filtros .campo input,
+.reporte__filtros .campo select {
+  min-width: 0;
+}
+
+.reporte__filtros .ancho input {
+  width: 260px;
+}
+
+.reporte__filtros .segmentado button {
+  padding: 4px 12px;
+  white-space: nowrap;
+}
+
+.reporte__tabla {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Cifras de resumen arriba de la tabla. */
+.indicadores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.indicador {
+  display: flex;
+  flex: 1 1 150px;
+  flex-direction: column;
+  padding: 5px 10px;
+  border: 1px solid var(--color-borde);
+  border-radius: 4px;
+  background: var(--color-solo-lectura);
+  font-size: 12px;
+  color: var(--color-tenue);
+}
+
+.indicador strong {
+  font-size: 17px;
+  color: var(--color-texto);
+  font-variant-numeric: tabular-nums;
+}
+
+.indicador--error {
+  border-color: #e3a49d;
+  background: #fdecea;
+}
+
+.indicador--error strong {
+  color: var(--color-error);
+}
+
+.indicador--exito strong {
+  color: var(--color-exito);
+}
+
+.indicador--total {
+  border-color: var(--color-primario);
+  background: #eaf1fb;
+}
+
+/* Encabezado de grupo (cliente, proveedor) y subtotal dentro de la tabla. */
+.tabla tr.fila-grupo td,
+.tabla tr.fila-grupo:nth-child(even) td {
+  padding-top: 7px;
+  background: #e3ebf5;
+  color: var(--color-titulo);
+  font-weight: 700;
+}
+
+.tabla tr.fila-grupo td .texto-tenue {
+  font-weight: 400;
+}
+
+.tabla tr.subtotal td {
+  border-bottom: 1px solid var(--color-borde);
+  background: #fff;
+  font-weight: 600;
+}
+
+.tabla tr.total td {
+  border-top: 2px solid var(--color-titulo);
+  background: #e9edf2;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.tabla tr.vencida td.dias,
+.texto-vencida {
+  color: var(--color-error);
+  font-weight: 700;
+}
+
+.tabla tr.vencida td:first-child {
+  box-shadow: inset 3px 0 0 var(--color-error);
+}
+
+.texto-favor {
+  color: var(--color-exito);
+  font-weight: 600;
+}
+
+.tabla td.negativo {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+.tabla th.col-bodega,
+.tabla tr:not(.fila--seleccionada) td.col-bodega {
+  background: #f3f6fa;
+}
+
+/* Sobre el azul de la fila seleccionada, el rojo no se lee. */
+.tabla tr.fila--seleccionada td.dias,
+.tabla tr.fila--seleccionada td.negativo {
+  color: inherit;
+}

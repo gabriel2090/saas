@@ -6,11 +6,13 @@ import { CambiarContrasena } from '../pantallas/CambiarContrasena';
 import { Catalogos } from '../pantallas/Catalogos';
 import { CorreccionCliente } from '../pantallas/CorreccionCliente';
 import { CorreccionProveedor } from '../pantallas/CorreccionProveedor';
+import { CuentasPorCobrar, CuentasPorPagar } from '../pantallas/Cuentas';
 import { DatosNegocio } from '../pantallas/DatosNegocio';
 import { DevolucionCompra, DevolucionVenta } from '../pantallas/Devolucion';
 import { FacturaProveedor } from '../pantallas/FacturaProveedor';
 import { Facturar } from '../pantallas/Facturar';
 import { Importador } from '../pantallas/Importador';
+import { InventarioValorizado } from '../pantallas/InventarioValorizado';
 import { PendienteFase } from '../pantallas/PendienteFase';
 import { Productos } from '../pantallas/Productos';
 import { Reimpresiones } from '../pantallas/Reimpresiones';
@@ -39,6 +41,9 @@ const CONTENIDOS: Partial<Record<IdProceso, ComponentType>> = {
   'devolucion-venta': DevolucionVenta,
   'devolucion-compra': DevolucionCompra,
   reimpresiones: Reimpresiones,
+  'reporte-inventario': InventarioValorizado,
+  'cuentas-cobrar': CuentasPorCobrar,
+  'cuentas-pagar': CuentasPorPagar,
 };
 
 /**
