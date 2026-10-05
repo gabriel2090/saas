@@ -83,7 +83,7 @@ Todo lo que se reimprime sale con la leyenda **REIMPRESION**. Las facturas anula
 
 **Cuentas por cobrar y por pagar.** Las facturas con saldo (y las compras, en cuentas por pagar) agrupadas por cliente o proveedor. Primero aparece el que tiene la factura vencida más antigua, y dentro de cada uno, de la más antigua a la más reciente. La columna «Días» dice «Vencida N», «Vence hoy» o «Faltan N»; las vencidas se resaltan en rojo. Cada grupo cierra con su saldo, lo vencido, su saldo a favor y el neto. «Devuelto / corregido» es lo que bajaron las devoluciones y las correcciones. Filtros: un cliente o proveedor (borre el campo para volver a todos), «Todas» o «Solo vencidas», y la casilla para incluir a los que no deben nada pero tienen saldo a favor. Los saldos iniciales importados aparecen con su etiqueta.
 
-En el inventario valorizado, **Ctrl+D** («Ver kardex») abre el kardex del producto elegido, en la bodega del filtro (o en todas).
+En el inventario valorizado, **Ctrl+D** («Ver kardex») abre el kardex del producto elegido, en la bodega del filtro (o en todas). En cuentas por cobrar y por pagar, **Ctrl+D** («Estado de cuenta») abre el estado de cuenta del cliente o proveedor de la fila elegida.
 
 ## Kardex
 
@@ -93,7 +93,17 @@ En el inventario valorizado, **Ctrl+D** («Ver kardex») abre el kardex del prod
 - Cada movimiento muestra fecha y hora, qué fue (compra, venta, corrección, devolución, anulación, ajuste o inventario inicial), el documento, el cliente o proveedor, la entrada o la salida, el **saldo** después del movimiento y el costo unitario. Las correcciones indican la versión de la factura («Factura 84762 · versión 2»); las anulaciones devuelven la cantidad y llevan la marca **ANULADA**.
 - La última fila suma las entradas y las salidas del periodo; arriba, los indicadores muestran el saldo final y su valor al costo actual. Un saldo negativo se ve en rojo.
 - **Ctrl+D** («Ver documento») muestra la factura o la compra de la fila (en una devolución, la factura devuelta). Los ajustes y el inventario inicial no tienen documento para ver.
-- **Ctrl+P** imprime o guarda el kardex en PDF (hoja carta). **F5** lo vuelve a calcular. El kardex no se exporta a Excel.
+- **Ctrl+P** imprime o guarda el kardex en PDF (hoja carta). **Ctrl+E** lo exporta a Excel con las mismas filas (saldo anterior, movimientos y totales). **F5** lo vuelve a calcular.
+
+## Estados de cuenta
+
+Ábralo con Ctrl+K y «estados de cuenta», o desde cuentas por cobrar o por pagar con Ctrl+D. Elija **Cliente** o **Proveedor**, escriba el código o parte del nombre y pulse Intro. Por defecto muestra desde el primer día del mes anterior hasta hoy; cambie **Desde** / **Hasta** (`dd/mm/aaaa`). La hoja se ve tal como se imprime:
+
+- **Movimientos del periodo**: la primera fila es el **saldo anterior** y luego cada factura, compra, abono, corrección, devolución, anulación y reintegro, con el **saldo corrido**. El saldo es lo que se debe menos el saldo a favor; si queda a favor dice «A favor N». Un abono pagado con saldo a favor no cambia el saldo. Las anulaciones aparecen en su fecha y el documento anulado lleva la marca ANULADA.
+- **Facturas (o compras) pendientes** a la fecha «Hasta», con los días de vencimiento contados a ese día.
+- Al final: saldo pendiente, vencido, saldo a favor y **neto a pagar**.
+- Al cliente solo le aparecen las facturas a crédito (las de contado no afectan su cuenta). Al proveedor le aparecen todas las compras; las de contado, con su pago.
+- **Ctrl+P** lo imprime y **Ctrl+G** lo guarda en PDF con el nombre «Estado de cuenta {cliente o proveedor} {fecha}.pdf». Cada página repite el encabezado y lleva «Página N de M». **F5** lo vuelve a calcular. No se exporta a Excel.
 
 ## Historial de cambios
 
