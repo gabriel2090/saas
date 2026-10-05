@@ -24,7 +24,7 @@ import type { IdProceso } from './procesos';
  *   proveedor, abono, ajuste de inventario).
  * - `facturar`, `correccion`, `reimpresiones`: solo dentro de esas ventanas.
  * - `reporte`: ventanas de reportes (inventario valorizado, cuentas por cobrar
- *   y por pagar, kardex e historial de cambios).
+ *   y por pagar, kardex, historial de cambios y estados de cuenta).
  * - `organizar`: teclas del menú «Organizar» mientras está abierto (D-110).
  */
 export type AmbitoAtajo =
@@ -325,7 +325,14 @@ export const ATAJOS = {
   },
   imprimirReporte: {
     combinacion: 'Ctrl+P',
-    descripcion: 'Imprimir o guardar el reporte en PDF',
+    descripcion:
+      'Imprimir el reporte (abre la vista previa para imprimir o guardar en PDF; el estado de cuenta se imprime directo)',
+    ambito: 'reporte',
+    permitirEnCampoTexto: true,
+  },
+  guardarPdfReporte: {
+    combinacion: 'Ctrl+G',
+    descripcion: 'Guardar el estado de cuenta en PDF',
     ambito: 'reporte',
     permitirEnCampoTexto: true,
   },
@@ -344,7 +351,7 @@ export const ATAJOS = {
   verDocumentoReporte: {
     combinacion: 'Ctrl+D',
     descripcion:
-      'Ver el documento de la fila (kardex e historial de cambios) o el kardex del producto (inventario valorizado)',
+      'Ver el documento de la fila (kardex e historial de cambios), el kardex del producto (inventario valorizado) o el estado de cuenta del tercero (cuentas por cobrar y por pagar)',
     ambito: 'reporte',
     permitirEnCampoTexto: true,
   },

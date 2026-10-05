@@ -12,8 +12,15 @@ import type {
 import type { TipoAviso } from '../componentes/Aviso';
 import { Buscador } from '../documentos/Buscador';
 import { MarcoReporte } from '../reportes/MarcoReporte';
-import { TablaReporte, type ColumnaReporte, type FilaReporte } from '../reportes/TablaReporte';
+import { pedirEstadoCuenta } from '../reportes/solicitudEstadoCuenta';
+import {
+  filaEfectiva,
+  TablaReporte,
+  type ColumnaReporte,
+  type FilaReporte,
+} from '../reportes/TablaReporte';
 import { invocar } from '../servicios/api';
+import { useVentanas } from '../ventanas/ProveedorVentanas';
 
 /**
  * Tercero de la lista del filtro.
@@ -194,6 +201,24 @@ function filasDe(reporte: ReporteCartera): FilaReporte[] {
 }
 
 /**
+ * Tercero de cada fila de la tabla (encabezado, documentos y subtotal), para
+ * abrir su estado de cuenta con Ctrl+D. La fila del total no tiene tercero.
+ *
+ * @param reporte - Reporte calculado.
+ * @returns Código del tercero por clave de fila.
+ */
+function terceroPorFila(reporte: ReporteCartera): Map<string, number> {
+  const mapa = new Map<string, number>();
+  for (const g of reporte.grupos) {
+    const { codigo } = g.tercero;
+    mapa.set(`g${codigo}`, codigo);
+    mapa.set(`s${codigo}`, codigo);
+    for (const d of g.documentos) mapa.set(`d${d.id}`, codigo);
+  }
+  return mapa;
+}
+
+/**
  * Propiedades de {@link Cuentas}.
  */
 interface PropiedadesCuentas {
@@ -204,7 +229,8 @@ interface PropiedadesCuentas {
 /**
  * Reporte de cuentas por cobrar o por pagar «a hoy» (Fase 5a, D-146, D-148):
  * documentos pendientes agrupados por tercero, primero el del vencimiento
- * más antiguo, con subtotales, saldo a favor y neto.
+ * más antiguo, con subtotales, saldo a favor y neto. Ctrl+D abre el estado
+ * de cuenta del tercero de la fila elegida (D-166).
  *
  * @param props - Propiedades del componente.
  * @returns La ventana.
@@ -219,6 +245,7 @@ export function Cuentas({ tipo }: PropiedadesCuentas): ReactNode {
   const [seleccionada, setSeleccionada] = useState<string | null>(null);
   const [aviso, setAviso] = useState<{ tipo: TipoAviso; texto: string } | null>(null);
   const [vuelta, setVuelta] = useState(0);
+  const ventanas = useVentanas();
 
   const filtros = useMemo<PeticionCartera>(
     () => ({ tipo, terceroCodigo, soloVencidas, incluirSoloFavor }),
@@ -249,6 +276,19 @@ export function Cuentas({ tipo }: PropiedadesCuentas): ReactNode {
   }, [filtros, vuelta]);
 
   const filas = useMemo(() => (reporte ? filasDe(reporte) : []), [reporte]);
+  const terceroDeFila = useMemo(
+    () => (reporte ? terceroPorFila(reporte) : new Map<string, number>()),
+    [reporte],
+  );
+  const elegida = filaEfectiva(filas, seleccionada);
+  const codigoFila = elegida === null ? undefined : terceroDeFila.get(elegida);
+  const verEstadoCuenta =
+    codigoFila === undefined
+      ? null
+      : () => {
+          pedirEstadoCuenta({ tipo, terceroCodigo: codigoFila });
+          ventanas.abrir('estados-cuenta');
+        };
   const actualizar = useCallback(() => setVuelta((v) => v + 1), []);
   const r = reporte?.resumen;
   const documentos = r ? r.documentosVencidos + r.documentosPorVencer : 0;
@@ -264,6 +304,11 @@ export function Cuentas({ tipo }: PropiedadesCuentas): ReactNode {
       resumen={resumen}
       alActualizar={actualizar}
       aviso={aviso}
+      accionFila={{
+        texto: 'Estado de cuenta',
+        ejecutar: verEstadoCuenta,
+        pedirFila: `Elija en la tabla el ${textos.tercero.toLowerCase()}.`,
+      }}
     >
       <div className="reporte__filtros">
         <label className="campo ancho">
@@ -340,7 +385,7 @@ export function Cuentas({ tipo }: PropiedadesCuentas): ReactNode {
       <TablaReporte
         columnas={columnasDe(tipo === 'cliente')}
         filas={filas}
-        seleccionada={seleccionada}
+        seleccionada={elegida}
         alSeleccionar={setSeleccionada}
         textoVacio={
           soloVencidas || terceroCodigo !== null

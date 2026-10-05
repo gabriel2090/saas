@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { diaDeIso, sumarDias } from '../../domain/calendario';
+import { diaDeIso, primerDiaMesAnterior, sumarDias } from '../../domain/calendario';
 import { claveComparacion } from '../../domain/texto';
 import { formatearCantidad } from '../../shared/formato/cantidades';
 import { aIsoLocal, formatearFecha, formatearHora, leerFecha } from '../../shared/formato/fechas';
@@ -22,19 +22,6 @@ import {
   type FilaReporte,
 } from '../reportes/TablaReporte';
 import { invocar } from '../servicios/api';
-
-/**
- * Primer día del mes anterior a un día dado (inicio del periodo por defecto).
- *
- * @param hoy - Día `AAAA-MM-DD`.
- * @returns `AAAA-MM-01` del mes anterior.
- *
- * @example
- * primerDiaMesAnterior('2026-10-04'); // '2026-09-01'
- */
-function primerDiaMesAnterior(hoy: string): string {
-  return `${sumarDias(`${hoy.slice(0, 8)}01`, -1).slice(0, 8)}01`;
-}
 
 /**
  * Convierte el kardex en filas: saldo anterior, un movimiento por fila y los

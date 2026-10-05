@@ -22,6 +22,18 @@ const NOMBRE_DOCUMENTO: Record<TipoDocumentoImprimible, string> = {
 };
 
 /**
+ * Acción que abre otra ventana con el dato de la fila seleccionada (Ctrl+D).
+ */
+export interface AccionFila {
+  /** Texto del botón, p. ej. «Ver kardex». */
+  texto: string;
+  /** Ejecuta la acción, o `null` si la fila seleccionada no la admite. */
+  ejecutar: (() => void) | null;
+  /** Aviso cuando no hay una fila que la admita, p. ej. «Elija en la tabla el producto.». */
+  pedirFila: string;
+}
+
+/**
  * Propiedades de {@link MarcoReporte}.
  */
 interface PropiedadesMarcoReporte {
@@ -41,11 +53,11 @@ interface PropiedadesMarcoReporte {
    */
   documento?: DocumentoVisible | null;
   /**
-   * Abre el kardex del producto de la fila seleccionada («Ver kardex», Ctrl+D,
-   * en el inventario valorizado). Si se omite, el botón no aparece; si es
-   * `null`, no hay fila seleccionada.
+   * Acción sobre la fila seleccionada con Ctrl+D: «Ver kardex» en el
+   * inventario valorizado o «Estado de cuenta» en las cuentas por cobrar y
+   * por pagar. Si se omite, el botón no aparece.
    */
-  verKardex?: (() => void) | null;
+  accionFila?: AccionFila;
   /** Filtros, indicadores y tabla. */
   children: ReactNode;
 }
@@ -53,7 +65,8 @@ interface PropiedadesMarcoReporte {
 /**
  * Marco común de los reportes: barra con «Imprimir o guardar PDF» (Ctrl+P,
  * abre la vista previa en hoja carta), «Ver documento» (Ctrl+D, en el kardex
- * y el historial) o «Ver kardex» (Ctrl+D, en el inventario valorizado),
+ * y el historial) o una acción sobre la fila (Ctrl+D: «Ver kardex» o
+ * «Estado de cuenta»),
  * «Exportar a Excel» (Ctrl+E, solo los reportes que lo
  * admiten) y «Actualizar» (F5). El proceso principal vuelve a calcular el
  * reporte con los filtros al imprimir o exportar (D-145, D-146).
@@ -95,9 +108,10 @@ export function MarcoReporte(props: PropiedadesMarcoReporte): ReactNode {
   };
 
   const verDocumento = (): void => {
-    if (props.verKardex !== undefined) {
-      if (props.verKardex) props.verKardex();
-      else setAviso({ tipo: 'alerta', texto: 'Elija en la tabla el producto.' });
+    const { accionFila } = props;
+    if (accionFila) {
+      if (accionFila.ejecutar) accionFila.ejecutar();
+      else setAviso({ tipo: 'alerta', texto: accionFila.pedirFila });
       return;
     }
     if (!conDocumento) return;
@@ -150,15 +164,15 @@ export function MarcoReporte(props: PropiedadesMarcoReporte): ReactNode {
             </span>
           </button>
         )}
-        {props.verKardex !== undefined && (
+        {props.accionFila && (
           <button
             type="button"
             className="boton"
             tabIndex={-1}
-            disabled={!props.verKardex}
+            disabled={!props.accionFila.ejecutar}
             onClick={verDocumento}
           >
-            Ver kardex
+            {props.accionFila.texto}
             <span className="atajo">
               {textoCombinacion(ATAJOS.verDocumentoReporte.combinacion)}
             </span>

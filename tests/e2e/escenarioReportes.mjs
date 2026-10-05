@@ -1,6 +1,7 @@
 /**
- * Escenario de punta a punta de la Fase 5a: inventario valorizado, cuentas
- * por cobrar y cuentas por pagar sobre los datos de ejemplo. Verifica que la
+ * Escenario de punta a punta de la Fase 5: inventario valorizado, cuentas
+ * por cobrar y por pagar, kardex, historial de cambios y estados de cuenta
+ * sobre los datos de ejemplo. Verifica que la
  * pantalla muestre lo que calcula el proceso principal, los filtros, el orden
  * de los grupos, las flechas, la vista previa carta (Ctrl+P) y el PDF con el
  * número de página. Excel (Ctrl+E) abre el diálogo de guardar de Windows y
@@ -8,7 +9,7 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
@@ -343,13 +344,6 @@ export async function recorrerReportes(a, registrar, captura, dormir, entorno) {
   // ---------- Kardex ----------
   const KAR = 'section[aria-label="Kardex"]';
   await a.abrir('kardex', 'Kardex');
-  a.verificar(
-    'kardex: sin «Exportar a Excel»',
-    await a.js(
-      `[...document.querySelectorAll('${KAR} .barra-herramientas button')].map(b => b.textContent.replace(/Ctrl\\+\\w|F5/, ''))`,
-    ),
-    ['Imprimir o guardar PDF', 'Ver documento', 'Actualizar'],
-  );
   await a.js(`document.querySelector('${KAR} .producto-kardex input').focus()`);
   await a.send('Input.insertText', { text: '231' });
   await a.tecla('Enter');
@@ -367,6 +361,13 @@ export async function recorrerReportes(a, registrar, captura, dormir, entorno) {
     `document.querySelectorAll('${KAR} tbody tr').length === ${kar.filas.length + 2}`,
   );
   await foto('57-kardex');
+  a.verificar(
+    'kardex: con «Exportar a Excel»',
+    await a.js(
+      `[...document.querySelectorAll('${KAR} .barra-herramientas button')].map(b => b.textContent.replace(/Ctrl\\+\\w|F5/, ''))`,
+    ),
+    ['Imprimir o guardar PDF', 'Ver documento', 'Exportar a Excel', 'Actualizar'],
+  );
   a.verificar(
     'kardex: periodo por defecto desde el 1.º del mes anterior',
     desdeKar.startsWith('01/'),
@@ -392,14 +393,14 @@ export async function recorrerReportes(a, registrar, captura, dormir, entorno) {
   a.verificar(
     'kardex: corrección con su versión',
     await a.js(
-      `[...document.querySelectorAll('${KAR} tbody td')].some(c => c.textContent === 'Factura 84762 · versión 2')`,
+      `[...document.querySelectorAll('${KAR} tbody td')].some(c => c.textContent === 'Compra 6 · FE-5698 · versión 2')`,
     ),
     true,
   );
   await a.js(
-    `[...document.querySelectorAll('${KAR} tbody tr')].find(f => f.textContent.includes('Corrección de venta')).click()`,
+    `[...document.querySelectorAll('${KAR} tbody tr')].find(f => f.textContent.includes('Corrección de compra')).click()`,
   );
-  await verDocumento('84762', '58-kardex-ver-documento');
+  await verDocumento('AGRINA S.A.S.', '58-kardex-ver-documento');
 
   await fijarValor(`${KAR} .reporte__filtros select`, '');
   const karTodas = await api(a, 'reportes:kardex', { ...filtrosKar, bodegaId: null });
@@ -504,5 +505,189 @@ export async function recorrerReportes(a, registrar, captura, dormir, entorno) {
     (await indicadores(KAR)).some((i) => i.startsWith('Saldo final en todas las bodegas = -3')),
     true,
   );
+
+  await recorrerEstadosCuenta(a, registrar, foto, dormir, entorno, { CXC, iso, fijarValor });
   registrar('Reportes recorridos.');
+}
+
+/**
+ * Recorre la Fase 5c: «Estado de cuenta» (Ctrl+D) desde las cuentas por
+ * cobrar, la vista carta de cliente y de proveedor, y un PDF de varias
+ * páginas (encabezado en cada una y «Página N de M»).
+ *
+ * @param {Record<string, (...args: never[]) => unknown> & { errores: string[] }} a - Acciones de la prueba.
+ * @param {(texto: string) => void} registrar - Escribe una línea en el registro.
+ * @param {(nombre: string) => Promise<unknown>} foto - Guarda una captura (si se pidieron).
+ * @param {(ms: number) => Promise<void>} dormir - Espera.
+ * @param {{ electron: string, raiz: string, carpeta: string }} entorno - Electron, proyecto y carpeta de salida.
+ * @param {{ CXC: string, iso: (texto: string) => string, fijarValor: (selector: string, valor: string) => Promise<void> }} ayudas - Selector de las cuentas por cobrar y ayudas del recorrido.
+ * @returns {Promise<void>} Promesa que se cumple al terminar.
+ */
+async function recorrerEstadosCuenta(a, registrar, foto, dormir, entorno, ayudas) {
+  const { CXC, iso, fijarValor } = ayudas;
+  const EC = 'section[aria-label="Estados de cuenta"]';
+
+  /**
+   * HTML de la vista carta embebida.
+   *
+   * @returns {Promise<string>} `srcdoc` del marco, o vacío.
+   */
+  const vista = () => a.js(`document.querySelector('${EC} .previa-carta iframe')?.srcdoc ?? ''`);
+
+  // «Estado de cuenta» con Ctrl+D desde las cuentas por cobrar.
+  await a.abrir('cuentas por cobrar', 'Cuentas por cobrar');
+  await a.js(
+    `[...document.querySelectorAll('${CXC} .segmentado button')].find(b => b.textContent === 'Todas').click()`,
+  );
+  await a.esperar(
+    `[...document.querySelectorAll('${CXC} tr.fila-grupo')].some(f => f.textContent.includes('JUAN JJ FERTILIA'))`,
+  );
+  await a.js(
+    `[...document.querySelectorAll('${CXC} tr.fila-grupo')].find(f => f.textContent.includes('JUAN JJ FERTILIA')).nextElementSibling.click()`,
+  );
+  a.verificar(
+    'CxC: botón «Estado de cuenta»',
+    await a.js(
+      `[...document.querySelectorAll('${CXC} .barra-herramientas button')].some(b => b.textContent.startsWith('Estado de cuenta'))`,
+    ),
+    true,
+  );
+  await a.tecla('D', { ctrl: true });
+  await a.esperar(
+    `document.querySelector('.ventana--activa')?.getAttribute('aria-label') === 'Estados de cuenta' && (document.querySelector('${EC} .previa-carta iframe')?.srcdoc ?? '').includes('JUAN JJ FERTILIA')`,
+    10000,
+  );
+  await dormir(500);
+  await foto('66-estado-cuenta-cliente');
+  const [desde, hasta] = await a.js(
+    `[...document.querySelectorAll('${EC} .fecha input')].map(i => i.value)`,
+  );
+  const tercero = await a.js(
+    `document.querySelector('${EC} .reporte__filtros .ancho input').value`,
+  );
+  a.verificar(
+    'estado de cuenta: Ctrl+D trae el cliente de la fila',
+    tercero,
+    '10001 - JUAN JJ FERTILIA',
+  );
+  a.verificar(
+    'estado de cuenta: periodo por defecto desde el 1.º del mes anterior',
+    desde.startsWith('01/'),
+    true,
+  );
+  a.verificar(
+    'estado de cuenta: botones',
+    await a.js(
+      `[...document.querySelectorAll('${EC} .barra-herramientas button')].map(b => b.textContent.replace(/Ctrl\\+\\w|F5/, ''))`,
+    ),
+    ['Imprimir', 'Guardar PDF', 'Actualizar'],
+  );
+  a.verificar(
+    'estado de cuenta: nombre del archivo con el tercero y la fecha',
+    await a.js(`document.querySelector('${EC} .barra-herramientas__resumen').textContent`),
+    `Hoja carta · Estado de cuenta JUAN JJ FERTILIA ${hasta.replaceAll('/', '-')}.pdf`,
+  );
+  const filtrosJuan = {
+    tipo: 'cliente',
+    terceroCodigo: 10001,
+    desde: iso(desde),
+    hasta: iso(hasta),
+  };
+  const juan = await api(a, 'reportes:estadoCuenta', filtrosJuan);
+  const html = await vista();
+  a.verificar(
+    'estado de cuenta: encabezado con el periodo',
+    html.includes('ESTADO DE CUENTA') && html.includes(`Periodo ${desde} a ${hasta}`),
+    true,
+  );
+  a.verificar(
+    'estado de cuenta: saldo a favor y neto de la maqueta',
+    [juan.resumen.pendiente, juan.resumen.saldoFavor, juan.resumen.neto],
+    [32_500, 5_500, 27_000],
+  );
+  a.verificar(
+    'estado de cuenta: recuadro final en la hoja',
+    html.includes('Neto a pagar') && html.includes(miles(27_000).replace('$ ', '')),
+    true,
+  );
+
+  // Proveedor: cambiar el tipo limpia el tercero.
+  await a.js(
+    `[...document.querySelectorAll('${EC} .segmentado button')].find(b => b.textContent === 'Proveedor').click()`,
+  );
+  await a.esperar(`!document.querySelector('${EC} .previa-carta iframe')`);
+  await a.js(`document.querySelector('${EC} .reporte__filtros .ancho input').focus()`);
+  await a.send('Input.insertText', { text: '10001' });
+  await a.tecla('Enter');
+  await a.esperar(
+    `(document.querySelector('${EC} .previa-carta iframe')?.srcdoc ?? '').includes('AGRINA S.A.S.')`,
+    10000,
+  );
+  await dormir(500);
+  await foto('67-estado-cuenta-proveedor');
+  a.verificar(
+    'estado de cuenta: proveedor',
+    (await vista()).includes('PROVEEDOR') && (await vista()).includes('Compras pendientes al'),
+    true,
+  );
+
+  // Varias páginas: 80 abonos pequeños a la factura pendiente de Juan.
+  const cxc = await api(a, 'reportes:cartera', {
+    tipo: 'cliente',
+    terceroCodigo: 10001,
+    soloVencidas: false,
+    incluirSoloFavor: true,
+  });
+  const factura = cxc.grupos[0].documentos[0];
+  for (let i = 0; i < 80; i += 1) {
+    await api(a, 'abonos:guardar', {
+      tipo: 'cliente',
+      terceroCodigo: 10001,
+      fecha: iso(hasta),
+      formaPagoId: 1,
+      valor: 100,
+      observacion: '',
+      aplicaciones: [{ facturaId: factura.id, valor: 100 }],
+    });
+  }
+  await a.js(
+    `[...document.querySelectorAll('${EC} .segmentado button')].find(b => b.textContent === 'Cliente').click()`,
+  );
+  await a.js(`document.querySelector('${EC} .reporte__filtros .ancho input').focus()`);
+  await a.send('Input.insertText', { text: '10001' });
+  await a.tecla('Enter');
+  await fijarValor(`${EC} .fecha input`, '01/01/2000');
+  await a.esperar(
+    `((document.querySelector('${EC} .previa-carta iframe')?.srcdoc ?? '').match(/Efectivo · aplicado a/g) ?? []).length >= 80`,
+    10000,
+  );
+  await dormir(500);
+  await foto('68-estado-cuenta-largo');
+  const largo = await api(a, 'reportes:estadoCuenta', { ...filtrosJuan, desde: '2000-01-01' });
+  a.verificar(
+    'estado de cuenta largo: el neto baja con los 80 abonos',
+    largo.resumen.neto,
+    27_000 - 8_000,
+  );
+
+  mkdirSync(entorno.carpeta, { recursive: true });
+  const rutaHtml = join(entorno.carpeta, 'estado-cuenta.html');
+  const rutaPdf = join(entorno.carpeta, 'estado-cuenta.pdf');
+  writeFileSync(
+    rutaHtml,
+    await api(a, 'reportes:html', {
+      reporte: 'estado-cuenta',
+      filtros: { ...filtrosJuan, desde: '2000-01-01' },
+    }),
+  );
+  const pdf = spawnSync(entorno.electron, ['tests/e2e/pdf-reporte.mjs', rutaHtml, rutaPdf], {
+    cwd: entorno.raiz,
+    encoding: 'utf8',
+  });
+  a.verificar('estado de cuenta: PDF generado', pdf.status, 0);
+  const paginas = (readFileSync(rutaPdf, 'latin1').match(/\/Type\s*\/Page(?!s)/g) ?? []).length;
+  a.verificar('estado de cuenta: el PDF largo tiene varias páginas', paginas >= 2, true);
+  registrar(
+    `Estado de cuenta de Juan: ${juan.movimientos.length} movimientos; largo ${largo.movimientos.length} en ${paginas} páginas (${rutaPdf}).`,
+  );
 }

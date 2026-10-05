@@ -9,6 +9,7 @@ import { CorreccionProveedor } from '../pantallas/CorreccionProveedor';
 import { CuentasPorCobrar, CuentasPorPagar } from '../pantallas/Cuentas';
 import { DatosNegocio } from '../pantallas/DatosNegocio';
 import { DevolucionCompra, DevolucionVenta } from '../pantallas/Devolucion';
+import { EstadosCuenta } from '../pantallas/EstadosCuenta';
 import { FacturaProveedor } from '../pantallas/FacturaProveedor';
 import { Facturar } from '../pantallas/Facturar';
 import { HistorialCambios } from '../pantallas/HistorialCambios';
@@ -48,6 +49,7 @@ const CONTENIDOS: Partial<Record<IdProceso, ComponentType>> = {
   'cuentas-pagar': CuentasPorPagar,
   kardex: Kardex,
   'historial-cambios': HistorialCambios,
+  'estados-cuenta': EstadosCuenta,
 };
 
 /**

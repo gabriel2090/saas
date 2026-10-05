@@ -2327,3 +2327,29 @@ textarea {
 .tabla tr.fila--seleccionada .accion {
   background: #fff;
 }
+
+/* ---------- Estado de cuenta (maqueta estado-cuenta.html, Fase 5c) ---------- */
+
+.previa-carta {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  min-height: 0;
+  padding: 14px;
+  border: 1px solid var(--color-borde);
+  background: #9aa8b8;
+}
+
+/* 816 px = 8,5 pulgadas: el ancho de la hoja carta. */
+.previa-carta iframe {
+  flex: 0 0 816px;
+  height: 100%;
+  border: none;
+  background: #fff;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 35%);
+}
+
+.previa-carta__vacia {
+  align-self: center;
+  color: #fff;
+}

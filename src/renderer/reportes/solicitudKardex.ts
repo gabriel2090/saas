@@ -1,3 +1,5 @@
+import { crearCanalSolicitudes } from './solicitudes';
+
 /**
  * Producto y bodega que otra ventana pide ver en el kardex («Ver kardex»
  * desde el inventario valorizado).
@@ -9,11 +11,8 @@ export interface SolicitudKardex {
   bodegaId: number | null;
 }
 
-/** Solicitud que todavía no atendió la ventana del kardex. */
-let pendiente: SolicitudKardex | null = null;
-
-/** Ventanas del kardex abiertas que esperan solicitudes. */
-const oyentes = new Set<(solicitud: SolicitudKardex) => void>();
+/** Canal de las solicitudes a la ventana del kardex. */
+const canal = crearCanalSolicitudes<SolicitudKardex>();
 
 /**
  * Pide mostrar un producto en el kardex. Si la ventana ya está abierta la
@@ -22,12 +21,7 @@ const oyentes = new Set<(solicitud: SolicitudKardex) => void>();
  * @param solicitud - Producto y bodega.
  */
 export function pedirKardex(solicitud: SolicitudKardex): void {
-  if (oyentes.size === 0) {
-    pendiente = solicitud;
-    return;
-  }
-  pendiente = null;
-  for (const oyente of oyentes) oyente(solicitud);
+  canal.pedir(solicitud);
 }
 
 /**
@@ -36,9 +30,7 @@ export function pedirKardex(solicitud: SolicitudKardex): void {
  * @returns La solicitud, o `null` si no hay.
  */
 export function tomarSolicitudKardex(): SolicitudKardex | null {
-  const solicitud = pendiente;
-  pendiente = null;
-  return solicitud;
+  return canal.tomar();
 }
 
 /**
@@ -50,8 +42,5 @@ export function tomarSolicitudKardex(): SolicitudKardex | null {
 export function escucharSolicitudesKardex(
   oyente: (solicitud: SolicitudKardex) => void,
 ): () => void {
-  oyentes.add(oyente);
-  return () => {
-    oyentes.delete(oyente);
-  };
+  return canal.escuchar(oyente);
 }

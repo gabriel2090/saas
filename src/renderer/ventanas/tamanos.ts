@@ -38,6 +38,8 @@ const TAMANOS_INICIALES: Partial<Record<IdProceso, TamanoVentana>> = {
   // Según las maquetas aprobadas (docs/maquetas/kardex.html e historial.html).
   kardex: { ancho: 1236, alto: 708 },
   'historial-cambios': { ancho: 1236, alto: 708 },
+  // Según la maqueta aprobada (docs/maquetas/estado-cuenta.html).
+  'estados-cuenta': { ancho: 1236, alto: 708 },
 };
 
 /**
@@ -72,6 +74,8 @@ const MINIMOS: Partial<Record<IdProceso, TamanoVentana>> = {
   kardex: { ancho: 760, alto: 440 },
   // La lista y el panel de detalle (420 px) van lado a lado.
   'historial-cambios': { ancho: 900, alto: 440 },
+  // Cabe la hoja carta (816 px) con la barra de desplazamiento.
+  'estados-cuenta': { ancho: 880, alto: 440 },
   productos: MINIMO_MAESTRO,
   clientes: MINIMO_MAESTRO,
   proveedores: MINIMO_MAESTRO,

@@ -188,7 +188,11 @@ export function InventarioValorizado(): ReactNode {
       resumen={resumen}
       alActualizar={actualizar}
       aviso={aviso}
-      verKardex={verKardex}
+      accionFila={{
+        texto: 'Ver kardex',
+        ejecutar: verKardex,
+        pedirFila: 'Elija en la tabla el producto.',
+      }}
     >
       <div className="reporte__filtros">
         <label className="campo">
