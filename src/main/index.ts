@@ -281,14 +281,36 @@ const PARAMETRO_CARPETA_DATOS = 'carpeta-datos';
  */
 const SUFIJO_CARPETA_DESARROLLO = ' (desarrollo)';
 
-// Sin empaquetar (`npm run dev`) nunca se usan los datos reales del negocio.
+/**
+ * Carpeta de datos de la app instalada (la del negocio).
+ */
+const CARPETA_REAL = join(app.getPath('appData'), app.getName());
+
+/**
+ * `true` si se pidió `--carpeta-datos` apuntando a la carpeta del negocio: la
+ * app termina sin abrir nada.
+ */
+let carpetaRechazada = false;
+
+// Sin empaquetar (`npm run dev`) nunca se usan los datos reales del negocio,
+// ni siquiera pidiéndolos con --carpeta-datos.
 if (!app.isPackaged) {
-  app.setPath(
-    'userData',
-    app.commandLine.hasSwitch(PARAMETRO_CARPETA_DATOS)
-      ? app.commandLine.getSwitchValue(PARAMETRO_CARPETA_DATOS)
-      : join(app.getPath('appData'), `${app.getName()}${SUFIJO_CARPETA_DESARROLLO}`),
-  );
+  const pedida = app.commandLine.hasSwitch(PARAMETRO_CARPETA_DATOS)
+    ? app.commandLine.getSwitchValue(PARAMETRO_CARPETA_DATOS)
+    : null;
+  if (pedida !== null && esCarpetaProtegida(pedida, CARPETA_REAL)) {
+    carpetaRechazada = true;
+    process.stderr.write(
+      `${pedida} es la carpeta de datos del negocio: sin empaquetar nunca se abre. ` +
+        'Use otra carpeta con --carpeta-datos o quite el parámetro.\n',
+    );
+    app.exit(1);
+  } else {
+    app.setPath(
+      'userData',
+      pedida ?? join(app.getPath('appData'), `${app.getName()}${SUFIJO_CARPETA_DESARROLLO}`),
+    );
+  }
 }
 
 /**
@@ -305,7 +327,7 @@ const PARAMETRO_DATOS_DEMO = 'datos-demo';
  * @param accion - Cargar o borrar.
  */
 function ejecutarDatosDemo(accion: AccionDatosDemo): void {
-  const carpetaReal = join(app.getPath('appData'), app.getName());
+  const carpetaReal = CARPETA_REAL;
   // Antes del bloqueo de instancia única, que escribe su archivo en la carpeta de datos.
   if (esCarpetaProtegida(app.getPath('userData'), carpetaReal)) {
     process.stderr.write(
@@ -335,7 +357,9 @@ function ejecutarDatosDemo(accion: AccionDatosDemo): void {
   }
 }
 
-if (!app.isPackaged && app.commandLine.hasSwitch(PARAMETRO_DATOS_DEMO)) {
+if (carpetaRechazada) {
+  // Ya se pidió salir: no se toma el bloqueo de instancia ni se abre la base.
+} else if (!app.isPackaged && app.commandLine.hasSwitch(PARAMETRO_DATOS_DEMO)) {
   ejecutarDatosDemo(
     app.commandLine.getSwitchValue(PARAMETRO_DATOS_DEMO) === 'borrar' ? 'borrar' : 'cargar',
   );
