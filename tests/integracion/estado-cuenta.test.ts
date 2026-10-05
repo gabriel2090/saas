@@ -573,6 +573,34 @@ describe('estado de cuenta (Fase 5c): hoja carta y nombre del archivo', () => {
     expect(() => reportes.excel(cliente)).toThrow(ErrorDeNegocio);
   });
 
+  it('el archivo reemplaza los caracteres que Windows no admite en el nombre del tercero', () => {
+    const { db, reportes } = escenarioMaquetas();
+    const terceros = crearServicioTerceros(
+      db,
+      crearEjecutorTransacciones(db, { reloj: () => AHORA }),
+    );
+    const { codigo } = terceros.crear(
+      'cliente',
+      tercero(
+        false,
+        'DISTRI/BUIDORA "LA 10": SUR\\NORTE*?<A>|B',
+        '1',
+        '3000000000',
+        'CL 1',
+        'CENTRO',
+      ),
+    );
+    expect(
+      reportes.nombreArchivo(
+        {
+          reporte: 'estado-cuenta',
+          filtros: { tipo: 'cliente', ...PERIODO, terceroCodigo: codigo },
+        },
+        'pdf',
+      ),
+    ).toBe('Estado de cuenta DISTRI BUIDORA LA 10 SUR NORTE A B 04-10-2026.pdf');
+  });
+
   it('valida el tercero, el periodo y la petición recibida por IPC', () => {
     const { reportes } = escenarioMaquetas();
     expect(() => reportes.estadoCuenta({ tipo: 'cliente', ...PERIODO, terceroCodigo: 99 })).toThrow(

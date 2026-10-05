@@ -124,14 +124,16 @@ export interface ReporteEstadoCuenta {
 }
 
 /**
- * Caracteres que Windows no admite en un nombre de archivo.
+ * Caracteres que Windows no admite en un nombre de archivo (además de los
+ * de control, del 0 al 31).
  */
-const CARACTERES_PROHIBIDOS = /[<>:"/\\|?*]/g;
+const CARACTERES_PROHIBIDOS = '/\\:*?"<>|';
 
 /**
  * Nombre del PDF del estado de cuenta: el tercero y el último día del
- * periodo en `dd-mm-aaaa` (D-165). Se quitan los caracteres que Windows no
- * admite en un nombre de archivo.
+ * periodo en `dd-mm-aaaa` (D-165). Cada carácter que Windows no admite en un
+ * nombre de archivo (`/ \ : * ? " < > |` y los de control) se reemplaza por
+ * un espacio, y los espacios repetidos quedan en uno.
  *
  * @param nombreTercero - Nombre del cliente o del proveedor.
  * @param hasta - Último día del periodo, `AAAA-MM-DD`.
@@ -140,9 +142,16 @@ const CARACTERES_PROHIBIDOS = /[<>:"/\\|?*]/g;
  * @example
  * nombreArchivoEstadoCuenta('AGRINA S.A.S.', '2026-10-04');
  * // 'Estado de cuenta AGRINA S.A.S. 04-10-2026.pdf'
+ * nombreArchivoEstadoCuenta('A/B: "C"', '2026-10-04');
+ * // 'Estado de cuenta A B C 04-10-2026.pdf'
  */
 export function nombreArchivoEstadoCuenta(nombreTercero: string, hasta: string): string {
   const [anio, mes, dia] = hasta.split('-');
-  const nombre = nombreTercero.replace(CARACTERES_PROHIBIDOS, ' ').replace(/\s+/g, ' ').trim();
+  const nombre = Array.from(nombreTercero, (c) =>
+    c.charCodeAt(0) < 32 || CARACTERES_PROHIBIDOS.includes(c) ? ' ' : c,
+  )
+    .join('')
+    .replace(/\s+/g, ' ')
+    .trim();
   return `Estado de cuenta ${nombre} ${dia ?? ''}-${mes ?? ''}-${anio ?? ''}.pdf`;
 }

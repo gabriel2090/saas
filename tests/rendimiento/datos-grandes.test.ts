@@ -1,4 +1,6 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { performance } from 'node:perf_hooks';
@@ -392,5 +394,70 @@ describe('rendimiento con el volumen grande', () => {
       '2026-09-28',
       '2026-10-05',
     );
+  });
+
+  it('el estado de cuenta del tercero más activo responde rápido y se mide su PDF', () => {
+    const ejecutar = crearEjecutorTransacciones(db, { reloj: () => AHORA });
+    const reportes = crearServicioReportes(db, {
+      negocio: crearServicioNegocio(db, ejecutar),
+      ahora: () => AHORA,
+    });
+    const anio = { desde: '2025-10-01', hasta: HOY };
+    for (const tipo of ['cliente', 'proveedor'] as const) {
+      const masActivo = db
+        .prepare(
+          tipo === 'cliente'
+            ? `SELECT c, SUM(n) AS n FROM (
+                 SELECT cliente_codigo AS c, COUNT(*) AS n FROM facturas_cliente
+                   WHERE condicion = 'credito' GROUP BY cliente_codigo
+                 UNION ALL
+                 SELECT cliente_codigo, COUNT(*) FROM abonos WHERE tipo = 'cliente' GROUP BY cliente_codigo
+               ) GROUP BY c ORDER BY n DESC LIMIT 1`
+            : `SELECT c, SUM(n) AS n FROM (
+                 SELECT proveedor_codigo AS c, COUNT(*) AS n FROM facturas_proveedor GROUP BY proveedor_codigo
+                 UNION ALL
+                 SELECT proveedor_codigo, COUNT(*) FROM abonos WHERE tipo = 'proveedor' GROUP BY proveedor_codigo
+               ) GROUP BY c ORDER BY n DESC LIMIT 1`,
+        )
+        .get() as { c: number; n: number };
+      const filtros = { tipo, terceroCodigo: masActivo.c, ...anio };
+      let movimientos = 0;
+      const t = medir(`Estado de cuenta del ${tipo} más activo (${masActivo.c}), 1 año`, () => {
+        const r = reportes.estadoCuenta(filtros);
+        movimientos = r.movimientos.length;
+        return `${movimientos} movimientos, ${r.pendientes.length} pendientes`;
+      });
+      expect(movimientos).toBeGreaterThan(0);
+      expect(t).toBeLessThan(1_000);
+      let html = '';
+      medir(
+        `HTML carta del estado de cuenta del ${tipo} (1 año)`,
+        () => {
+          html = reportes.html({ reporte: 'estado-cuenta', filtros });
+          return `${Math.round(html.length / 1024)} KB`;
+        },
+        3,
+      );
+
+      // PDF con las mismas opciones de la app (pdf-reporte.mjs usa printToPDF carta).
+      const rutaHtml = join(carpeta, `estado-cuenta-${tipo}.html`);
+      const rutaPdf = join(carpeta, `estado-cuenta-${tipo}.pdf`);
+      writeFileSync(rutaHtml, html, 'utf8');
+      const electron = createRequire(import.meta.url)('electron') as string;
+      const inicio = performance.now();
+      const salida = spawnSync(electron, ['tests/e2e/pdf-reporte.mjs', rutaHtml, rutaPdf], {
+        encoding: 'utf8',
+      });
+      const ms = performance.now() - inicio;
+      expect(salida.status).toBe(0);
+      const paginas = (readFileSync(rutaPdf, 'latin1').match(/\/Type\s*\/Page(?!s)/g) ?? []).length;
+      mediciones.push({
+        nombre: `PDF del estado de cuenta del ${tipo} (con arranque de Electron)`,
+        mediana: ms,
+        peor: ms,
+        detalle: `${paginas} páginas, ${Math.round(statSync(rutaPdf).size / 1024)} KB`,
+      });
+      expect(paginas).toBeGreaterThan(0);
+    }
   });
 });

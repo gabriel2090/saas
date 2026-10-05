@@ -650,5 +650,8 @@ describe('estado de cuenta: textos y nombre del archivo', () => {
     expect(nombreArchivoEstadoCuenta('A/B: "C" <D>', '2026-01-31')).toBe(
       'Estado de cuenta A B C D 31-01-2026.pdf',
     );
+    expect(nombreArchivoEstadoCuenta('1/2\\3:4*5?6"7<8>9|0\tFIN', '2026-01-31')).toBe(
+      'Estado de cuenta 1 2 3 4 5 6 7 8 9 0 FIN 31-01-2026.pdf',
+    );
   });
 });
