@@ -73,7 +73,7 @@ function columnasDe(cliente: boolean): ColumnaReporte[] {
     { titulo: 'Días', clase: 'num' },
     { titulo: 'Total', clase: 'num' },
     { titulo: cliente ? 'Abonado' : 'Pagado', clase: 'num' },
-    { titulo: 'Devuelto', clase: 'num' },
+    { titulo: 'Devuelto / corregido', clase: 'num' },
     { titulo: 'Saldo', clase: 'num' },
   ];
 }

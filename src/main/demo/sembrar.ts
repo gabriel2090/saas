@@ -3,7 +3,7 @@ import type { BaseDeDatos } from '../../data/conexion';
 import { guardarConfiguracion } from '../../data/repositorios/configuracion.repo';
 import { crearEjecutorTransacciones } from '../../data/transaccion';
 import type { PeticionGuardarCompra } from '../../shared/compras';
-import { aIsoLocal } from '../../shared/formato/fechas';
+import { aIsoLocal, formatearFecha } from '../../shared/formato/fechas';
 import type { UnidadMedida } from '../../shared/formato/cantidades';
 import type { DatosTerceroNuevo, EscalaPrecio, TipoPersona } from '../../shared/maestros';
 import type { LineaVentaNueva, PeticionGuardarFactura } from '../../shared/ventas';
@@ -14,6 +14,7 @@ import { crearServicioCatalogos } from '../servicios/catalogos';
 import { crearServicioCompras } from '../servicios/compras';
 import { crearServicioCorrecciones } from '../servicios/correcciones';
 import { crearServicioDevoluciones } from '../servicios/devoluciones';
+import { crearServicioImportador } from '../servicios/importador';
 import { crearServicioNegocio } from '../servicios/negocio';
 import { crearServicioProductos } from '../servicios/productos';
 import { crearServicioSaldoFavor } from '../servicios/saldoFavor';
@@ -45,6 +46,9 @@ const PRINCIPAL = 1;
 
 /** «Consumidor final» (D-37). */
 const CONSUMIDOR_FINAL = 0;
+
+/** Primer número de factura de venta (como el talonario de las maquetas). */
+const PRIMERA_FACTURA = 84761;
 
 /**
  * Resultado de sembrar los datos de ejemplo.
@@ -123,6 +127,7 @@ const PRODUCTOS: readonly ProductoDemo[] = [
   [101, 'CAJA PIZZA 40*40 FD', 'empaques', 'UND', 2_050, 2_300, 2_500, 2_200],
   [102, 'CAJA PIZZA 30*30 FD', 'empaques', 'UND', 1_450, 1_700, 1_900, 1_600],
   [103, 'VASO DESECHABLE 12 OZ X 50', 'empaques', 'UND', 6_800, 8_000, 8_900, 7_500],
+  [104, 'BOLSA PAPEL KRAFT #20 X 100', 'empaques', 'UND', 4_500, 5_500, 6_000, 5_000],
   [231, 'PAPA FRANCESA AGRINA PREMIUM *2.5 KG', 'agrina', 'UND', 11_800, 16_000, 17_500, 12_300],
   [232, 'PAPA CASCO AGRINA *2.5 KG', 'agrina', 'UND', 11_500, 15_000, 16_500, 12_000],
   [233, 'YUCA PRECOCIDA AGRINA *1 KG', 'agrina', 'UND', 6_200, 8_000, 8_800, 6_500],
@@ -151,10 +156,13 @@ function linea(
 /**
  * Carga datos de ejemplo en una base recién migrada, usando los mismos
  * servicios que la app (todas las reglas de negocio aplican): datos del
- * negocio, contraseña, clientes, proveedores, productos con stock, compras
- * (a crédito, de contado, corregida, devuelta y anulada), ventas de contado y
- * a crédito (vencidas, corregidas, devueltas y anuladas), abonos, saldos a
- * favor, un reintegro y un ajuste de inventario.
+ * negocio, contraseña, clientes, proveedores, productos, inventario inicial
+ * importado (también en la Bodega Norte), saldos iniciales importados de
+ * clientes y proveedores, compras (a crédito, de contado, corregida, devuelta
+ * y anulada), ventas de contado y a crédito (vencidas, corregidas, devueltas
+ * y anuladas), abonos, saldos a favor, un reintegro, un ajuste de inventario
+ * y dos existencias negativas: un producto vendido sin haber registrado su
+ * compra (Principal) y otro vendido desde la Bodega Norte sin existencias.
  *
  * Los documentos se fechan en los últimos 40 días con un reloj que avanza,
  * para que haya facturas vencidas y por vencer.
@@ -196,6 +204,34 @@ export function sembrarDatosDemo(
   const correcciones = crearServicioCorrecciones(db, ejecutar);
   const devoluciones = crearServicioDevoluciones(db, ejecutar);
   const saldoFavor = crearServicioSaldoFavor(db, ejecutar);
+  const importador = crearServicioImportador(db, ejecutar, { hoy: dia });
+
+  /**
+   * Importa filas con el importador de la app y exige que entren todas.
+   *
+   * @param tipo - Qué se importa.
+   * @param filas - Valores de cada fila.
+   * @throws {Error} Si alguna fila no entra (los datos de ejemplo están mal).
+   */
+  const importar = (
+    tipo: Parameters<typeof importador.importar>[0],
+    filas: Record<string, string>[],
+  ): void => {
+    const r = importador.importar(
+      tipo,
+      filas.map((valores, i) => ({ numero: i + 2, valores })),
+    );
+    if (r.errores.length > 0) {
+      throw new Error(`Datos de ejemplo: ${r.errores.map((e) => e.mensaje).join(' ')}`);
+    }
+  };
+  /**
+   * Fecha `dd/mm/aaaa` de hace unos días, como se escribe en un archivo.
+   *
+   * @param diasAtras - Días antes de hoy.
+   * @returns Fecha corta.
+   */
+  const fechaArchivo = (diasAtras: number): string => formatearFecha(sumarDias(hoy, -diasAtras));
 
   // --- Configuración -------------------------------------------------------
   el(45, '07:30');
@@ -207,13 +243,8 @@ export function sembrarDatosDemo(
     direccion: 'CRA 25 # 122-04 LA PRADERA',
     telefono: '3042620852',
   });
-  catalogos.crear('bodega', { nombre: 'Bodega Norte', calculaCambio: false });
-  if (opciones.impresora) {
-    ventas.configurar({
-      siguienteNumero: ventas.configuracion().siguienteNumero,
-      impresora: opciones.impresora,
-    });
-  }
+  const norte = catalogos.crear('bodega', { nombre: 'Bodega Norte', calculaCambio: false }).id;
+  ventas.configurar({ siguienteNumero: PRIMERA_FACTURA, impresora: opciones.impresora ?? null });
 
   const proveedores = {
     agrina: terceros.crear(
@@ -324,6 +355,45 @@ export function sembrarDatosDemo(
     });
   }
 
+  // --- Inventario inicial y saldos iniciales (importados al empezar) -------
+  importar('stock', [
+    { producto: '302', bodega: '', cantidad: '8' },
+    { producto: '231', bodega: 'Bodega Norte', cantidad: '20' },
+    { producto: '301', bodega: 'Bodega Norte', cantidad: '6.5' },
+  ]);
+  /**
+   * Fila de saldo inicial con plazo en días.
+   *
+   * @param terceroCodigo - Cliente o proveedor.
+   * @param numero - Número de la factura.
+   * @param diasAtras - Días antes de hoy de la fecha de la factura.
+   * @param plazo - Plazo en días.
+   * @param saldo - Saldo pendiente.
+   * @returns Valores de la fila.
+   */
+  const saldoInicial = (
+    terceroCodigo: number,
+    numero: string,
+    diasAtras: number,
+    plazo: number,
+    saldo: number,
+  ): Record<string, string> => ({
+    tercero: String(terceroCodigo),
+    numero,
+    fecha: fechaArchivo(diasAtras),
+    vence: '',
+    plazo: String(plazo),
+    saldo: String(saldo),
+  });
+  importar('saldos-clientes', [
+    saldoInicial(clientes.maria, '84590', 60, 30, 85_000),
+    saldoInicial(clientes.hotel, '84655', 50, 60, 140_000),
+  ]);
+  importar('saldos-proveedores', [
+    saldoInicial(proveedores.campina, 'FV-0712', 55, 30, 640_000),
+    saldoInicial(proveedores.empaques, 'EC-1201', 48, 60, 210_000),
+  ]);
+
   /**
    * Compra sin flete ni descuento.
    *
@@ -365,18 +435,20 @@ export function sembrarDatosDemo(
    * @param cliente - Cliente.
    * @param lineas - Líneas.
    * @param pago - Plazo en días (crédito) o forma de pago y recibido (contado).
+   * @param bodegaId - Bodega de la que sale (por defecto, la Principal).
    * @returns Petición completa.
    */
   const venta = (
     cliente: number,
     lineas: LineaVentaNueva[],
     pago: { plazo: number } | { forma: number; recibido?: number },
+    bodegaId: number = PRINCIPAL,
   ): PeticionGuardarFactura => ({
     ranura: null,
     clienteCodigo: cliente,
     condicion: 'plazo' in pago ? 'credito' : 'contado',
     plazoDias: 'plazo' in pago ? pago.plazo : 0,
-    bodegaId: PRINCIPAL,
+    bodegaId,
     lineas,
     contado: 'plazo' in pago ? null : { formaPagoId: pago.forma, recibido: pago.recibido ?? null },
     cajasEmpaque: null,
@@ -495,6 +567,9 @@ export function sembrarDatosDemo(
       [103, 10, 6_800],
     ]),
   );
+  el(7, '16:20');
+  // Sale de la Bodega Norte, que no tiene pepperoni: queda en negativo.
+  ventas.guardar(venta(clientes.pollo, [linea(231, 4), linea(304, 3)], { forma: EFECTIVO }, norte));
   el(6, '11:00');
   const abonoCheque = abonar('cliente', clientes.nonna, v3.id, 50_000, EFECTIVO, 'Cheque 004512');
   const c6 = compras.guardar(compra(proveedores.campina, 'FV-0901', 15, [[302, 10, 15_800]]));
@@ -593,6 +668,9 @@ export function sembrarDatosDemo(
   );
   el(0, '10:25');
   ventas.guardar(venta(clientes.pollo, [linea(232, 2), linea(301, 1.25)], { forma: EFECTIVO }));
+  el(0, '11:05');
+  // Bolsas vendidas sin haber registrado la compra: la Principal queda en negativo.
+  ventas.guardar(venta(CONSUMIDOR_FINAL, [linea(104, 3)], { forma: EFECTIVO, recibido: 20_000 }));
 
   ejecutar((ctx) => guardarConfiguracion(ctx, CLAVE_MARCA_DEMO, ahora));
 
@@ -602,9 +680,9 @@ export function sembrarDatosDemo(
     claveRecuperacion,
     resumen: [
       `${contar('clientes') - 1} clientes y ${contar('proveedores')} proveedores`,
-      `${contar('productos')} productos con stock en la bodega Principal`,
-      `${contar('facturas_cliente')} facturas de venta (contado, crédito, vencida, corregida, devuelta y anulada)`,
-      `${contar('facturas_proveedor')} compras (a crédito, de contado, corregida, devuelta y anulada)`,
+      `${contar('productos')} productos en la Principal y la Bodega Norte, con inventario inicial importado y dos existencias negativas (104 en la Principal y 304 en la Bodega Norte)`,
+      `${contar('facturas_cliente')} facturas de venta (contado, crédito, vencida, corregida, devuelta, anulada y 2 saldos iniciales)`,
+      `${contar('facturas_proveedor')} compras (a crédito, de contado, corregida, devuelta, anulada y 2 saldos iniciales)`,
       `${contar('abonos')} abonos de clientes y proveedores (uno anulado, uno con saldo a favor)`,
       `${contar('devoluciones')} devoluciones, ${contar('reintegros')} reintegros y saldos a favor de JUAN JJ FERTILIA, RESTAURANTE EL FOGON y EMPAQUES DEL CARIBE`,
     ],

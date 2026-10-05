@@ -98,6 +98,25 @@ describe('reportes de la Fase 5a', () => {
     }
     expect(r.resumen.valorTotal).toBe(r.filas.reduce((s, f) => s + f.valor, 0));
     expect(r.resumen.valorTotal).toBe(r.resumen.valorPorBodega.reduce((s, v) => s + v, 0));
+
+    // Las existencias negativas de los datos de ejemplo no suman al total.
+    expect(r.resumen.productosNegativos).toBe(2);
+    const bolsa = r.filas.find((f) => f.codigo === 104);
+    expect(bolsa).toMatchObject({ existencia: -3_000, valor: 0, valorNegativo: -13_500 });
+    expect(r.resumen.valorNegativo).toBe(r.filas.reduce((s, f) => s + f.valorNegativo, 0));
+  });
+
+  it('los saldos iniciales importados aparecen marcados en la cartera', () => {
+    const { reportes } = crear();
+    const iniciales = (tipo: PeticionCartera['tipo']): string[] =>
+      reportes
+        .cartera(cartera(tipo))
+        .grupos.flatMap((g) => g.documentos)
+        .filter((d) => d.saldoInicial)
+        .map((d) => d.referencia || String(d.numero))
+        .sort();
+    expect(iniciales('cliente')).toEqual(['84590', '84655']);
+    expect(iniciales('proveedor')).toEqual(['EC-1201', 'FV-0712']);
   });
 
   it('arma el HTML carta con el corte, el total y el número de página', () => {

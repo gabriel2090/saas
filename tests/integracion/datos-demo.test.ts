@@ -53,20 +53,27 @@ describe('datos de ejemplo', () => {
     const { db, resultado } = sembrar();
     expect(resultado.claveRecuperacion).not.toBe('');
     expect(resultado.resumen).toHaveLength(6);
-    expect(obtenerConfiguracion(db, CLAVE_MARCA_DEMO)).toBe('2026-10-04T10:25:00.000-05:00');
+    expect(obtenerConfiguracion(db, CLAVE_MARCA_DEMO)).toBe('2026-10-04T11:05:00.000-05:00');
     expect(obtenerConfiguracion(db, 'facturacion.impresora')).toBe('POS-80');
 
-    // Ningún producto queda con stock negativo y todos tienen existencias.
+    // Solo dos pares producto-bodega quedan en negativo, a propósito.
     const stocks = db
       .prepare(
-        `SELECT producto_codigo AS codigo, SUM(cantidad) AS stock FROM movimientos_inventario GROUP BY producto_codigo`,
+        `SELECT m.producto_codigo AS codigo, b.nombre AS bodega, SUM(m.cantidad) AS stock
+           FROM movimientos_inventario m JOIN bodegas b ON b.id = m.bodega_id
+          GROUP BY m.producto_codigo, m.bodega_id`,
       )
-      .all() as { codigo: number; stock: number }[];
-    expect(stocks).toHaveLength(10);
-    for (const s of stocks) {
-      expect(s.stock, `stock de ${s.codigo}`).toBeGreaterThan(0);
-    }
-    expect(stocks.find((s) => s.codigo === 231)?.stock).toBe(175_000);
+      .all() as { codigo: number; bodega: string; stock: number }[];
+    expect(new Set(stocks.map((s) => s.codigo)).size).toBe(11);
+    expect(stocks.filter((s) => s.stock < 0)).toEqual([
+      { codigo: 104, bodega: 'Principal', stock: -3_000 },
+      { codigo: 304, bodega: 'Bodega Norte', stock: -3_000 },
+    ]);
+    expect(stocks.filter((s) => s.codigo === 231)).toEqual([
+      { codigo: 231, bodega: 'Principal', stock: 175_000 },
+      { codigo: 231, bodega: 'Bodega Norte', stock: 16_000 },
+    ]);
+    expect(stocks.find((s) => s.codigo === 301 && s.bodega === 'Bodega Norte')?.stock).toBe(6_500);
 
     // Ninguna factura queda con saldo negativo.
     for (const [tipo, tabla] of [
@@ -94,9 +101,29 @@ describe('datos de ejemplo', () => {
       .prepare(`SELECT estado, COUNT(*) AS n FROM facturas_cliente GROUP BY estado ORDER BY estado`)
       .all();
     expect(estados).toEqual([
-      { estado: 'activa', n: 9 },
+      { estado: 'activa', n: 13 },
       { estado: 'anulada', n: 1 },
     ]);
+
+    // Saldos iniciales importados, con su número y sin mover inventario.
+    const iniciales = db
+      .prepare(
+        `SELECT 'cliente' AS tipo, CAST(numero AS TEXT) AS numero, total FROM facturas_cliente WHERE origen = 'saldo_inicial'
+         UNION ALL
+         SELECT 'proveedor', numero_proveedor, total FROM facturas_proveedor WHERE origen = 'saldo_inicial'
+         ORDER BY 1, 2`,
+      )
+      .all();
+    expect(iniciales).toEqual([
+      { tipo: 'cliente', numero: '84590', total: 85_000 },
+      { tipo: 'cliente', numero: '84655', total: 140_000 },
+      { tipo: 'proveedor', numero: 'EC-1201', total: 210_000 },
+      { tipo: 'proveedor', numero: 'FV-0712', total: 640_000 },
+    ]);
+    const primera = db.prepare(
+      'SELECT MIN(numero) AS n FROM facturas_cliente WHERE origen IS NOT ?',
+    );
+    expect(primera.get('saldo_inicial')).toEqual({ n: 84761 });
   });
 
   it('no se cargan dos veces en la misma base', () => {

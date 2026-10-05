@@ -223,7 +223,7 @@ export function carteraXlsx(reporte: ReporteCartera, titulo: string, filtros: st
     'Días (vencida o por vencer)',
     'Total',
     cliente ? 'Abonado' : 'Pagado',
-    'Devuelto',
+    'Devuelto / corregido',
     'Saldo',
   ];
   const anchosDocumentos = [
