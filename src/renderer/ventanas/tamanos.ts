@@ -35,6 +35,9 @@ const TAMANOS_INICIALES: Partial<Record<IdProceso, TamanoVentana>> = {
   'reporte-inventario': { ancho: 1236, alto: 708 },
   'cuentas-cobrar': { ancho: 1236, alto: 708 },
   'cuentas-pagar': { ancho: 1236, alto: 708 },
+  // Según las maquetas aprobadas (docs/maquetas/kardex.html e historial.html).
+  kardex: { ancho: 1236, alto: 708 },
+  'historial-cambios': { ancho: 1236, alto: 708 },
 };
 
 /**
@@ -66,6 +69,9 @@ const MINIMOS: Partial<Record<IdProceso, TamanoVentana>> = {
   'reporte-inventario': { ancho: 720, alto: 440 },
   'cuentas-cobrar': { ancho: 720, alto: 440 },
   'cuentas-pagar': { ancho: 720, alto: 440 },
+  kardex: { ancho: 760, alto: 440 },
+  // La lista y el panel de detalle (420 px) van lado a lado.
+  'historial-cambios': { ancho: 900, alto: 440 },
   productos: MINIMO_MAESTRO,
   clientes: MINIMO_MAESTRO,
   proveedores: MINIMO_MAESTRO,

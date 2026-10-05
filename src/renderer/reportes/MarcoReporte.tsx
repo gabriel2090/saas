@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from 'react';
+import type { DocumentoImprimible, TipoDocumentoImprimible } from '../../shared/impresion';
 import { ATAJOS } from '../../shared/keymap';
-import type { PeticionReporte } from '../../shared/reportes';
+import type { DocumentoVisible } from '../../shared/kardex';
+import { REPORTES_CON_EXCEL, type PeticionReporte } from '../../shared/reportes';
 import { textoCombinacion } from '../atajos/combinacion';
 import { useAtajos } from '../atajos/useAtajos';
 import { Aviso, type TipoAviso } from '../componentes/Aviso';
@@ -10,28 +12,51 @@ import { invocar } from '../servicios/api';
 import { useVentana } from '../ventanas/ContextoVentana';
 
 /**
+ * Nombre de cada documento en el título de «Ver documento».
+ */
+const NOMBRE_DOCUMENTO: Record<TipoDocumentoImprimible, string> = {
+  'factura-cliente': 'Factura de cliente',
+  'factura-proveedor': 'Factura de proveedor',
+  'abono-cliente': 'Abono de cliente',
+  'abono-proveedor': 'Abono a proveedor',
+};
+
+/**
  * Propiedades de {@link MarcoReporte}.
  */
 interface PropiedadesMarcoReporte {
   /** Título del reporte (vista previa). */
   titulo: string;
-  /** Reporte y filtros actuales (estable entre renders si no cambian). */
-  peticion: PeticionReporte;
+  /** Reporte y filtros actuales (estable entre renders si no cambian), o `null` si todavía no se puede pedir. */
+  peticion: PeticionReporte | null;
   /** Texto a la derecha de la barra: corte y conteos. */
   resumen: string;
   /** Vuelve a calcular el reporte. */
   alActualizar: () => void;
   /** Aviso de la consulta (error al calcular). */
   aviso: { tipo: TipoAviso; texto: string } | null;
+  /**
+   * Documento de la fila seleccionada para «Ver documento» (Ctrl+D). Si se
+   * omite, el botón no aparece; si es `null`, la fila no tiene documento.
+   */
+  documento?: DocumentoVisible | null;
+  /**
+   * Abre el kardex del producto de la fila seleccionada («Ver kardex», Ctrl+D,
+   * en el inventario valorizado). Si se omite, el botón no aparece; si es
+   * `null`, no hay fila seleccionada.
+   */
+  verKardex?: (() => void) | null;
   /** Filtros, indicadores y tabla. */
   children: ReactNode;
 }
 
 /**
  * Marco común de los reportes: barra con «Imprimir o guardar PDF» (Ctrl+P,
- * abre la vista previa en hoja carta), «Exportar a Excel» (Ctrl+E) y
- * «Actualizar» (F5). El proceso principal vuelve a calcular el reporte con
- * los filtros al imprimir o exportar (D-145, D-146).
+ * abre la vista previa en hoja carta), «Ver documento» (Ctrl+D, en el kardex
+ * y el historial) o «Ver kardex» (Ctrl+D, en el inventario valorizado),
+ * «Exportar a Excel» (Ctrl+E, solo los reportes que lo
+ * admiten) y «Actualizar» (F5). El proceso principal vuelve a calcular el
+ * reporte con los filtros al imprimir o exportar (D-145, D-146).
  *
  * @param props - Propiedades del componente.
  * @returns El contenido de la ventana.
@@ -39,12 +64,20 @@ interface PropiedadesMarcoReporte {
 export function MarcoReporte(props: PropiedadesMarcoReporte): ReactNode {
   const { activa } = useVentana();
   const [viendo, setViendo] = useState(false);
+  const [documentoAbierto, setDocumentoAbierto] = useState<{
+    imprimible: DocumentoImprimible;
+    titulo: string;
+  } | null>(null);
   const [aviso, setAviso] = useState<{ tipo: TipoAviso; texto: string } | null>(null);
   const conCandado = useCandado();
+  const { peticion } = props;
+  const conExcel = peticion !== null && REPORTES_CON_EXCEL.includes(peticion.reporte);
+  const conDocumento = props.documento !== undefined;
 
   const exportar = async (): Promise<void> => {
+    if (!peticion || !conExcel) return;
     setAviso(null);
-    const r = await invocar('reportes:excel', props.peticion);
+    const r = await invocar('reportes:excel', peticion);
     if (!r.ok) {
       setAviso({ tipo: 'error', texto: r.error.mensaje });
     } else if (r.datos) {
@@ -57,13 +90,37 @@ export function MarcoReporte(props: PropiedadesMarcoReporte): ReactNode {
     props.alActualizar();
   };
 
+  const imprimir = (): void => {
+    if (peticion) setViendo(true);
+  };
+
+  const verDocumento = (): void => {
+    if (props.verKardex !== undefined) {
+      if (props.verKardex) props.verKardex();
+      else setAviso({ tipo: 'alerta', texto: 'Elija en la tabla el producto.' });
+      return;
+    }
+    if (!conDocumento) return;
+    const d = props.documento;
+    if (d) {
+      setAviso(null);
+      setDocumentoAbierto({
+        imprimible: { tipo: d.tipo, id: d.id, reimpresion: true, tirilla: true },
+        titulo: `${NOMBRE_DOCUMENTO[d.tipo]} ${d.numero} (reimpresión)`,
+      });
+    } else {
+      setAviso({ tipo: 'alerta', texto: 'Esta fila no tiene un documento para ver.' });
+    }
+  };
+
   useAtajos(
     {
-      imprimirReporte: () => setViendo(true),
+      imprimirReporte: imprimir,
       exportarExcel: () => void conCandado(exportar),
       actualizarReporte: actualizar,
+      verDocumentoReporte: verDocumento,
     },
-    { activo: activa && !viendo },
+    { activo: activa && !viendo && documentoAbierto === null },
   );
 
   return (
@@ -73,20 +130,51 @@ export function MarcoReporte(props: PropiedadesMarcoReporte): ReactNode {
           type="button"
           className="boton boton--primario"
           tabIndex={-1}
-          onClick={() => setViendo(true)}
+          disabled={!peticion}
+          onClick={imprimir}
         >
           Imprimir o guardar PDF
           <span className="atajo">{textoCombinacion(ATAJOS.imprimirReporte.combinacion)}</span>
         </button>
-        <button
-          type="button"
-          className="boton"
-          tabIndex={-1}
-          onClick={() => void conCandado(exportar)}
-        >
-          Exportar a Excel
-          <span className="atajo">{textoCombinacion(ATAJOS.exportarExcel.combinacion)}</span>
-        </button>
+        {conDocumento && (
+          <button
+            type="button"
+            className="boton"
+            tabIndex={-1}
+            disabled={!props.documento}
+            onClick={verDocumento}
+          >
+            Ver documento
+            <span className="atajo">
+              {textoCombinacion(ATAJOS.verDocumentoReporte.combinacion)}
+            </span>
+          </button>
+        )}
+        {props.verKardex !== undefined && (
+          <button
+            type="button"
+            className="boton"
+            tabIndex={-1}
+            disabled={!props.verKardex}
+            onClick={verDocumento}
+          >
+            Ver kardex
+            <span className="atajo">
+              {textoCombinacion(ATAJOS.verDocumentoReporte.combinacion)}
+            </span>
+          </button>
+        )}
+        {conExcel && (
+          <button
+            type="button"
+            className="boton"
+            tabIndex={-1}
+            onClick={() => void conCandado(exportar)}
+          >
+            Exportar a Excel
+            <span className="atajo">{textoCombinacion(ATAJOS.exportarExcel.combinacion)}</span>
+          </button>
+        )}
         <button type="button" className="boton" tabIndex={-1} onClick={actualizar}>
           Actualizar
           <span className="atajo">{textoCombinacion(ATAJOS.actualizarReporte.combinacion)}</span>
@@ -97,11 +185,16 @@ export function MarcoReporte(props: PropiedadesMarcoReporte): ReactNode {
       {props.aviso && <Aviso tipo={props.aviso.tipo}>{props.aviso.texto}</Aviso>}
       {aviso && <Aviso tipo={aviso.tipo}>{aviso.texto}</Aviso>}
       {props.children}
-      {viendo && (
+      {viendo && peticion && (
+        <VistaPrevia reporte={peticion} titulo={props.titulo} alCerrar={() => setViendo(false)} />
+      )}
+      {documentoAbierto && (
         <VistaPrevia
-          reporte={props.peticion}
-          titulo={props.titulo}
-          alCerrar={() => setViendo(false)}
+          documento={documentoAbierto.imprimible}
+          titulo={documentoAbierto.titulo}
+          soloVer
+          tirilla
+          alCerrar={() => setDocumentoAbierto(null)}
         />
       )}
     </div>

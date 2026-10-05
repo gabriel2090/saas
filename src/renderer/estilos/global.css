@@ -2190,3 +2190,140 @@ textarea {
 .tabla tr.fila--seleccionada td.negativo {
   color: inherit;
 }
+
+.reporte__filtros .fecha input {
+  width: 108px;
+}
+
+.reporte__filtros .producto-kardex {
+  position: relative;
+}
+
+.reporte__filtros .producto-kardex input {
+  width: 380px;
+}
+
+.tabla tr.anterior td {
+  color: var(--color-tenue);
+  font-style: italic;
+}
+
+/* ---------- Visor del historial (maqueta historial.html, Fase 5b) ---------- */
+
+.historial {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 1fr 420px;
+  gap: 10px;
+  min-height: 0;
+}
+
+.historial .reporte__tabla {
+  height: 100%;
+}
+
+/* El resumen ocupa el ancho que queda y se corta con «…» (el texto completo va en el título). */
+.historial .reporte__tabla td:last-child {
+  overflow: hidden;
+  width: 100%;
+  max-width: 0;
+  text-overflow: ellipsis;
+}
+
+.detalle-cambio {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  padding: 10px;
+  border: 1px solid var(--color-borde);
+  background: #fff;
+  overflow: auto;
+}
+
+.detalle-cambio h3 {
+  margin: 0;
+  color: var(--color-titulo);
+  font-size: 15px;
+}
+
+.detalle-cambio dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 10px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.detalle-cambio dt {
+  color: var(--color-tenue);
+}
+
+.detalle-cambio dd {
+  margin: 0;
+}
+
+.detalle-cambio .tabla-contenedor {
+  flex-shrink: 0;
+  height: auto;
+}
+
+/* Los nombres de campo largos (línea · producto · campo) parten en varias líneas para que se vean «Antes» y «Después». */
+.detalle-cambio .tabla td:first-child {
+  white-space: normal;
+}
+
+.detalle-cambio__nota {
+  margin: 0;
+  font-size: 12px;
+}
+
+.tabla td.antes {
+  color: var(--color-error);
+  text-decoration: line-through;
+}
+
+.tabla td.despues {
+  color: var(--color-exito);
+  font-weight: 600;
+}
+
+.accion {
+  display: inline-block;
+  min-width: 64px;
+  padding: 0 6px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.accion--crear {
+  background: #e7f6ec;
+  color: var(--color-exito);
+}
+
+.accion--editar {
+  background: #eaf1fb;
+  color: #2f5d9e;
+}
+
+.accion--anular {
+  background: #fdecea;
+  color: var(--color-error);
+}
+
+.accion--sistema {
+  background: #e6e9ee;
+  color: var(--color-tenue);
+}
+
+.accion--inactivar,
+.accion--reactivar {
+  background: var(--color-alerta-fondo);
+  color: var(--color-alerta);
+}
+
+.tabla tr.fila--seleccionada .accion {
+  background: #fff;
+}

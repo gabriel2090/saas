@@ -23,7 +23,8 @@ import type { IdProceso } from './procesos';
  * - `documento`: ventanas de documentos con líneas o reparto (factura de
  *   proveedor, abono, ajuste de inventario).
  * - `facturar`, `correccion`, `reimpresiones`: solo dentro de esas ventanas.
- * - `reporte`: ventanas de reportes (inventario valorizado, cuentas por cobrar y por pagar).
+ * - `reporte`: ventanas de reportes (inventario valorizado, cuentas por cobrar
+ *   y por pagar, kardex e historial de cambios).
  * - `organizar`: teclas del menú «Organizar» mientras está abierto (D-110).
  */
 export type AmbitoAtajo =
@@ -337,6 +338,13 @@ export const ATAJOS = {
   actualizarReporte: {
     combinacion: 'F5',
     descripcion: 'Volver a calcular el reporte con el corte de este momento',
+    ambito: 'reporte',
+    permitirEnCampoTexto: true,
+  },
+  verDocumentoReporte: {
+    combinacion: 'Ctrl+D',
+    descripcion:
+      'Ver el documento de la fila (kardex e historial de cambios) o el kardex del producto (inventario valorizado)',
     ambito: 'reporte',
     permitirEnCampoTexto: true,
   },

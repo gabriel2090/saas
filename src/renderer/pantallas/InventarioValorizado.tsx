@@ -5,8 +5,15 @@ import { agruparMiles, formatearPesos } from '../../shared/formato/moneda';
 import type { PeticionInventario, PeticionReporte, ReporteInventario } from '../../shared/reportes';
 import type { TipoAviso } from '../componentes/Aviso';
 import { MarcoReporte } from '../reportes/MarcoReporte';
-import { TablaReporte, type ColumnaReporte, type FilaReporte } from '../reportes/TablaReporte';
+import { pedirKardex } from '../reportes/solicitudKardex';
+import {
+  filaEfectiva,
+  TablaReporte,
+  type ColumnaReporte,
+  type FilaReporte,
+} from '../reportes/TablaReporte';
 import { invocar } from '../servicios/api';
+import { useVentanas } from '../ventanas/ProveedorVentanas';
 
 /**
  * Espera tras la última tecla en el filtro de producto antes de consultar.
@@ -86,7 +93,7 @@ function filasDe(reporte: ReporteInventario): FilaReporte[] {
  * Ventana «Inventario valorizado» (Fase 5a, D-146, D-147): existencias por
  * bodega «a hoy» valorizadas al costo actual. El total suma solo las
  * existencias positivas; las negativas se muestran en rojo y en un indicador
- * aparte.
+ * aparte. Ctrl+D abre el kardex del producto elegido en la bodega del filtro.
  *
  * @returns La ventana.
  */
@@ -103,6 +110,7 @@ export function InventarioValorizado(): ReactNode {
   const [seleccionada, setSeleccionada] = useState<string | null>(null);
   const [aviso, setAviso] = useState<{ tipo: TipoAviso; texto: string } | null>(null);
   const [vuelta, setVuelta] = useState(0);
+  const ventanas = useVentanas();
 
   const filtros = useMemo<PeticionInventario>(
     () => ({
@@ -149,7 +157,15 @@ export function InventarioValorizado(): ReactNode {
   }, [filtros, vuelta]);
 
   const filas = useMemo(() => (reporte ? filasDe(reporte) : []), [reporte]);
+  const elegida = filaEfectiva(filas, seleccionada);
   const actualizar = useCallback(() => setVuelta((v) => v + 1), []);
+  const verKardex =
+    elegida === null
+      ? null
+      : () => {
+          pedirKardex({ productoCodigo: Number(elegida), bodegaId });
+          ventanas.abrir('kardex');
+        };
   const columnas: ColumnaReporte[] = [
     { titulo: 'Código', clase: 'num' },
     { titulo: 'Producto' },
@@ -172,6 +188,7 @@ export function InventarioValorizado(): ReactNode {
       resumen={resumen}
       alActualizar={actualizar}
       aviso={aviso}
+      verKardex={verKardex}
     >
       <div className="reporte__filtros">
         <label className="campo">
@@ -259,7 +276,7 @@ export function InventarioValorizado(): ReactNode {
       <TablaReporte
         columnas={columnas}
         filas={filas}
-        seleccionada={seleccionada}
+        seleccionada={elegida}
         alSeleccionar={setSeleccionada}
         textoVacio="No hay productos con estos filtros."
       />

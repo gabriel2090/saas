@@ -16,13 +16,15 @@ export interface CeldaReporte {
 }
 
 /**
- * Fila del reporte: de datos (seleccionable), encabezado de grupo, subtotal o total.
+ * Fila del reporte: de datos (seleccionable), encabezado de grupo, subtotal,
+ * total o fija (no seleccionable y sin estilo propio, p. ej. el saldo anterior
+ * del kardex).
  */
 export interface FilaReporte {
   /** Clave única. */
   clave: string;
   /** Tipo de fila. */
-  tipo: 'dato' | 'grupo' | 'subtotal' | 'total';
+  tipo: 'dato' | 'grupo' | 'subtotal' | 'total' | 'fija';
   /** Clases adicionales de la fila (`vencida`, `fila--error`…). */
   clase?: string;
   /** Celdas. */
@@ -56,6 +58,22 @@ interface PropiedadesTablaReporte {
 }
 
 /**
+ * Fila de datos que queda seleccionada: la elegida si sigue en la lista o,
+ * si no (cambió un filtro), la primera.
+ *
+ * @param filas - Filas del reporte.
+ * @param seleccionada - Clave elegida.
+ * @returns Clave efectiva, o `null` si no hay filas de datos.
+ */
+export function filaEfectiva(
+  filas: readonly FilaReporte[],
+  seleccionada: string | null,
+): string | null {
+  const datos = filas.filter((f) => f.tipo === 'dato');
+  return datos.some((f) => f.clave === seleccionada) ? seleccionada : (datos[0]?.clave ?? null);
+}
+
+/**
  * Tabla de un reporte con encabezados de grupo, subtotales y total. Con el
  * foco en la tabla, flecha arriba/abajo recorren solo las filas de datos.
  *
@@ -67,10 +85,7 @@ export function TablaReporte(props: PropiedadesTablaReporte): ReactNode {
   const contenedor = useRef<HTMLDivElement>(null);
   const filaSeleccionada = useRef<HTMLTableRowElement>(null);
   const datos = props.filas.filter((f) => f.tipo === 'dato');
-  // Si la fila elegida ya no está (cambió un filtro), se toma la primera.
-  const elegida = datos.some((f) => f.clave === props.seleccionada)
-    ? props.seleccionada
-    : (datos[0]?.clave ?? null);
+  const elegida = filaEfectiva(props.filas, props.seleccionada);
 
   useEffect(() => {
     filaSeleccionada.current?.scrollIntoView({ block: 'nearest' });

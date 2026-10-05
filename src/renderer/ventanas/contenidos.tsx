@@ -11,8 +11,10 @@ import { DatosNegocio } from '../pantallas/DatosNegocio';
 import { DevolucionCompra, DevolucionVenta } from '../pantallas/Devolucion';
 import { FacturaProveedor } from '../pantallas/FacturaProveedor';
 import { Facturar } from '../pantallas/Facturar';
+import { HistorialCambios } from '../pantallas/HistorialCambios';
 import { Importador } from '../pantallas/Importador';
 import { InventarioValorizado } from '../pantallas/InventarioValorizado';
+import { Kardex } from '../pantallas/Kardex';
 import { PendienteFase } from '../pantallas/PendienteFase';
 import { Productos } from '../pantallas/Productos';
 import { Reimpresiones } from '../pantallas/Reimpresiones';
@@ -44,6 +46,8 @@ const CONTENIDOS: Partial<Record<IdProceso, ComponentType>> = {
   'reporte-inventario': InventarioValorizado,
   'cuentas-cobrar': CuentasPorCobrar,
   'cuentas-pagar': CuentasPorPagar,
+  kardex: Kardex,
+  'historial-cambios': HistorialCambios,
 };
 
 /**

@@ -118,6 +118,18 @@ export async function recorrerReportes(a, registrar, captura, dormir, entorno) {
     await a.js(`document.querySelectorAll('${INV} thead th').length`),
     7 + inv.bodegas.length,
   );
+  a.verificar(
+    'inventario: los datos de ejemplo traen negativos',
+    inv.resumen.productosNegativos,
+    2,
+  );
+  a.verificar(
+    'inventario: existencias negativas en rojo',
+    await a.js(
+      `[...document.querySelectorAll('${INV} tbody tr')].filter(f => [...f.cells].some(c => c.classList.contains('negativo'))).map(f => f.cells[0].textContent).sort()`,
+    ),
+    ['104', '304'],
+  );
   registrar(
     `Inventario: ${inv.filas.length} productos, ${inv.resumen.productosNegativos} con negativos.`,
   );
@@ -179,6 +191,20 @@ export async function recorrerReportes(a, registrar, captura, dormir, entorno) {
   );
   await foto('52-cuentas-por-cobrar');
   a.verificar(
+    'CxC: columna «Devuelto / corregido»',
+    await a.js(
+      `[...document.querySelectorAll('${CXC} thead th')].map(t => t.textContent).includes('Devuelto / corregido')`,
+    ),
+    true,
+  );
+  a.verificar(
+    'CxC: saldos iniciales con su etiqueta',
+    await a.js(
+      `[...document.querySelectorAll('${CXC} tbody td')].filter(c => c.textContent.startsWith('Saldo inicial')).length`,
+    ),
+    2,
+  );
+  a.verificar(
     'CxC: conteo de facturas en la barra',
     await a.js(
       `document.querySelector('${CXC} .barra-herramientas__resumen').textContent.includes('${documentosCxc} facturas')`,
@@ -238,6 +264,13 @@ export async function recorrerReportes(a, registrar, captura, dormir, entorno) {
   );
   await foto('55-cuentas-por-pagar');
   a.verificar(
+    'CxP: saldos iniciales con su etiqueta',
+    await a.js(
+      `[...document.querySelectorAll('${CXP} tbody td')].filter(c => c.textContent.startsWith('Saldo inicial')).length`,
+    ),
+    2,
+  );
+  a.verificar(
     'CxP: total por pagar en pantalla',
     (await indicadores(CXP)).includes(`Total por pagar = ${miles(cxp.resumen.total)}`),
     true,
@@ -250,5 +283,226 @@ export async function recorrerReportes(a, registrar, captura, dormir, entorno) {
     true,
   );
   await vistaPrevia('CUENTAS POR PAGAR', '56-cuentas-por-pagar-vista-previa');
+
+  /**
+   * Cambia el valor de un campo o lista como lo haría el usuario (React
+   * escucha `input` en los campos y `change` en las listas).
+   *
+   * @param {string} selector - Selector del elemento.
+   * @param {string} valor - Valor nuevo.
+   * @returns {Promise<void>}
+   */
+  const fijarValor = async (selector, valor) => {
+    await a.js(`(() => {
+      const e = document.querySelector(${JSON.stringify(selector)});
+      const proto = e instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
+      Object.getOwnPropertyDescriptor(proto, 'value').set.call(e, ${JSON.stringify(valor)});
+      e.dispatchEvent(new Event(e instanceof HTMLSelectElement ? 'change' : 'input', { bubbles: true }));
+    })()`);
+    await dormir(400);
+  };
+
+  /**
+   * Abre con Ctrl+D el documento de la fila y verifica que sea el esperado y solo para ver.
+   *
+   * @param {string} esperado - Texto que debe traer el documento.
+   * @param {string} nombre - Nombre de la verificación y de la captura.
+   * @returns {Promise<void>}
+   */
+  const verDocumento = async (esperado, nombre) => {
+    await a.tecla('D', { ctrl: true });
+    await a.esperar(`!!document.querySelector('.vista-previa iframe')`, 10000);
+    await dormir(500);
+    await foto(nombre);
+    a.verificar(
+      `${nombre}: Ctrl+D abre el documento`,
+      await a.js(
+        `document.querySelector('.vista-previa iframe').srcdoc.includes(${JSON.stringify(esperado)})`,
+      ),
+      true,
+    );
+    a.verificar(
+      `${nombre}: solo para ver`,
+      await a.js(
+        `[...document.querySelectorAll('.vista-previa .dialogo__botones button')].map(b => b.textContent)`,
+      ),
+      ['Cerrar'],
+    );
+    await a.tecla('Escape');
+    await a.esperar(`!document.querySelector('.vista-previa')`);
+  };
+
+  /**
+   * Convierte `dd/mm/aaaa` en `AAAA-MM-DD`.
+   *
+   * @param {string} texto - Fecha en pantalla.
+   * @returns {string} Fecha ISO.
+   */
+  const iso = (texto) => texto.split('/').reverse().join('-');
+
+  // ---------- Kardex ----------
+  const KAR = 'section[aria-label="Kardex"]';
+  await a.abrir('kardex', 'Kardex');
+  a.verificar(
+    'kardex: sin «Exportar a Excel»',
+    await a.js(
+      `[...document.querySelectorAll('${KAR} .barra-herramientas button')].map(b => b.textContent.replace(/Ctrl\\+\\w|F5/, ''))`,
+    ),
+    ['Imprimir o guardar PDF', 'Ver documento', 'Actualizar'],
+  );
+  await a.js(`document.querySelector('${KAR} .producto-kardex input').focus()`);
+  await a.send('Input.insertText', { text: '231' });
+  await a.tecla('Enter');
+  const [desdeKar, hastaKar] = await a.js(
+    `[...document.querySelectorAll('${KAR} .fecha input')].map(i => i.value)`,
+  );
+  const filtrosKar = {
+    productoCodigo: 231,
+    bodegaId: 1,
+    desde: iso(desdeKar),
+    hasta: iso(hastaKar),
+  };
+  const kar = await api(a, 'reportes:kardex', filtrosKar);
+  await a.esperar(
+    `document.querySelectorAll('${KAR} tbody tr').length === ${kar.filas.length + 2}`,
+  );
+  await foto('57-kardex');
+  a.verificar(
+    'kardex: periodo por defecto desde el 1.º del mes anterior',
+    desdeKar.startsWith('01/'),
+    true,
+  );
+  a.verificar(
+    'kardex: Principal no lleva columna «Bodega»',
+    await a.js(`document.querySelectorAll('${KAR} thead th').length`),
+    9,
+  );
+  a.verificar(
+    'kardex: fila de saldo anterior',
+    await a.js(
+      `document.querySelector('${KAR} tbody tr.anterior').textContent.includes('Saldo anterior')`,
+    ),
+    true,
+  );
+  a.verificar(
+    'kardex: saldo final en pantalla',
+    (await indicadores(KAR)).some((i) => i.startsWith('Saldo final en Principal = ')),
+    true,
+  );
+  a.verificar(
+    'kardex: corrección con su versión',
+    await a.js(
+      `[...document.querySelectorAll('${KAR} tbody td')].some(c => c.textContent === 'Factura 84762 · versión 2')`,
+    ),
+    true,
+  );
+  await a.js(
+    `[...document.querySelectorAll('${KAR} tbody tr')].find(f => f.textContent.includes('Corrección de venta')).click()`,
+  );
+  await verDocumento('84762', '58-kardex-ver-documento');
+
+  await fijarValor(`${KAR} .reporte__filtros select`, '');
+  const karTodas = await api(a, 'reportes:kardex', { ...filtrosKar, bodegaId: null });
+  await a.esperar(
+    `document.querySelectorAll('${KAR} thead th').length === 10 && document.querySelectorAll('${KAR} tbody tr').length === ${karTodas.filas.length + 2}`,
+  );
+  a.verificar(
+    'kardex: «Todas» agrega la columna «Bodega»',
+    await a.js(`[...document.querySelectorAll('${KAR} thead th')].map(t => t.textContent)[5]`),
+    'Bodega',
+  );
+  await foto('59-kardex-todas');
+  await vistaPrevia('KARDEX', '60-kardex-vista-previa');
+  registrar(
+    `Kardex 231: ${kar.filas.length} movimientos en Principal, ${karTodas.filas.length} en todas.`,
+  );
+
+  // ---------- Historial de cambios ----------
+  const HIS = 'section[aria-label="Historial de cambios"]';
+  await a.abrir('historial de cambios', 'Historial de cambios');
+  const [desdeHis, hastaHis] = await a.js(
+    `[...document.querySelectorAll('${HIS} .fecha input')].map(i => i.value)`,
+  );
+  a.verificar(
+    'historial: periodo por defecto de 7 días',
+    (Date.parse(iso(hastaHis)) - Date.parse(iso(desdeHis))) / 86_400_000,
+    6,
+  );
+  await fijarValor(`${HIS} .fecha input`, '01/01/2000');
+  const filtrosHis = {
+    desde: '2000-01-01',
+    hasta: iso(hastaHis),
+    tipo: null,
+    accion: null,
+    texto: '',
+  };
+  const his = await api(a, 'reportes:historial', filtrosHis);
+  await a.esperar(
+    `document.querySelectorAll('${HIS} .reporte__tabla tbody tr').length === ${his.registros.length}`,
+  );
+  await a.js(
+    `[...document.querySelectorAll('${HIS} .reporte__tabla tbody tr')].find(f => f.cells[3].textContent === '84762' && f.textContent.includes('Editar')).click()`,
+  );
+  await a.esperar(
+    `document.querySelector('${HIS} .detalle-cambio h3')?.textContent === 'Factura de venta 84762 · Editar'`,
+  );
+  await foto('61-historial');
+  a.verificar(
+    'historial: el detalle muestra antes y después',
+    await a.js(
+      `document.querySelectorAll('${HIS} .detalle-cambio td.antes').length > 0 && document.querySelectorAll('${HIS} .detalle-cambio td.despues').length > 0`,
+    ),
+    true,
+  );
+  a.verificar(
+    'historial: versión en el detalle',
+    await a.js(`document.querySelector('${HIS} .detalle-cambio dl').textContent.includes('1 → 2')`),
+    true,
+  );
+  await verDocumento('84762', '62-historial-ver-documento');
+
+  const selectores = `${HIS} .reporte__filtros select`;
+  await a.js(`document.querySelectorAll('${selectores}')[1].setAttribute('data-prueba', 'accion')`);
+  await fijarValor(`${selectores}[data-prueba="accion"]`, 'anular');
+  const anuladas = await api(a, 'reportes:historial', { ...filtrosHis, accion: 'anular' });
+  await a.esperar(
+    `document.querySelectorAll('${HIS} .reporte__tabla tbody tr').length === ${anuladas.registros.length}`,
+  );
+  a.verificar(
+    'historial: filtro «Anular»',
+    await a.js(
+      `[...document.querySelectorAll('${HIS} .reporte__tabla tbody tr')].every(f => f.querySelector('.accion--anular'))`,
+    ),
+    true,
+  );
+  await foto('63-historial-anuladas');
+  await vistaPrevia('HISTORIAL DE CAMBIOS', '64-historial-vista-previa');
+  registrar(
+    `Historial: ${his.registros.length} registros, ${anuladas.registros.length} anulaciones.`,
+  );
+
+  // ---------- «Ver kardex» desde el inventario valorizado ----------
+  await a.abrir('inventario valorizado', 'Inventario valorizado');
+  await a.js(
+    `[...document.querySelectorAll('${INV} tbody tr')].find(f => f.cells[0].textContent === '104').click()`,
+  );
+  await a.tecla('D', { ctrl: true });
+  await a.esperar(
+    `document.querySelector('${KAR} .producto-kardex input')?.value.startsWith('104 - ') && document.querySelector('${KAR} tbody tr.anterior') !== null`,
+  );
+  await dormir(400);
+  await foto('65-inventario-ver-kardex');
+  a.verificar(
+    'inventario: Ctrl+D abre el kardex del producto en la bodega del filtro (Todas)',
+    await a.js(
+      `[document.querySelector('${KAR} .reporte__filtros select').value, document.querySelector('.ventana--activa').getAttribute('aria-label')]`,
+    ),
+    ['', 'Kardex'],
+  );
+  a.verificar(
+    'inventario → kardex: saldo final negativo de la 104',
+    (await indicadores(KAR)).some((i) => i.startsWith('Saldo final en todas las bodegas = -3')),
+    true,
+  );
   registrar('Reportes recorridos.');
 }
