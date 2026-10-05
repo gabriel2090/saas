@@ -1,0 +1,245 @@
+/* Estilos nuevos de las maquetas de la Fase 5; al aprobarse pasan a global.css. */
+
+.reporte {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+}
+
+.reporte .barra-herramientas .boton {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.reporte__filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: end;
+}
+
+.reporte__filtros .campo input,
+.reporte__filtros .campo select {
+  min-width: 0;
+}
+
+.reporte__filtros .fecha input {
+  width: 108px;
+}
+
+.reporte__filtros .ancho input {
+  width: 300px;
+}
+
+.reporte__filtros .segmentado button {
+  padding: 4px 12px;
+  white-space: nowrap;
+}
+
+.reporte__tabla {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Cifras de resumen arriba de la tabla. */
+.indicadores {
+  display: flex;
+  gap: 8px;
+}
+
+.indicador {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 5px 10px;
+  border: 1px solid var(--color-borde);
+  border-radius: 4px;
+  background: var(--color-solo-lectura);
+  font-size: 12px;
+  color: var(--color-tenue);
+}
+
+.indicador strong {
+  font-size: 17px;
+  color: var(--color-texto);
+  font-variant-numeric: tabular-nums;
+}
+
+.indicador--error {
+  border-color: #e3a49d;
+  background: #fdecea;
+}
+
+.indicador--error strong {
+  color: var(--color-error);
+}
+
+.indicador--exito strong {
+  color: var(--color-exito);
+}
+
+.indicador--total {
+  border-color: var(--color-primario);
+  background: #eaf1fb;
+}
+
+/* Encabezado de grupo (cliente, proveedor) y subtotal dentro de la tabla. */
+.tabla tr.fila-grupo td,
+.tabla tr.fila-grupo:nth-child(even) td {
+  padding-top: 7px;
+  background: #e3ebf5;
+  color: var(--color-titulo);
+  font-weight: 700;
+}
+
+.tabla tr.fila-grupo td .texto-tenue {
+  font-weight: 400;
+}
+
+.tabla tr.subtotal td {
+  border-bottom: 1px solid var(--color-borde);
+  background: #fff;
+  font-weight: 600;
+}
+
+.tabla tr.total td {
+  border-top: 2px solid var(--color-titulo);
+  background: #e9edf2;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.tabla tr.vencida td.dias,
+.texto-vencida {
+  color: var(--color-error);
+  font-weight: 700;
+}
+
+.tabla tr.vencida td:first-child {
+  box-shadow: inset 3px 0 0 var(--color-error);
+}
+
+.tabla td.a-favor,
+.texto-favor {
+  color: var(--color-exito);
+  font-weight: 600;
+}
+
+.tabla td.negativo {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+.tabla tr.anterior td {
+  color: var(--color-tenue);
+  font-style: italic;
+}
+
+/* Vista previa en hoja carta (21,6 × 27,9 cm), a escala de pantalla. */
+.previa-carta {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid var(--color-borde);
+  background: #9aa8b8;
+}
+
+.hoja-carta {
+  width: 760px;
+  min-height: 984px;
+  margin: 0 auto;
+  padding: 36px 44px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 35%);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  color: #000;
+}
+
+.hoja-carta__encabezado {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #000;
+}
+
+.hoja-carta__negocio strong {
+  display: block;
+  font-size: 15px;
+}
+
+.hoja-carta__titulo {
+  text-align: right;
+}
+
+.hoja-carta__titulo strong {
+  display: block;
+  font-size: 17px;
+  letter-spacing: 1px;
+}
+
+.hoja-carta__tercero {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px 16px;
+  margin: 10px 0;
+  padding: 6px 8px;
+  border: 1px solid #000;
+}
+
+.hoja-carta h3 {
+  margin: 14px 0 4px;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.tabla-hoja {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla-hoja th {
+  padding: 3px 4px;
+  border-top: 1px solid #000;
+  border-bottom: 1px solid #000;
+  text-align: left;
+}
+
+.tabla-hoja td {
+  padding: 2px 4px;
+  border-bottom: 1px dotted #999;
+}
+
+.tabla-hoja tr.total td {
+  border-top: 1px solid #000;
+  border-bottom: none;
+  font-weight: 700;
+}
+
+.hoja-carta__resumen {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.hoja-carta__resumen div {
+  padding: 5px 8px;
+  border: 1px solid #000;
+}
+
+.hoja-carta__resumen strong {
+  display: block;
+  font-size: 14px;
+}
+
+.hoja-carta__pie {
+  margin-top: 18px;
+  padding-top: 6px;
+  border-top: 1px solid #000;
+  color: #444;
+  font-size: 10px;
+}

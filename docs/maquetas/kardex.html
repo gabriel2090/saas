@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Maqueta: kardex por producto y bodega (Fase 5)</title>
+    <link rel="stylesheet" href="../../src/renderer/estilos/global.css" />
+    <link rel="stylesheet" href="reportes-fase5.css" />
+  </head>
+  <body>
+    <div id="raiz">
+      <div class="aplicacion">
+        <nav data-marco></nav>
+        <main class="escritorio">
+          <section class="ventana ventana--activa ventana--con-tamano" style="left: 12px; top: 6px; width: 1236px; height: 708px">
+            <div class="ventana__titulo">
+              <span class="ventana__nombre">Kardex</span>
+              <span class="ventana__botones"><button class="ventana__maximizar">□</button><button class="ventana__cerrar">×</button></span>
+            </div>
+            <div class="ventana__contenido reporte">
+              <div class="barra-herramientas">
+                <button class="boton boton--primario">Imprimir o guardar PDF<span class="atajo">Ctrl+P</span></button>
+                <button class="boton">Ver documento<span class="atajo">Ctrl+D</span></button>
+                <span class="barra-herramientas__separador"></span>
+                <span class="barra-herramientas__resumen">13 movimientos en el periodo</span>
+              </div>
+
+              <div class="reporte__filtros">
+                <label class="campo ancho"><span>Producto</span><input value="231 - PAPA FRANCESA AGRINA PREMIUM *2.5 KG" /></label>
+                <label class="campo"><span>Bodega</span><select><option>Principal</option><option>Bodega Norte</option><option>Todas</option></select></label>
+                <label class="campo fecha"><span>Desde</span><input value="01/09/2026" /></label>
+                <label class="campo fecha"><span>Hasta</span><input value="04/10/2026" /></label>
+              </div>
+
+              <div class="indicadores">
+                <div class="indicador"><span>Saldo anterior (al 31/08/2026)</span><strong>0 UND</strong></div>
+                <div class="indicador"><span>Entradas</span><strong>117 UND</strong></div>
+                <div class="indicador"><span>Salidas</span><strong>83 UND</strong></div>
+                <div class="indicador indicador--total"><span>Saldo final en Principal</span><strong>34 UND</strong></div>
+                <div class="indicador"><span>Valor a costo actual (11,800)</span><strong>$ 401,200</strong></div>
+              </div>
+
+              <div class="tabla-contenedor reporte__tabla">
+                <table class="tabla tabla--seleccionable">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Hora</th>
+                      <th>Movimiento</th>
+                      <th>Documento</th>
+                      <th>Tercero</th>
+                      <th class="num">Entrada</th>
+                      <th class="num">Salida</th>
+                      <th class="num">Saldo</th>
+                      <th class="num">Costo unitario</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="anterior"><td>31/08/2026</td><td></td><td>Saldo anterior</td><td></td><td></td><td></td><td></td><td class="num">0</td><td></td></tr>
+                    <tr><td>01/09/2026</td><td>8:05 a. m.</td><td>Inventario inicial</td><td>Importación 1</td><td></td><td class="num">20</td><td></td><td class="num">20</td><td class="num">11,200</td></tr>
+                    <tr><td>02/09/2026</td><td>9:40 a. m.</td><td>Compra</td><td>Compra 31 · FE-5521</td><td>AGRINA S.A.S.</td><td class="num">48</td><td></td><td class="num">68</td><td class="num">11,500</td></tr>
+                    <tr><td>04/09/2026</td><td>10:12 a. m.</td><td>Venta</td><td>Factura 84761</td><td>ASADERO DON POLLO</td><td></td><td class="num">6</td><td class="num">62</td><td class="num">11,500</td></tr>
+                    <tr><td>14/09/2026</td><td>3:25 p. m.</td><td>Venta</td><td>Factura 84772</td><td>PIZZERIA LA NONNA S.A.S.</td><td></td><td class="num">10</td><td class="num">52</td><td class="num">11,500</td></tr>
+                    <tr><td>18/09/2026</td><td>11:02 a. m.</td><td>Devolución de venta</td><td>Devolución 3 · fact. 84772</td><td>PIZZERIA LA NONNA S.A.S.</td><td class="num">2</td><td></td><td class="num">54</td><td class="num">11,500</td></tr>
+                    <tr><td>20/09/2026</td><td>6:40 p. m.</td><td>Ajuste (merma)</td><td>Ajuste 7</td><td></td><td></td><td class="num">1</td><td class="num">53</td><td class="num">11,500</td></tr>
+                    <tr><td>22/09/2026</td><td>8:30 a. m.</td><td>Compra</td><td>Compra 36 · FE-5698</td><td>AGRINA S.A.S.</td><td class="num">30</td><td></td><td class="num">83</td><td class="num">11,800</td></tr>
+                    <tr><td>26/09/2026</td><td>12:15 p. m.</td><td>Venta</td><td>Factura 84783</td><td>RESTAURANTE EL FOGON</td><td></td><td class="num">12</td><td class="num">71</td><td class="num">11,800</td></tr>
+                    <tr class="fila--seleccionada"><td>27/09/2026</td><td>9:10 a. m.</td><td>Corrección de venta</td><td>Factura 84783 · versión 2</td><td>RESTAURANTE EL FOGON</td><td class="num">2</td><td></td><td class="num">73</td><td class="num">11,800</td></tr>
+                    <tr><td>30/09/2026</td><td>5:48 p. m.</td><td>Venta</td><td>Factura 84786</td><td>CONSUMIDOR FINAL</td><td></td><td class="num">15</td><td class="num">58</td><td class="num">11,800</td></tr>
+                    <tr><td>01/10/2026</td><td>8:20 a. m.</td><td>Anulación de venta</td><td>Factura 84786 <span class="estado-anulado">ANULADA</span></td><td>CONSUMIDOR FINAL</td><td class="num">15</td><td></td><td class="num">73</td><td class="num">11,800</td></tr>
+                    <tr><td>03/10/2026</td><td>4:02 p. m.</td><td>Venta</td><td>Factura 84790</td><td>JUAN JJ FERTILIA</td><td></td><td class="num">25</td><td class="num">48</td><td class="num">11,800</td></tr>
+                    <tr><td>04/10/2026</td><td>11:36 a. m.</td><td>Venta</td><td>Factura 84795</td><td>ASADERO DON POLLO</td><td></td><td class="num">14</td><td class="num">34</td><td class="num">11,800</td></tr>
+                    <tr class="total"><td colspan="5">Totales del periodo</td><td class="num">117</td><td class="num">83</td><td class="num">34</td><td></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </main>
+        <footer data-atajos="Ctrl+P imprimir o PDF · Ctrl+D ver el documento de la fila · ↑/↓ filas · Esc cerrar"></footer>
+      </div>
+    </div>
+    <script src="marco-fase5.js"></script>
+  </body>
+</html>

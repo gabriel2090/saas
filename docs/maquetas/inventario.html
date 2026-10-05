@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Maqueta: inventario por bodega valorizado a costo (Fase 5)</title>
+    <link rel="stylesheet" href="../../src/renderer/estilos/global.css" />
+    <link rel="stylesheet" href="reportes-fase5.css" />
+    <style>
+      .col-bodega {
+        background: #f3f6fa;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="raiz">
+      <div class="aplicacion">
+        <nav data-marco></nav>
+        <main class="escritorio">
+          <section class="ventana ventana--activa ventana--con-tamano" style="left: 12px; top: 6px; width: 1236px; height: 708px">
+            <div class="ventana__titulo">
+              <span class="ventana__nombre">Inventario valorizado</span>
+              <span class="ventana__botones"><button class="ventana__maximizar">□</button><button class="ventana__cerrar">×</button></span>
+            </div>
+            <div class="ventana__contenido reporte">
+              <div class="barra-herramientas">
+                <button class="boton boton--primario">Imprimir o guardar PDF<span class="atajo">Ctrl+P</span></button>
+                <button class="boton">Exportar a Excel<span class="atajo">Ctrl+E</span></button>
+                <button class="boton">Ver kardex<span class="atajo">Ctrl+D</span></button>
+                <span class="barra-herramientas__separador"></span>
+                <span class="barra-herramientas__resumen">Corte: hoy 04/10/2026 4:12 p. m. · costo actual · el total suma solo existencias positivas</span>
+              </div>
+
+              <div class="reporte__filtros">
+                <label class="campo"><span>Bodega</span><select><option>Todas (una columna por bodega)</option><option>Principal</option><option>Bodega Norte</option></select></label>
+                <label class="campo"><span>Proveedor</span><select><option>Todos</option><option>10001 - AGRINA S.A.S.</option></select></label>
+                <label class="campo ancho"><span>Producto</span><input placeholder="Código o parte del nombre" /></label>
+                <label class="casilla"><input type="checkbox" /> Mostrar productos sin existencia</label>
+                <label class="casilla"><input type="checkbox" /> Incluir inactivos</label>
+              </div>
+
+              <div class="indicadores">
+                <div class="indicador"><span>Productos con existencia</span><strong>9</strong></div>
+                <div class="indicador"><span>Valor en Principal</span><strong>$ 4,209,875</strong></div>
+                <div class="indicador"><span>Valor en Bodega Norte</span><strong>$ 1,441,000</strong></div>
+                <div class="indicador indicador--total"><span>Valor total del inventario</span><strong>$ 5,650,875</strong></div>
+                <div class="indicador indicador--error"><span>Existencias negativas (2 productos, no suman)</span><strong>−$ 46,150</strong></div>
+              </div>
+
+              <div class="tabla-contenedor reporte__tabla">
+                <table class="tabla tabla--seleccionable">
+                  <thead>
+                    <tr>
+                      <th class="num">Código</th>
+                      <th>Producto</th>
+                      <th>Und</th>
+                      <th>Proveedor</th>
+                      <th class="num col-bodega">Principal</th>
+                      <th class="num col-bodega">Bodega Norte</th>
+                      <th class="num">Existencia total</th>
+                      <th class="num">Costo unitario</th>
+                      <th class="num">Valor a costo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td class="num">101</td><td>CAJA PIZZA 35*35 FD</td><td>UND</td><td>EMPAQUES DEL CARIBE</td><td class="num">460</td><td class="num">300</td><td class="num">760</td><td class="num">1,250</td><td class="num">950,000</td></tr>
+                    <tr><td class="num">102</td><td>CAJA PIZZA 40*40 FD</td><td>UND</td><td>EMPAQUES DEL CARIBE</td><td class="num">210</td><td class="num">0</td><td class="num">210</td><td class="num">1,480</td><td class="num">310,800</td></tr>
+                    <tr class="fila--seleccionada"><td class="num">231</td><td>PAPA FRANCESA AGRINA PREMIUM *2.5 KG</td><td>UND</td><td>AGRINA S.A.S.</td><td class="num">34</td><td class="num">60</td><td class="num">94</td><td class="num">11,800</td><td class="num">1,109,200</td></tr>
+                    <tr><td class="num">232</td><td>YUCA PRECOCIDA AGRINA *1 KG</td><td>UND</td><td>AGRINA S.A.S.</td><td class="num">52</td><td class="num">0</td><td class="num">52</td><td class="num">4,350</td><td class="num">226,200</td></tr>
+                    <tr class="fila--error"><td class="num">233</td><td>AROS DE CEBOLLA AGRINA *1 KG</td><td>UND</td><td>AGRINA S.A.S.</td><td class="num negativo">−3</td><td class="num">0</td><td class="num negativo">−3</td><td class="num">9,650</td><td class="num negativo">−28,950</td></tr>
+                    <tr><td class="num">305</td><td>QUESO MOZZARELLA BLOQUE</td><td>KG</td><td>DISTRIBUIDORA LA CAMPIÑA</td><td class="num">38.250</td><td class="num">20.000</td><td class="num">58.250</td><td class="num">17,900</td><td class="num">1,042,675</td></tr>
+                    <tr class="fila--error"><td class="num">306</td><td>QUESO COSTEÑO</td><td>KG</td><td>DISTRIBUIDORA LA CAMPIÑA</td><td class="num negativo">−1.250</td><td class="num">0</td><td class="num negativo">−1.250</td><td class="num">13,760</td><td class="num negativo">−17,200</td></tr>
+                    <tr><td class="num">307</td><td>JAMON SANDWICH *1 KG</td><td>UND</td><td>DISTRIBUIDORA LA CAMPIÑA</td><td class="num">41</td><td class="num">0</td><td class="num">41</td><td class="num">15,300</td><td class="num">627,300</td></tr>
+                    <tr><td class="num">410</td><td>VASO DESECHABLE 12 OZ X 50</td><td>UND</td><td>EMPAQUES DEL CARIBE</td><td class="num">96</td><td class="num">0</td><td class="num">96</td><td class="num">5,200</td><td class="num">499,200</td></tr>
+                    <tr><td class="num">411</td><td>SERVILLETA COCTEL X 300</td><td>UND</td><td>EMPAQUES DEL CARIBE</td><td class="num">120</td><td class="num">0</td><td class="num">120</td><td class="num">3,850</td><td class="num">462,000</td></tr>
+                    <tr><td class="num">412</td><td>BOLSA KRAFT No. 20 X 100</td><td>UND</td><td>EMPAQUES DEL CARIBE</td><td class="num">35</td><td class="num">0</td><td class="num">35</td><td class="num">12,100</td><td class="num">423,500</td></tr>
+                    <tr class="total"><td colspan="4">Total · 11 productos</td><td class="num">$ 4,209,875</td><td class="num">$ 1,441,000</td><td></td><td></td><td class="num">$ 5,650,875</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </main>
+        <footer data-atajos="Ctrl+P imprimir o PDF · Ctrl+E Excel · Ctrl+D kardex del producto de la fila · ↑/↓ filas · Esc cerrar"></footer>
+      </div>
+    </div>
+    <script src="marco-fase5.js"></script>
+  </body>
+</html>

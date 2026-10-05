@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Maqueta: visor del historial de cambios (Fase 5)</title>
+    <link rel="stylesheet" href="../../src/renderer/estilos/global.css" />
+    <link rel="stylesheet" href="reportes-fase5.css" />
+    <style>
+      .historial {
+        display: grid;
+        flex: 1;
+        grid-template-columns: 1fr 420px;
+        gap: 10px;
+        min-height: 0;
+      }
+      .detalle-cambio {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-height: 0;
+        padding: 10px;
+        border: 1px solid var(--color-borde);
+        background: #fff;
+        overflow: auto;
+      }
+      .detalle-cambio h3 {
+        margin: 0;
+        color: var(--color-titulo);
+        font-size: 15px;
+      }
+      .detalle-cambio dl {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 3px 10px;
+        margin: 0;
+        font-size: 13px;
+      }
+      .detalle-cambio dt {
+        color: var(--color-tenue);
+      }
+      .detalle-cambio dd {
+        margin: 0;
+      }
+      .tabla td.antes {
+        color: var(--color-error);
+        text-decoration: line-through;
+      }
+      .tabla td.despues {
+        color: var(--color-exito);
+        font-weight: 600;
+      }
+      .accion {
+        display: inline-block;
+        min-width: 64px;
+        padding: 0 6px;
+        border-radius: 9px;
+        font-size: 11px;
+        font-weight: 700;
+        text-align: center;
+      }
+      .accion--crear { background: #e7f6ec; color: var(--color-exito); }
+      .accion--editar { background: #eaf1fb; color: #2f5d9e; }
+      .accion--anular { background: #fdecea; color: var(--color-error); }
+      .accion--sistema { background: #e6e9ee; color: var(--color-tenue); }
+      .accion--inactivar { background: var(--color-alerta-fondo); color: var(--color-alerta); }
+      .tabla tr.fila--seleccionada .accion { background: #fff; }
+    </style>
+  </head>
+  <body>
+    <div id="raiz">
+      <div class="aplicacion">
+        <nav data-marco></nav>
+        <main class="escritorio">
+          <section class="ventana ventana--activa ventana--con-tamano" style="left: 12px; top: 6px; width: 1236px; height: 708px">
+            <div class="ventana__titulo">
+              <span class="ventana__nombre">Historial de cambios</span>
+              <span class="ventana__botones"><button class="ventana__maximizar">□</button><button class="ventana__cerrar">×</button></span>
+            </div>
+            <div class="ventana__contenido reporte">
+              <div class="barra-herramientas">
+                <button class="boton boton--primario">Imprimir o guardar PDF<span class="atajo">Ctrl+P</span></button>
+                <button class="boton">Ver documento<span class="atajo">Ctrl+D</span></button>
+                <span class="barra-herramientas__separador"></span>
+                <span class="barra-herramientas__resumen">12 registros · solo lectura: el historial no se puede editar ni borrar</span>
+              </div>
+
+              <div class="reporte__filtros">
+                <label class="campo fecha"><span>Desde</span><input value="26/09/2026" /></label>
+                <label class="campo fecha"><span>Hasta</span><input value="04/10/2026" /></label>
+                <label class="campo"><span>Tipo de documento</span>
+                  <select>
+                    <option>Todos</option><option>Factura de venta</option><option>Factura de proveedor</option><option>Abono de cliente</option><option>Abono a proveedor</option>
+                    <option>Devolución</option><option>Reintegro</option><option>Ajuste de inventario</option><option>Cierre de caja</option><option>Producto</option><option>Cliente</option><option>Proveedor</option><option>Configuración</option><option>Sistema</option>
+                  </select>
+                </label>
+                <label class="campo"><span>Acción</span><select><option>Todas</option><option>Crear</option><option>Editar</option><option>Anular</option><option>Inactivar</option><option>Reactivar</option><option>Sistema</option></select></label>
+                <label class="campo ancho"><span>Número o texto</span><input placeholder="Ej.: 84783, FERTILIA, motivo…" /></label>
+              </div>
+
+              <div class="historial">
+                <div class="tabla-contenedor">
+                  <table class="tabla tabla--seleccionable">
+                    <thead>
+                      <tr><th>Fecha</th><th>Hora</th><th>Tipo</th><th>Documento</th><th>Acción</th><th>Motivo o resumen</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>04/10/2026</td><td>3:10 p. m.</td><td>Sistema</td><td>Respaldo</td><td><span class="accion accion--sistema">Sistema</span></td><td>Respaldo automático al cerrar</td></tr>
+                      <tr><td>04/10/2026</td><td>11:36 a. m.</td><td>Factura de venta</td><td>84795</td><td><span class="accion accion--crear">Crear</span></td><td>ASADERO DON POLLO · crédito · $ 66,750</td></tr>
+                      <tr><td>03/10/2026</td><td>7:05 p. m.</td><td>Cierre de caja</td><td>03/10/2026</td><td><span class="accion accion--crear">Crear</span></td><td>Esperado $ 1,184,300 · contado $ 1,182,300 · faltan $ 2,000</td></tr>
+                      <tr><td>03/10/2026</td><td>4:20 p. m.</td><td>Abono de cliente</td><td>Abono 58</td><td><span class="accion accion--crear">Crear</span></td><td>JUAN JJ FERTILIA · $ 20,000 · Transferencia</td></tr>
+                      <tr><td>03/10/2026</td><td>4:02 p. m.</td><td>Factura de venta</td><td>84790</td><td><span class="accion accion--crear">Crear</span></td><td>JUAN JJ FERTILIA · crédito · $ 52,500</td></tr>
+                      <tr><td>02/10/2026</td><td>10:44 a. m.</td><td>Producto</td><td>231</td><td><span class="accion accion--editar">Editar</span></td><td>Precio al por menor 17,500 → 18,200</td></tr>
+                      <tr><td>01/10/2026</td><td>8:20 a. m.</td><td>Factura de venta</td><td>84786</td><td><span class="accion accion--anular">Anular</span></td><td>Cliente no recogió el pedido · reintegro 12</td></tr>
+                      <tr><td>30/09/2026</td><td>9:15 a. m.</td><td>Cliente</td><td>10007</td><td><span class="accion accion--inactivar">Inactivar</span></td><td>COMIDAS RAPIDAS EL PAISA</td></tr>
+                      <tr class="fila--seleccionada"><td>27/09/2026</td><td>9:10 a. m.</td><td>Factura de venta</td><td>84783</td><td><span class="accion accion--editar">Editar</span></td><td>Corrección, versión 2 · Cliente devolvió 2 bolsas</td></tr>
+                      <tr><td>27/09/2026</td><td>8:55 a. m.</td><td>Abono a proveedor</td><td>Abono 21</td><td><span class="accion accion--anular">Anular</span></td><td>Valor digitado mal</td></tr>
+                      <tr><td>26/09/2026</td><td>12:15 p. m.</td><td>Factura de venta</td><td>84783</td><td><span class="accion accion--crear">Crear</span></td><td>RESTAURANTE EL FOGON · crédito · $ 171,000</td></tr>
+                      <tr><td>26/09/2026</td><td>8:00 a. m.</td><td>Ajuste de inventario</td><td>Ajuste 9</td><td><span class="accion accion--crear">Crear</span></td><td>Conteo · 305 QUESO MOZZARELLA −0.750 KG</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <aside class="detalle-cambio">
+                  <h3>Factura de venta 84783 · Editar</h3>
+                  <dl>
+                    <dt>Fecha y hora</dt><dd>27/09/2026 9:10 a. m.</dd>
+                    <dt>Cliente</dt><dd>10003 - RESTAURANTE EL FOGON</dd>
+                    <dt>Versión</dt><dd>1 → 2</dd>
+                    <dt>Motivo</dt><dd>Cliente devolvió 2 bolsas</dd>
+                  </dl>
+                  <div class="tabla-contenedor" style="height: auto">
+                    <table class="tabla">
+                      <thead><tr><th>Campo</th><th class="num">Antes</th><th class="num">Después</th></tr></thead>
+                      <tbody>
+                        <tr><td>Línea 2 · 231 PAPA FRANCESA · cantidad</td><td class="num antes">12</td><td class="num despues">10</td></tr>
+                        <tr><td>Línea 2 · total</td><td class="num antes">210,000</td><td class="num despues">175,000</td></tr>
+                        <tr><td>Total de la factura</td><td class="num antes">271,000</td><td class="num despues">236,000</td></tr>
+                        <tr><td>Saldo en cartera</td><td class="num antes">171,000</td><td class="num despues">136,000</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <p class="texto-tenue" style="margin: 0; font-size: 12px">Solo se muestran los campos que cambiaron. Los nombres técnicos se traducen; si aparece uno nuevo sin traducción, se muestra tal cual.</p>
+                </aside>
+              </div>
+            </div>
+          </section>
+        </main>
+        <footer data-atajos="Ctrl+P imprimir o PDF · Ctrl+D ver el documento · ↑/↓ registros · Esc cerrar"></footer>
+      </div>
+    </div>
+    <script src="marco-fase5.js"></script>
+  </body>
+</html>

@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Maqueta: cierre de caja (Fase 5)</title>
+    <link rel="stylesheet" href="../../src/renderer/estilos/global.css" />
+    <link rel="stylesheet" href="reportes-fase5.css" />
+    <style>
+      body:not(.ver-guardado) .solo-guardado,
+      .ver-guardado .solo-nuevo,
+      body:not(.ver-billetes) .solo-billetes,
+      .ver-billetes .sin-billetes {
+        display: none;
+      }
+      .cierre {
+        display: grid;
+        flex: 1;
+        grid-template-columns: minmax(0, 1fr) 340px;
+        gap: 10px;
+        min-height: 0;
+      }
+      .cierre__principal,
+      .cierre__detalle {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 0;
+        min-height: 0;
+      }
+      .tabla--cierre td,
+      .tabla--cierre th {
+        padding: 3px 8px;
+        font-size: 13px;
+      }
+      .tabla--cierre td:nth-child(2) {
+        white-space: normal;
+      }
+      .tabla--cierre .signo {
+        width: 18px;
+        color: var(--color-tenue);
+        font-weight: 700;
+        text-align: center;
+      }
+      .tabla--cierre tr.concepto--activo td {
+        background: #eaf1fb;
+        box-shadow: inset 0 1px 0 var(--color-primario), inset 0 -1px 0 var(--color-primario);
+      }
+      .tabla--cierre tr.neto td {
+        border-top: 1px solid var(--color-borde);
+        font-weight: 600;
+      }
+      .tabla--cierre tr.esperado td {
+        border-top: 2px solid var(--color-titulo);
+        background: #e9edf2;
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .tabla--cierre tr.contado td {
+        background: #fff;
+        font-weight: 600;
+      }
+      .tabla--cierre tr.contado input {
+        width: 96px;
+        padding: 2px 6px;
+        border: 1px solid var(--color-borde);
+        border-radius: 2px;
+        font-size: 14px;
+        text-align: right;
+      }
+      .tabla--cierre tr.contado input.a-mano {
+        border: 2px solid var(--color-primario);
+        font-weight: 700;
+      }
+      .tabla--cierre tr.contado input.precargado {
+        background: var(--color-solo-lectura);
+        color: var(--color-tenue);
+      }
+      .ver-guardado .tabla--cierre tr.contado input {
+        border: 1px solid var(--color-borde);
+        background: var(--color-solo-lectura);
+        color: var(--color-texto);
+      }
+      .tabla--cierre tr.diferencia td {
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .cierre__base {
+        display: grid;
+        grid-template-columns: 1fr 160px 220px;
+        gap: 10px;
+        align-items: end;
+      }
+      .cierre__base .campo input {
+        text-align: right;
+        font-weight: 600;
+      }
+      .cierre__base .campo:first-child input {
+        text-align: left;
+        font-weight: 400;
+      }
+      .retiro {
+        padding: 4px 10px;
+        border: 1px solid var(--color-exito);
+        border-radius: 4px;
+        background: #e7f6ec;
+        font-size: 12px;
+        color: var(--color-tenue);
+      }
+      .retiro strong {
+        display: block;
+        color: var(--color-exito);
+        font-size: 17px;
+      }
+      .cierre .aviso {
+        margin: 0;
+        padding: 4px 8px;
+        font-size: 12px;
+      }
+      .cierre__detalle h3 {
+        margin: 0;
+        color: var(--color-titulo);
+        font-size: 14px;
+      }
+      .cierre__detalle .tabla-contenedor {
+        flex: 1;
+      }
+      .tabla--billetes input {
+        width: 56px;
+        padding: 2px 6px;
+        border: 1px solid var(--color-borde);
+        border-radius: 2px;
+        text-align: right;
+      }
+      .tabla--billetes tr.seccion td {
+        background: #e9edf2;
+        color: var(--color-titulo);
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="raiz">
+      <div class="aplicacion">
+        <nav data-marco></nav>
+        <main class="escritorio">
+          <section class="ventana ventana--activa ventana--con-tamano" style="left: 12px; top: 6px; width: 1236px; height: 708px">
+            <div class="ventana__titulo">
+              <span class="ventana__nombre">Cierre de caja<span class="ventana__cambios solo-nuevo"> • sin guardar</span></span>
+              <span class="ventana__botones"><button class="ventana__maximizar">□</button><button class="ventana__cerrar">×</button></span>
+            </div>
+            <div class="ventana__contenido reporte">
+              <div class="barra-herramientas">
+                <button class="boton boton--primario solo-nuevo">Guardar cierre<span class="atajo">Av. Pág</span></button>
+                <button class="boton solo-nuevo">Contar billetes<span class="atajo">F8</span></button>
+                <button class="boton">Imprimir o guardar PDF<span class="atajo">Ctrl+P</span></button>
+                <button class="boton">Ver documento<span class="atajo">Ctrl+D</span></button>
+                <button class="boton boton--peligro solo-guardado">Anular cierre…<span class="atajo">Ctrl+X</span></button>
+                <span class="barra-herramientas__separador"></span>
+                <span class="barra-herramientas__resumen solo-nuevo">Cierre No. 12 · desde el cierre 11 (03/10/2026 7:05 p. m.) hasta ahora</span>
+                <span class="barra-herramientas__resumen solo-guardado">Cierre No. 12 del 04/10/2026 · 03/10/2026 7:05 p. m. a 04/10/2026 7:02 p. m. · es el último: se puede anular</span>
+              </div>
+
+              <div class="cierre">
+                <div class="cierre__principal">
+                  <div class="tabla-contenedor" style="height: auto">
+                    <table class="tabla tabla--cierre">
+                      <thead>
+                        <tr><th class="signo"></th><th>Concepto</th><th class="num">Efectivo</th><th class="num">Transferencia</th><th class="num">Tarjeta</th><th class="num">Total</th></tr>
+                      </thead>
+                      <tbody>
+                        <tr class="concepto--activo"><td class="signo">+</td><td>Ventas de contado <span class="texto-tenue">(19 facturas)</span></td><td class="num">845,300</td><td class="num">212,000</td><td class="num">96,500</td><td class="num">1,153,800</td></tr>
+                        <tr><td class="signo">+</td><td>Abonos recibidos de clientes <span class="texto-tenue">(3)</span></td><td class="num">120,000</td><td class="num">250,000</td><td class="num">0</td><td class="num">370,000</td></tr>
+                        <tr><td class="signo">+</td><td>Reintegros que recibe el negocio <span class="texto-tenue">(1)</span></td><td class="num">8,000</td><td class="num">0</td><td class="num">0</td><td class="num">8,000</td></tr>
+                        <tr><td class="signo">−</td><td>Abonos pagados a proveedores <span class="texto-tenue">(incluye compras de contado) (2)</span></td><td class="num">185,000</td><td class="num">150,000</td><td class="num">0</td><td class="num">335,000</td></tr>
+                        <tr><td class="signo">−</td><td>Reintegros que entrega el negocio <span class="texto-tenue">(2)</span></td><td class="num">59,500</td><td class="num">0</td><td class="num">0</td><td class="num">59,500</td></tr>
+                        <tr><td class="signo">±</td><td>Anulaciones de días anteriores <span class="texto-tenue">(1)</span></td><td class="num negativo">−30,000</td><td class="num">0</td><td class="num">0</td><td class="num negativo">−30,000</td></tr>
+                        <tr class="neto"><td class="signo">=</td><td>Movimiento del tramo</td><td class="num">698,800</td><td class="num">312,000</td><td class="num">96,500</td><td class="num">1,107,300</td></tr>
+                        <tr><td class="signo">+</td><td>Base inicial <span class="texto-tenue">(la que quedó en el cierre 11)</span></td><td class="num">200,000</td><td class="num"></td><td class="num"></td><td class="num">200,000</td></tr>
+                        <tr class="esperado"><td class="signo">=</td><td>Esperado en caja</td><td class="num">898,800</td><td class="num">312,000</td><td class="num">96,500</td><td class="num">1,307,300</td></tr>
+                        <tr class="contado"><td class="signo"></td><td>Contado (arqueo)</td><td class="num"><input class="a-mano" value="896,800" /></td><td class="num"><input class="precargado" value="312,000" /></td><td class="num"><input class="precargado" value="96,500" /></td><td class="num">1,305,300</td></tr>
+                        <tr class="diferencia"><td class="signo"></td><td>Diferencia</td><td class="num texto-error">Faltan 2,000</td><td class="num texto-tenue">0</td><td class="num texto-tenue">0</td><td class="num texto-error">Faltan 2,000</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <p class="aviso">
+                    <svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M12 8v5M12 16v.01" /></svg>
+                    <span><strong>No es dinero:</strong> $ 5,500 de saldo a favor aplicados en el abono 61 (JUAN JJ FERTILIA). <strong>Anulación de días anteriores:</strong> abono 55 de RESTAURANTE EL FOGON (efectivo, del cierre 11), anulado hoy 9:40 a. m.</span>
+                  </p>
+                  <p class="aviso aviso--alerta">
+                    <svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2zM12 10v5M12 18v.01" /></svg>
+                    <span><strong>Abono con otra fecha:</strong> el abono 60 de PIZZERIA LA NONNA ($ 70,000, efectivo) tiene fecha 02/10/2026 pero se registró hoy 10:15 a. m.; cuenta en este cierre.</span>
+                  </p>
+                  <p class="aviso aviso--alerta solo-nuevo">
+                    <svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2zM12 10v5M12 18v.01" /></svg>
+                    <span>Faltan <strong>$ 2,000</strong> en efectivo. Puede guardar así; la diferencia queda registrada con el cierre.</span>
+                  </p>
+                  <p class="aviso aviso--exito solo-guardado">
+                    <svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M8 12l3 3 5-6" /></svg>
+                    <span>Guardado el 04/10/2026 7:02 p. m. con un faltante de <strong>$ 2,000</strong> en efectivo. No se edita; si hubo un error, se anula (solo el último) y se hace de nuevo.</span>
+                  </p>
+
+                  <div class="cierre__base">
+                    <label class="campo"><span>Observación (opcional)</span><input value="Faltante: posible cambio mal dado en la tarde" /></label>
+                    <label class="campo"><span>Base que queda en caja</span><input value="200,000" /></label>
+                    <div class="retiro">Efectivo a retirar o consignar<strong>$ 696,800</strong></div>
+                  </div>
+                </div>
+
+                <aside class="cierre__detalle sin-billetes">
+                  <h3>Ventas de contado del tramo</h3>
+                  <div class="tabla-contenedor">
+                    <table class="tabla tabla--seleccionable">
+                      <thead><tr><th>Factura</th><th>Cliente</th><th>Forma</th><th class="num">Valor</th></tr></thead>
+                      <tbody>
+                        <tr><td>84796</td><td>CONSUMIDOR FINAL</td><td>Efectivo</td><td class="num">38,500</td></tr>
+                        <tr><td>84797</td><td>MARIA FERNANDA ROJAS</td><td>Transf.</td><td class="num">112,000</td></tr>
+                        <tr class="fila--seleccionada"><td>84798</td><td>CONSUMIDOR FINAL</td><td>Efectivo</td><td class="num">71,900</td></tr>
+                        <tr><td>84799</td><td>CONSUMIDOR FINAL</td><td>Tarjeta</td><td class="num">54,000</td></tr>
+                        <tr><td>84800</td><td>PIZZERIA LA NONNA</td><td>Efectivo</td><td class="num">186,400</td></tr>
+                        <tr><td>84801</td><td>CONSUMIDOR FINAL</td><td>Efectivo</td><td class="num">22,300</td></tr>
+                        <tr><td colspan="4" class="texto-tenue">… 13 facturas más</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <p class="texto-tenue" style="margin: 0; font-size: 12px">↑/↓ cambia de concepto y este panel muestra sus documentos.</p>
+                </aside>
+
+                <aside class="cierre__detalle solo-billetes">
+                  <h3>Contador de billetes y monedas</h3>
+                  <div class="tabla-contenedor">
+                    <table class="tabla tabla--billetes">
+                      <thead><tr><th>Denominación</th><th class="num">Cantidad</th><th class="num">Subtotal</th></tr></thead>
+                      <tbody>
+                        <tr class="seccion"><td colspan="3">Billetes</td></tr>
+                        <tr><td>100,000</td><td class="num"><input value="5" /></td><td class="num">500,000</td></tr>
+                        <tr><td>50,000</td><td class="num"><input value="4" /></td><td class="num">200,000</td></tr>
+                        <tr><td>20,000</td><td class="num"><input value="7" /></td><td class="num">140,000</td></tr>
+                        <tr><td>10,000</td><td class="num"><input value="3" /></td><td class="num">30,000</td></tr>
+                        <tr><td>5,000</td><td class="num"><input value="4" /></td><td class="num">20,000</td></tr>
+                        <tr><td>2,000</td><td class="num"><input value="1" /></td><td class="num">2,000</td></tr>
+                        <tr><td>1,000</td><td class="num"><input value="" placeholder="0" /></td><td class="num texto-tenue">0</td></tr>
+                        <tr class="seccion"><td colspan="3">Monedas</td></tr>
+                        <tr><td>1,000</td><td class="num"><input value="2" /></td><td class="num">2,000</td></tr>
+                        <tr><td>500</td><td class="num"><input value="3" /></td><td class="num">1,500</td></tr>
+                        <tr><td>200</td><td class="num"><input value="6" /></td><td class="num">1,200</td></tr>
+                        <tr><td>100</td><td class="num"><input value="1" /></td><td class="num">100</td></tr>
+                        <tr><td>50</td><td class="num"><input value="" placeholder="0" /></td><td class="num texto-tenue">0</td></tr>
+                        <tr class="total"><td colspan="2">Total contado</td><td class="num">896,800</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <p class="texto-tenue" style="margin: 0; font-size: 12px">Enter pasa el total al efectivo contado. Es opcional: también se puede digitar el efectivo directo.</p>
+                </aside>
+              </div>
+            </div>
+          </section>
+        </main>
+        <footer data-atajos="Av. Pág guardar cierre · F8 contar billetes · Ctrl+P imprimir o PDF · Ctrl+D ver documento · ↑/↓ conceptos · Esc cerrar" data-atajos-guardado="Ctrl+P imprimir o PDF · Ctrl+D ver documento · Ctrl+X anular (solo el último) · ↑/↓ conceptos · Esc cerrar"></footer>
+      </div>
+    </div>
+    <script src="marco-fase5.js"></script>
+  </body>
+</html>

@@ -1,0 +1,130 @@
+﻿<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Maqueta: cuentas por cobrar y por pagar (Fase 5)</title>
+    <link rel="stylesheet" href="../../src/renderer/estilos/global.css" />
+    <link rel="stylesheet" href="reportes-fase5.css" />
+    <style>
+      body:not(.ver-pagar) .solo-pagar,
+      .ver-pagar .solo-cobrar {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="raiz">
+      <div class="aplicacion">
+        <nav data-marco></nav>
+        <main class="escritorio">
+          <section class="ventana ventana--activa ventana--con-tamano" style="left: 12px; top: 6px; width: 1236px; height: 708px">
+            <div class="ventana__titulo">
+              <span class="ventana__nombre"><span class="solo-cobrar">Cuentas por cobrar</span><span class="solo-pagar">Cuentas por pagar</span></span>
+              <span class="ventana__botones"><button class="ventana__maximizar">□</button><button class="ventana__cerrar">×</button></span>
+            </div>
+            <div class="ventana__contenido reporte">
+              <div class="barra-herramientas">
+                <button class="boton boton--primario">Imprimir o guardar PDF<span class="atajo">Ctrl+P</span></button>
+                <button class="boton">Exportar a Excel<span class="atajo">Ctrl+E</span></button>
+                <button class="boton">Estado de cuenta<span class="atajo">Ctrl+D</span></button>
+                <span class="barra-herramientas__separador"></span>
+                <span class="barra-herramientas__resumen solo-cobrar">Corte: hoy 04/10/2026 4:12 p. m. · 5 clientes · 6 facturas</span>
+                <span class="barra-herramientas__resumen solo-pagar">Corte: hoy 04/10/2026 4:12 p. m. · 3 proveedores · 5 compras</span>
+              </div>
+
+              <div class="reporte__filtros">
+                <label class="campo ancho"><span class="solo-cobrar">Cliente</span><span class="solo-pagar">Proveedor</span><input class="solo-cobrar" placeholder="Todos los clientes (escriba código o nombre)" /><input class="solo-pagar" placeholder="Todos los proveedores (escriba código o nombre)" /></label>
+                <div class="campo">
+                  <span>Mostrar</span>
+                  <div class="segmentado"><button aria-pressed="true">Todas</button><button>Solo vencidas</button></div>
+                </div>
+                <label class="casilla"><input type="checkbox" checked /> Incluir los que solo tienen saldo a favor</label>
+              </div>
+
+              <div class="indicadores solo-cobrar">
+                <div class="indicador indicador--total"><span>Total por cobrar</span><strong>$ 811,350</strong></div>
+                <div class="indicador indicador--error"><span>Vencido (3 facturas)</span><strong>$ 550,500</strong></div>
+                <div class="indicador"><span>Por vencer (3 facturas)</span><strong>$ 260,850</strong></div>
+                <div class="indicador indicador--exito"><span>Saldos a favor de clientes</span><strong>$ 28,500</strong></div>
+                <div class="indicador"><span>Neto (por cobrar − a favor)</span><strong>$ 782,850</strong></div>
+              </div>
+              <div class="indicadores solo-pagar">
+                <div class="indicador indicador--total"><span>Total por pagar</span><strong>$ 3,412,400</strong></div>
+                <div class="indicador indicador--error"><span>Vencido (2 compras)</span><strong>$ 1,282,000</strong></div>
+                <div class="indicador"><span>Por vencer (3 compras)</span><strong>$ 2,130,400</strong></div>
+                <div class="indicador indicador--exito"><span>Saldos a favor con proveedores</span><strong>$ 125,100</strong></div>
+                <div class="indicador"><span>Neto (por pagar − a favor)</span><strong>$ 3,287,300</strong></div>
+              </div>
+
+              <div class="tabla-contenedor reporte__tabla">
+                <table class="tabla tabla--seleccionable">
+                  <thead>
+                    <tr>
+                      <th class="solo-cobrar">Factura</th>
+                      <th class="solo-pagar">Compra</th>
+                      <th class="solo-pagar">Factura del proveedor</th>
+                      <th>Fecha</th>
+                      <th>Vence</th>
+                      <th class="num">Días</th>
+                      <th class="num">Total</th>
+                      <th class="num"><span class="solo-cobrar">Abonado</span><span class="solo-pagar">Pagado</span></th>
+                      <th class="num">Devuelto / corregido</th>
+                      <th class="num">Saldo</th>
+                    </tr>
+                  </thead>
+
+                  <!-- Cuentas por cobrar -->
+                  <tbody class="solo-cobrar">
+                    <tr class="fila-grupo"><td colspan="8">10002 - PIZZERIA LA NONNA S.A.S. <span class="texto-tenue">· NIT 901234567 · 310 444 1010</span></td></tr>
+                    <tr class="vencida"><td>Saldo inicial <span class="etiqueta etiqueta--saldo-inicial">84650</span></td><td>01/09/2026</td><td>09/09/2026</td><td class="num dias">Vencida 25</td><td class="num">120,000</td><td class="num">0</td><td class="num">0</td><td class="num">120,000</td></tr>
+                    <tr class="vencida"><td>84772</td><td>14/09/2026</td><td>29/09/2026</td><td class="num dias">Vencida 5</td><td class="num">540,500</td><td class="num">300,000</td><td class="num">37,800</td><td class="num">202,700</td></tr>
+                    <tr class="subtotal"><td colspan="4">Saldo 322,700 · vencido <span class="texto-vencida">322,700</span> · a favor 0</td><td></td><td></td><td></td><td class="num">322,700</td></tr>
+
+                    <tr class="fila-grupo"><td colspan="8">10004 - ASADERO DON POLLO <span class="texto-tenue">· CC 72145698 · 312 444 3030</span></td></tr>
+                    <tr class="vencida"><td>84761</td><td>04/09/2026</td><td>12/09/2026</td><td class="num dias">Vencida 22</td><td class="num">227,800</td><td class="num">0</td><td class="num">0</td><td class="num">227,800</td></tr>
+                    <tr><td>84795</td><td>04/10/2026</td><td>12/10/2026</td><td class="num">Faltan 8</td><td class="num">66,750</td><td class="num">0</td><td class="num">0</td><td class="num">66,750</td></tr>
+                    <tr class="subtotal"><td colspan="4">Saldo 294,550 · vencido <span class="texto-vencida">227,800</span> · a favor 0</td><td></td><td></td><td></td><td class="num">294,550</td></tr>
+
+                    <tr class="fila-grupo"><td colspan="8">10001 - JUAN JJ FERTILIA <span class="texto-tenue">· CC 212121354 · 304 262 0852 · tope $ 2,000,000</span></td></tr>
+                    <tr class="fila--seleccionada"><td>84790</td><td>03/10/2026</td><td>11/10/2026</td><td class="num">Faltan 7</td><td class="num">52,500</td><td class="num">20,000</td><td class="num">0</td><td class="num">32,500</td></tr>
+                    <tr class="subtotal"><td colspan="4">Saldo 32,500 · vencido 0 · a favor <span class="texto-favor">5,500</span> · neto 27,000</td><td></td><td></td><td></td><td class="num">32,500</td></tr>
+
+                    <tr class="fila-grupo"><td colspan="8">10006 - HOTEL BRISAS DEL MAR <span class="texto-tenue">· NIT 890112233 · 314 444 5050</span></td></tr>
+                    <tr><td>84781</td><td>24/09/2026</td><td>24/10/2026</td><td class="num">Faltan 20</td><td class="num">161,600</td><td class="num">0</td><td class="num">0</td><td class="num">161,600</td></tr>
+                    <tr class="subtotal"><td colspan="4">Saldo 161,600 · vencido 0 · a favor 0</td><td></td><td></td><td></td><td class="num">161,600</td></tr>
+
+                    <tr class="fila-grupo"><td colspan="8">10003 - RESTAURANTE EL FOGON <span class="texto-tenue">· NIT 900987654 · sin facturas pendientes</span></td></tr>
+                    <tr class="subtotal"><td colspan="4">Saldo 0 · a favor <span class="texto-favor">23,000</span></td><td></td><td></td><td></td><td class="num">0</td></tr>
+
+                    <tr class="total"><td colspan="4">Total · 5 clientes</td><td></td><td></td><td></td><td class="num">811,350</td></tr>
+                  </tbody>
+
+                  <!-- Cuentas por pagar -->
+                  <tbody class="solo-pagar">
+                    <tr class="fila-grupo"><td colspan="9">10002 - DISTRIBUIDORA LA CAMPIÑA LTDA <span class="texto-tenue">· NIT 800654321 · 301 555 2202</span></td></tr>
+                    <tr class="vencida"><td>Saldo inicial <span class="etiqueta etiqueta--saldo-inicial">C-118</span></td><td>C-118</td><td>20/08/2026</td><td>19/09/2026</td><td class="num dias">Vencida 15</td><td class="num">180,000</td><td class="num">0</td><td class="num">0</td><td class="num">180,000</td></tr>
+                    <tr><td>38</td><td>LC-2290</td><td>30/09/2026</td><td>15/10/2026</td><td class="num">Faltan 11</td><td class="num">612,400</td><td class="num">0</td><td class="num">0</td><td class="num">612,400</td></tr>
+                    <tr class="subtotal"><td colspan="5">Saldo 792,400 · vencido <span class="texto-vencida">180,000</span> · a favor 0</td><td></td><td></td><td></td><td class="num">792,400</td></tr>
+
+                    <tr class="fila-grupo"><td colspan="9">10001 - AGRINA S.A.S. <span class="texto-tenue">· NIT 900123456 · 300 555 1201</span></td></tr>
+                    <tr class="vencida"><td>31</td><td>FE-5521</td><td>25/08/2026</td><td>24/09/2026</td><td class="num dias">Vencida 10</td><td class="num">2,602,000</td><td class="num">1,500,000</td><td class="num">0</td><td class="num">1,102,000</td></tr>
+                    <tr class="fila--seleccionada"><td>36</td><td>FE-5698</td><td>22/09/2026</td><td>22/10/2026</td><td class="num">Faltan 18</td><td class="num">1,188,000</td><td class="num">0</td><td class="num">0</td><td class="num">1,188,000</td></tr>
+                    <tr class="subtotal"><td colspan="5">Saldo 2,290,000 · vencido <span class="texto-vencida">1,102,000</span> · a favor <span class="texto-favor">125,100</span> · neto 2,164,900</td><td></td><td></td><td></td><td class="num">2,290,000</td></tr>
+
+                    <tr class="fila-grupo"><td colspan="9">10003 - EMPAQUES DEL CARIBE S.A.S. <span class="texto-tenue">· NIT 901777888 · 302 555 3303</span></td></tr>
+                    <tr><td>39</td><td>EC-0912</td><td>02/10/2026</td><td>01/11/2026</td><td class="num">Faltan 28</td><td class="num">330,000</td><td class="num">0</td><td class="num">0</td><td class="num">330,000</td></tr>
+                    <tr class="subtotal"><td colspan="5">Saldo 330,000 · vencido 0 · a favor 0</td><td></td><td></td><td></td><td class="num">330,000</td></tr>
+
+                    <tr class="total"><td colspan="5">Total · 3 proveedores</td><td></td><td></td><td></td><td class="num">3,412,400</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </main>
+        <footer data-atajos="Ctrl+P imprimir o PDF · Ctrl+E Excel · Ctrl+D estado de cuenta del tercero de la fila · ↑/↓ filas · Esc cerrar"</footer>
+      </div>
+    </div>
+    <script src="marco-fase5.js"></script>
+  </body>
+</html>

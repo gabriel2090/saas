@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Maqueta: estado de cuenta de cliente y de proveedor (Fase 5)</title>
+    <link rel="stylesheet" href="../../src/renderer/estilos/global.css" />
+    <link rel="stylesheet" href="reportes-fase5.css" />
+    <style>
+      body:not(.ver-proveedor) .solo-proveedor,
+      .ver-proveedor .solo-cliente {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="raiz">
+      <div class="aplicacion">
+        <nav data-marco></nav>
+        <main class="escritorio">
+          <section class="ventana ventana--activa ventana--con-tamano" style="left: 12px; top: 6px; width: 1236px; height: 708px">
+            <div class="ventana__titulo">
+              <span class="ventana__nombre">Estado de cuenta</span>
+              <span class="ventana__botones"><button class="ventana__maximizar">□</button><button class="ventana__cerrar">×</button></span>
+            </div>
+            <div class="ventana__contenido reporte">
+              <div class="barra-herramientas">
+                <button class="boton boton--primario">Imprimir<span class="atajo">Ctrl+P</span></button>
+                <button class="boton">Guardar PDF<span class="atajo">Ctrl+G</span></button>
+                <span class="barra-herramientas__separador"></span>
+                <span class="barra-herramientas__resumen">Hoja carta · <span class="solo-cliente">Estado de cuenta JUAN JJ FERTILIA 04-10-2026.pdf</span><span class="solo-proveedor">Estado de cuenta AGRINA S.A.S. 04-10-2026.pdf</span></span>
+              </div>
+
+              <div class="reporte__filtros">
+                <div class="campo">
+                  <span>Tercero</span>
+                  <div class="segmentado"><button aria-pressed="true" class="solo-cliente">Cliente</button><button class="solo-cliente">Proveedor</button><button class="solo-proveedor">Cliente</button><button aria-pressed="true" class="solo-proveedor">Proveedor</button></div>
+                </div>
+                <label class="campo ancho"><span class="solo-cliente">Cliente</span><span class="solo-proveedor">Proveedor</span><input class="solo-cliente" value="10001 - JUAN JJ FERTILIA" /><input class="solo-proveedor" value="10001 - AGRINA S.A.S." /></label>
+                <label class="campo fecha"><span>Desde</span><input value="01/09/2026" /></label>
+                <label class="campo fecha"><span>Hasta</span><input value="04/10/2026" /></label>
+              </div>
+
+              <div class="previa-carta">
+                <div class="hoja-carta">
+                  <div class="hoja-carta__encabezado">
+                    <div class="hoja-carta__negocio">
+                      <strong>SALSAMENTARIA EL BUEN CIUDADANO</strong>
+                      NIT 70694229-1 · No responsable de IVA<br />CRA 25 # 122-04 LA PRADERA · Tel. 3042620852
+                    </div>
+                    <div class="hoja-carta__titulo">
+                      <strong>ESTADO DE CUENTA</strong>
+                      <span class="solo-cliente">CLIENTE</span><span class="solo-proveedor">PROVEEDOR</span><br />Periodo 01/09/2026 a 04/10/2026<br />Generado 04/10/2026 4:12 p. m.
+                    </div>
+                  </div>
+
+                  <div class="hoja-carta__tercero solo-cliente">
+                    <span><b>Cliente:</b> 10001 - JUAN JJ FERTILIA</span><span><b>CC:</b> 212121354</span><span><b>Cel.:</b> 3042620852</span>
+                    <span><b>Dirección:</b> CARR 25 #122-04 LA PRADERA</span><span><b>Tope de crédito:</b> $ 2,000,000</span><span></span>
+                  </div>
+                  <div class="hoja-carta__tercero solo-proveedor">
+                    <span><b>Proveedor:</b> 10001 - AGRINA S.A.S.</span><span><b>NIT:</b> 900123456</span><span><b>Cel.:</b> 3005551201</span>
+                    <span><b>Dirección:</b> CL 30 # 1-45 ZONA INDUSTRIAL</span><span></span><span></span>
+                  </div>
+
+                  <h3>Movimientos del periodo</h3>
+                  <table class="tabla-hoja">
+                    <thead><tr><th>Fecha</th><th>Documento</th><th>Detalle</th><th class="num">Cargos</th><th class="num">Abonos</th><th class="num">Saldo</th></tr></thead>
+                    <tbody class="solo-cliente">
+                      <tr><td>31/08/2026</td><td></td><td>Saldo anterior</td><td></td><td></td><td class="num">0</td></tr>
+                      <tr><td>09/09/2026</td><td>Factura 84765</td><td>Crédito 8 días, vence 17/09/2026</td><td class="num">44,500</td><td></td><td class="num">44,500</td></tr>
+                      <tr><td>12/09/2026</td><td>Abono 33</td><td>Efectivo · aplicado a 84765 (44,500); 5,500 quedan a favor</td><td></td><td class="num">50,000</td><td class="num">A favor 5,500</td></tr>
+                      <tr><td>03/10/2026</td><td>Factura 84790</td><td>Crédito 8 días, vence 11/10/2026</td><td class="num">52,500</td><td></td><td class="num">47,000</td></tr>
+                      <tr><td>03/10/2026</td><td>Abono 58</td><td>Transferencia · aplicado a 84790</td><td></td><td class="num">20,000</td><td class="num">27,000</td></tr>
+                      <tr class="total"><td colspan="3">Totales del periodo</td><td class="num">97,000</td><td class="num">70,000</td><td class="num">27,000</td></tr>
+                    </tbody>
+                    <tbody class="solo-proveedor">
+                      <tr><td>31/08/2026</td><td></td><td>Saldo anterior</td><td></td><td></td><td class="num">2,602,000</td></tr>
+                      <tr><td>05/09/2026</td><td>Abono 12</td><td>Transferencia · aplicado a compra 31 (FE-5521)</td><td></td><td class="num">1,500,000</td><td class="num">1,102,000</td></tr>
+                      <tr><td>22/09/2026</td><td>Compra 36</td><td>FE-5698 · crédito 30 días, vence 22/10/2026</td><td class="num">1,188,000</td><td></td><td class="num">2,290,000</td></tr>
+                      <tr><td>28/09/2026</td><td>Compra 37</td><td>FE-5730 · pagada de contado</td><td class="num">960,000</td><td></td><td class="num">3,250,000</td></tr>
+                      <tr><td>28/09/2026</td><td>Abono 22</td><td>Efectivo · pago de contado de la compra 37</td><td></td><td class="num">960,000</td><td class="num">2,290,000</td></tr>
+                      <tr><td>29/09/2026</td><td>Compra 37 v2</td><td>Corrección: total 960,000 → 924,400; 35,600 a favor</td><td></td><td class="num">35,600</td><td class="num">2,254,400</td></tr>
+                      <tr><td>01/10/2026</td><td>Devolución de compra 2</td><td>Compra 37 · 5 KG QUESO MOZZARELLA; 89,500 a favor</td><td></td><td class="num">89,500</td><td class="num">2,164,900</td></tr>
+                      <tr class="total"><td colspan="3">Totales del periodo</td><td class="num">2,148,000</td><td class="num">2,585,100</td><td class="num">2,164,900</td></tr>
+                    </tbody>
+                  </table>
+
+                  <h3><span class="solo-cliente">Facturas pendientes</span><span class="solo-proveedor">Compras pendientes</span> al 04/10/2026</h3>
+                  <table class="tabla-hoja">
+                    <thead><tr><th>Documento</th><th>Fecha</th><th>Vence</th><th class="num">Días</th><th class="num">Total</th><th class="num">Abonado</th><th class="num">Devuelto / corregido</th><th class="num">Saldo</th></tr></thead>
+                    <tbody class="solo-cliente">
+                      <tr><td>Factura 84790</td><td>03/10/2026</td><td>11/10/2026</td><td class="num">Faltan 7</td><td class="num">52,500</td><td class="num">20,000</td><td class="num">0</td><td class="num">32,500</td></tr>
+                      <tr class="total"><td colspan="7">Total pendiente</td><td class="num">32,500</td></tr>
+                    </tbody>
+                    <tbody class="solo-proveedor">
+                      <tr><td>Compra 31 · FE-5521</td><td>25/08/2026</td><td>24/09/2026</td><td class="num"><b>Vencida 10</b></td><td class="num">2,602,000</td><td class="num">1,500,000</td><td class="num">0</td><td class="num">1,102,000</td></tr>
+                      <tr><td>Compra 36 · FE-5698</td><td>22/09/2026</td><td>22/10/2026</td><td class="num">Faltan 18</td><td class="num">1,188,000</td><td class="num">0</td><td class="num">0</td><td class="num">1,188,000</td></tr>
+                      <tr class="total"><td colspan="7">Total pendiente</td><td class="num">2,290,000</td></tr>
+                    </tbody>
+                  </table>
+
+                  <div class="hoja-carta__resumen solo-cliente">
+                    <div>Saldo pendiente<strong>$ 32,500</strong></div>
+                    <div>Vencido<strong>$ 0</strong></div>
+                    <div>Saldo a favor del cliente<strong>$ 5,500</strong></div>
+                    <div>Neto a pagar<strong>$ 27,000</strong></div>
+                  </div>
+                  <div class="hoja-carta__resumen solo-proveedor">
+                    <div>Saldo pendiente<strong>$ 2,290,000</strong></div>
+                    <div>Vencido<strong>$ 1,102,000</strong></div>
+                    <div>Saldo a favor del negocio<strong>$ 125,100</strong></div>
+                    <div>Neto a pagar<strong>$ 2,164,900</strong></div>
+                  </div>
+
+                  <p class="hoja-carta__pie">La columna Saldo es lo que se debe menos el saldo a favor. Las ventas de contado no aparecen porque no afectan la cuenta. Página 1 de 1.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
+        <footer data-atajos="Ctrl+P imprimir · Ctrl+G guardar PDF · Esc cerrar"></footer>
+      </div>
+    </div>
+    <script src="marco-fase5.js"></script>
+  </body>
+</html>
