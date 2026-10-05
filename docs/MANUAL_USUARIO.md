@@ -71,6 +71,18 @@ Abra «Reimpresiones» desde la barra superior (o Ctrl+K y «reimpresiones»).
 
 Todo lo que se reimprime sale con la leyenda **REIMPRESION**. Las facturas anuladas salen además con **ANULADA**, los abonos anulados con **ANULADO**, y las facturas corregidas con **CORREGIDA**, su versión y el recuadro de la corrección. Los saldos iniciales importados no aparecen: no se emitieron en esta aplicación.
 
+## Reportes: inventario valorizado, cuentas por cobrar y cuentas por pagar
+
+Ábralos con Ctrl+K y «inventario valorizado», «cuentas por cobrar» o «cuentas por pagar». Los tres son **a hoy**: muestran la situación en el momento en que se abren, con la fecha y hora de **corte** arriba a la derecha. **F5** («Actualizar») los vuelve a calcular. En los tres:
+
+- **Ctrl+P** («Imprimir o guardar PDF») abre la vista previa en hoja carta, con «Imprimir» y «Guardar PDF». Cada hoja lleva el número de página.
+- **Ctrl+E** («Exportar a Excel») guarda un libro .xlsx con las cifras como números, listo para sumar o filtrar en Excel.
+- Lo impreso y lo exportado respetan los filtros que tenga la pantalla.
+
+**Inventario valorizado.** Una fila por producto con su existencia en cada bodega, la existencia total, el costo actual y el valor a costo. Puede limitar a una bodega, a un proveedor o a un producto (código o parte del nombre), mostrar los productos sin existencia e incluir los inactivos. El **valor total suma solo las existencias positivas**: las negativas se ven en rojo y su valor aparece aparte, en el indicador «Existencias negativas». Si un producto tiene existencia en una bodega y negativo en otra, su valor es el de la bodega con existencia.
+
+**Cuentas por cobrar y por pagar.** Las facturas con saldo (y las compras, en cuentas por pagar) agrupadas por cliente o proveedor. Primero aparece el que tiene la factura vencida más antigua, y dentro de cada uno, de la más antigua a la más reciente. La columna «Días» dice «Vencida N», «Vence hoy» o «Faltan N»; las vencidas se resaltan en rojo. Cada grupo cierra con su saldo, lo vencido, su saldo a favor y el neto. «Devuelto» es lo que bajaron las devoluciones y las correcciones. Filtros: un cliente o proveedor (borre el campo para volver a todos), «Todas» o «Solo vencidas», y la casilla para incluir a los que no deben nada pero tienen saldo a favor. Los saldos iniciales importados aparecen con su etiqueta.
+
 ## Abono de cliente
 
 Abra «Abono de cliente» con Ctrl+K y «abono». Funciona igual que el abono a proveedor.
