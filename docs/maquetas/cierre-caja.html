@@ -6,11 +6,45 @@
     <link rel="stylesheet" href="../../src/renderer/estilos/global.css" />
     <link rel="stylesheet" href="reportes-fase5.css" />
     <style>
-      body:not(.ver-guardado) .solo-guardado,
+      /* Variantes: (ninguna) cierre nuevo · #billetes contador abierto · #guardado el último cierre · #anterior un cierre viejo */
+      body:not(.ver-guardado):not(.ver-anterior) .solo-guardado,
       .ver-guardado .solo-nuevo,
+      .ver-anterior .solo-nuevo,
+      body:not(.ver-guardado) .solo-ultimo,
+      body:not(.ver-anterior) .solo-anterior,
       body:not(.ver-billetes) .solo-billetes,
       .ver-billetes .sin-billetes {
         display: none;
+      }
+      .ver-guardado .tabla--cierre tr.contado input.a-mano,
+      .ver-guardado .tabla--cierre tr.contado input.precargado,
+      .ver-anterior .tabla--cierre tr.contado input.a-mano,
+      .ver-anterior .tabla--cierre tr.contado input.precargado {
+        font-weight: 600;
+      }
+      .ver-guardado .tabla--cierre tr.contado input.a-mano,
+      .ver-guardado .tabla--cierre tr.contado input.precargado,
+      .ver-anterior .tabla--cierre tr.contado input.a-mano,
+      .ver-anterior .tabla--cierre tr.contado input.precargado,
+      .ver-anterior .tabla--cierre tr.contado input {
+        border: 1px solid var(--color-borde);
+        background: var(--color-solo-lectura);
+        color: var(--color-texto);
+      }
+      .campo--en-linea {
+        display: flex;
+        flex-direction: row;
+        gap: 6px;
+        align-items: center;
+        margin-left: 6px;
+      }
+      .campo--en-linea select {
+        max-width: 260px;
+      }
+      .nota-cierre {
+        margin: 0;
+        color: var(--color-tenue);
+        font-size: 12px;
       }
       .cierre {
         display: grid;
@@ -154,10 +188,30 @@
                 <button class="boton solo-nuevo">Contar billetes<span class="atajo">F8</span></button>
                 <button class="boton">Imprimir o guardar PDF<span class="atajo">Ctrl+P</span></button>
                 <button class="boton">Ver documento<span class="atajo">Ctrl+D</span></button>
-                <button class="boton boton--peligro solo-guardado">Anular cierre…<span class="atajo">Ctrl+X</span></button>
+                <button class="boton boton--peligro solo-ultimo">Anular cierre…<span class="atajo">Ctrl+X</span></button>
+                <button class="boton solo-anterior" disabled title="Solo se puede anular el último cierre (el 12)">Anular cierre…<span class="atajo">Ctrl+X</span></button>
+                <label class="campo campo--en-linea"><span>Ver</span>
+                  <select class="solo-nuevo">
+                    <option selected>Cierre nuevo (sin guardar)</option>
+                    <option>Cierre 11 · 03/10/2026 7:05 p. m.</option>
+                    <option>Cierre 10 · 02/10/2026 6:58 p. m. · ANULADO</option>
+                    <option>Cierre 9 · 01/10/2026 7:10 p. m.</option>
+                  </select>
+                  <select class="solo-ultimo">
+                    <option>Cierre nuevo (sin guardar)</option>
+                    <option selected>Cierre 12 · 04/10/2026 7:02 p. m.</option>
+                    <option>Cierre 11 · 03/10/2026 7:05 p. m.</option>
+                  </select>
+                  <select class="solo-anterior">
+                    <option>Cierre nuevo (sin guardar)</option>
+                    <option>Cierre 12 · 04/10/2026 7:02 p. m.</option>
+                    <option selected>Cierre 11 · 03/10/2026 7:05 p. m.</option>
+                  </select>
+                </label>
                 <span class="barra-herramientas__separador"></span>
-                <span class="barra-herramientas__resumen solo-nuevo">Cierre No. 12 · desde el cierre 11 (03/10/2026 7:05 p. m.) hasta ahora</span>
-                <span class="barra-herramientas__resumen solo-guardado">Cierre No. 12 del 04/10/2026 · 03/10/2026 7:05 p. m. a 04/10/2026 7:02 p. m. · es el último: se puede anular</span>
+                <span class="barra-herramientas__resumen solo-nuevo">Cierre No. 12 · tramo desde el cierre 11 vigente (03/10/2026 7:05 p. m.) hasta el momento de guardar</span>
+                <span class="barra-herramientas__resumen solo-ultimo">Cierre No. 12 · tramo del 03/10/2026 7:05 p. m. al 04/10/2026 7:02 p. m. · es el último: se puede anular</span>
+                <span class="barra-herramientas__resumen solo-anterior">Cierre No. 11 · tramo desde el cierre 9 (01/10/2026 7:10 p. m.; el 10 está anulado) al 03/10/2026 7:05 p. m. · no es el último</span>
               </div>
 
               <div class="cierre">
@@ -175,13 +229,14 @@
                         <tr><td class="signo">−</td><td>Reintegros que entrega el negocio <span class="texto-tenue">(2)</span></td><td class="num">59,500</td><td class="num">0</td><td class="num">0</td><td class="num">59,500</td></tr>
                         <tr><td class="signo">±</td><td>Anulaciones de días anteriores <span class="texto-tenue">(1)</span></td><td class="num negativo">−30,000</td><td class="num">0</td><td class="num">0</td><td class="num negativo">−30,000</td></tr>
                         <tr class="neto"><td class="signo">=</td><td>Movimiento del tramo</td><td class="num">698,800</td><td class="num">312,000</td><td class="num">96,500</td><td class="num">1,107,300</td></tr>
-                        <tr><td class="signo">+</td><td>Base inicial <span class="texto-tenue">(la que quedó en el cierre 11)</span></td><td class="num">200,000</td><td class="num"></td><td class="num"></td><td class="num">200,000</td></tr>
+                        <tr><td class="signo">+</td><td>Base inicial <span class="texto-tenue">(automática: la que dejó el cierre anterior vigente)</span></td><td class="num">200,000</td><td class="num"></td><td class="num"></td><td class="num">200,000</td></tr>
                         <tr class="esperado"><td class="signo">=</td><td>Esperado en caja</td><td class="num">898,800</td><td class="num">312,000</td><td class="num">96,500</td><td class="num">1,307,300</td></tr>
                         <tr class="contado"><td class="signo"></td><td>Contado (arqueo)</td><td class="num"><input class="a-mano" value="896,800" /></td><td class="num"><input class="precargado" value="312,000" /></td><td class="num"><input class="precargado" value="96,500" /></td><td class="num">1,305,300</td></tr>
                         <tr class="diferencia"><td class="signo"></td><td>Diferencia</td><td class="num texto-error">Faltan 2,000</td><td class="num texto-tenue">0</td><td class="num texto-tenue">0</td><td class="num texto-error">Faltan 2,000</td></tr>
                       </tbody>
                     </table>
                   </div>
+                  <p class="nota-cierre solo-nuevo">El efectivo se cuenta: digítelo o use el contador de billetes y monedas (F8). Transferencia y tarjeta vienen con lo esperado; cámbielas solo si hay diferencia.</p>
 
                   <p class="aviso">
                     <svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M12 8v5M12 16v.01" /></svg>
@@ -197,12 +252,13 @@
                   </p>
                   <p class="aviso aviso--exito solo-guardado">
                     <svg class="aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M8 12l3 3 5-6" /></svg>
-                    <span>Guardado el 04/10/2026 7:02 p. m. con un faltante de <strong>$ 2,000</strong> en efectivo. No se edita; si hubo un error, se anula (solo el último) y se hace de nuevo.</span>
+                    <span class="solo-ultimo">Guardado el 04/10/2026 7:02 p. m. con un faltante de <strong>$ 2,000</strong> en efectivo. No se edita; si hubo un error, se anula (solo el último) y se hace de nuevo: el cierre nuevo cubrirá su tramo.</span>
+                    <span class="solo-anterior">Guardado el 03/10/2026 7:05 p. m. No se edita ni se anula: solo se puede anular el último cierre (el 12).</span>
                   </p>
 
                   <div class="cierre__base">
                     <label class="campo"><span>Observación (opcional)</span><input value="Faltante: posible cambio mal dado en la tarde" /></label>
-                    <label class="campo"><span>Base que queda en caja</span><input value="200,000" /></label>
+                    <label class="campo" title="No puede ser mayor que el efectivo contado (896,800)"><span>Base que queda en caja</span><input value="200,000" /></label>
                     <div class="retiro">Efectivo a retirar o consignar<strong>$ 696,800</strong></div>
                   </div>
                 </div>
@@ -256,7 +312,7 @@
             </div>
           </section>
         </main>
-        <footer data-atajos="Av. Pág guardar cierre · F8 contar billetes · Ctrl+P imprimir o PDF · Ctrl+D ver documento · ↑/↓ conceptos · Esc cerrar" data-atajos-guardado="Ctrl+P imprimir o PDF · Ctrl+D ver documento · Ctrl+X anular (solo el último) · ↑/↓ conceptos · Esc cerrar"></footer>
+        <footer data-atajos="Av. Pág guardar cierre · F8 contar billetes · Ctrl+P imprimir o PDF · Ctrl+D ver documento · ↑/↓ conceptos · Esc cerrar" data-atajos-guardado="Ctrl+P imprimir o PDF · Ctrl+D ver documento · Ctrl+X anular (solo el último) · ↑/↓ conceptos · Esc cerrar" data-atajos-anterior="Ctrl+P imprimir o PDF · Ctrl+D ver documento · ↑/↓ conceptos · Esc cerrar"></footer>
       </div>
     </div>
     <script src="marco-fase5.js"></script>
