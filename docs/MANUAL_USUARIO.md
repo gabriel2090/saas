@@ -81,7 +81,25 @@ Todo lo que se reimprime sale con la leyenda **REIMPRESION**. Las facturas anula
 
 **Inventario valorizado.** Una fila por producto con su existencia en cada bodega, la existencia total, el costo actual y el valor a costo. Puede limitar a una bodega, a un proveedor o a un producto (código o parte del nombre), mostrar los productos sin existencia e incluir los inactivos. El **valor total suma solo las existencias positivas**: las negativas se ven en rojo y su valor aparece aparte, en el indicador «Existencias negativas». Si un producto tiene existencia en una bodega y negativo en otra, su valor es el de la bodega con existencia.
 
-**Cuentas por cobrar y por pagar.** Las facturas con saldo (y las compras, en cuentas por pagar) agrupadas por cliente o proveedor. Primero aparece el que tiene la factura vencida más antigua, y dentro de cada uno, de la más antigua a la más reciente. La columna «Días» dice «Vencida N», «Vence hoy» o «Faltan N»; las vencidas se resaltan en rojo. Cada grupo cierra con su saldo, lo vencido, su saldo a favor y el neto. «Devuelto» es lo que bajaron las devoluciones y las correcciones. Filtros: un cliente o proveedor (borre el campo para volver a todos), «Todas» o «Solo vencidas», y la casilla para incluir a los que no deben nada pero tienen saldo a favor. Los saldos iniciales importados aparecen con su etiqueta.
+**Cuentas por cobrar y por pagar.** Las facturas con saldo (y las compras, en cuentas por pagar) agrupadas por cliente o proveedor. Primero aparece el que tiene la factura vencida más antigua, y dentro de cada uno, de la más antigua a la más reciente. La columna «Días» dice «Vencida N», «Vence hoy» o «Faltan N»; las vencidas se resaltan en rojo. Cada grupo cierra con su saldo, lo vencido, su saldo a favor y el neto. «Devuelto / corregido» es lo que bajaron las devoluciones y las correcciones. Filtros: un cliente o proveedor (borre el campo para volver a todos), «Todas» o «Solo vencidas», y la casilla para incluir a los que no deben nada pero tienen saldo a favor. Los saldos iniciales importados aparecen con su etiqueta.
+
+En el inventario valorizado, **Ctrl+D** («Ver kardex») abre el kardex del producto elegido, en la bodega del filtro (o en todas).
+
+## Kardex
+
+Ábralo con Ctrl+K y «kardex», o desde el inventario valorizado con Ctrl+D. Escriba en **Producto** el código o parte del nombre y pulse Intro. Por defecto muestra la bodega **Principal** desde el primer día del mes anterior hasta hoy; cambie la **Bodega** (o elija «Todas», que agrega la columna «Bodega») y el periodo **Desde** / **Hasta** (`dd/mm/aaaa`).
+
+- La primera fila es el **saldo anterior**: la existencia al cierre del día antes de «Desde».
+- Cada movimiento muestra fecha y hora, qué fue (compra, venta, corrección, devolución, anulación, ajuste o inventario inicial), el documento, el cliente o proveedor, la entrada o la salida, el **saldo** después del movimiento y el costo unitario. Las correcciones indican la versión de la factura («Factura 84762 · versión 2»); las anulaciones devuelven la cantidad y llevan la marca **ANULADA**.
+- La última fila suma las entradas y las salidas del periodo; arriba, los indicadores muestran el saldo final y su valor al costo actual. Un saldo negativo se ve en rojo.
+- **Ctrl+D** («Ver documento») muestra la factura o la compra de la fila (en una devolución, la factura devuelta). Los ajustes y el inventario inicial no tienen documento para ver.
+- **Ctrl+P** imprime o guarda el kardex en PDF (hoja carta). **F5** lo vuelve a calcular. El kardex no se exporta a Excel.
+
+## Historial de cambios
+
+Ábralo con Ctrl+K y «historial de cambios». Es de **solo lectura**: el historial no se puede editar ni borrar. Muestra los cambios de los **últimos 7 días**, del más reciente al más antiguo; cambie el periodo con **Desde** / **Hasta**, y filtre por **Tipo de documento**, **Acción** (crear, editar, anular, inactivar, reactivar, sistema) o **Número o texto** (número del documento, nombre del cliente, producto, motivo…). Si hay más de 500 cambios con esos filtros se muestran los 500 más recientes y un aviso para acotar la búsqueda.
+
+A la derecha está el **detalle** del registro elegido: fecha y hora, cliente o proveedor, versión y motivo, y una tabla con **solo los campos que cambiaron**, el valor de antes (tachado) y el de después. **Ctrl+D** muestra la factura, la compra o el abono del registro; **Ctrl+P** imprime o guarda en PDF la lista con los filtros que tenga la pantalla.
 
 ## Abono de cliente
 
