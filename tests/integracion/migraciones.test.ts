@@ -28,7 +28,7 @@ describe('migraciones del proyecto', () => {
   it('crean el esquema con sus datos iniciales', () => {
     const db = abrirBaseDeDatos(':memory:');
     expect(aplicarMigraciones(db, migracionesDelProyecto(), () => FECHA_PRUEBA)).toEqual([
-      1, 2, 3, 4, 5, 6, 7,
+      1, 2, 3, 4, 5, 6, 7, 8,
     ]);
     expect(tablas(db)).toEqual([
       'abonos',
@@ -36,6 +36,8 @@ describe('migraciones del proyecto', () => {
       'ajustes_inventario',
       'bodegas',
       'borradores_factura',
+      'cierres_caja',
+      'cierres_caja_formas',
       'clientes',
       'configuracion',
       'consecutivos',
@@ -78,6 +80,7 @@ describe('migraciones del proyecto', () => {
       { clave: 'abono_cliente', siguiente: 1 },
       { clave: 'abono_proveedor', siguiente: 1 },
       { clave: 'ajuste', siguiente: 1 },
+      { clave: 'cierre_caja', siguiente: 1 },
       { clave: 'cliente', siguiente: 10001 },
       { clave: 'compra', siguiente: 1 },
       { clave: 'devolucion_compra', siguiente: 1 },

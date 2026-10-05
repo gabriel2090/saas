@@ -40,6 +40,8 @@ const TAMANOS_INICIALES: Partial<Record<IdProceso, TamanoVentana>> = {
   'historial-cambios': { ancho: 1236, alto: 708 },
   // Según la maqueta aprobada (docs/maquetas/estado-cuenta.html).
   'estados-cuenta': { ancho: 1236, alto: 708 },
+  // Según la maqueta aprobada (docs/maquetas/cierre-caja.html).
+  'cierre-caja': { ancho: 1236, alto: 708 },
 };
 
 /**
@@ -76,6 +78,8 @@ const MINIMOS: Partial<Record<IdProceso, TamanoVentana>> = {
   'historial-cambios': { ancho: 900, alto: 440 },
   // Cabe la hoja carta (816 px) con la barra de desplazamiento.
   'estados-cuenta': { ancho: 880, alto: 440 },
+  // La tabla de conceptos con tres formas de pago y el panel de documentos.
+  'cierre-caja': { ancho: 1000, alto: 520 },
   productos: MINIMO_MAESTRO,
   clientes: MINIMO_MAESTRO,
   proveedores: MINIMO_MAESTRO,

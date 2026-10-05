@@ -218,7 +218,8 @@ export type PeticionReporte =
   | { reporte: 'cartera'; filtros: PeticionCartera }
   | { reporte: 'kardex'; filtros: PeticionKardex }
   | { reporte: 'historial'; filtros: PeticionHistorial }
-  | { reporte: 'estado-cuenta'; filtros: PeticionEstadoCuenta };
+  | { reporte: 'estado-cuenta'; filtros: PeticionEstadoCuenta }
+  | { reporte: 'cierre-caja'; filtros: { numero: number } };
 
 /**
  * Reportes aceptados, para validar peticiones.
@@ -229,11 +230,12 @@ export const REPORTES: readonly PeticionReporte['reporte'][] = [
   'kardex',
   'historial',
   'estado-cuenta',
+  'cierre-caja',
 ];
 
 /**
- * Reportes que se exportan a Excel (el historial y el estado de cuenta
- * solo se imprimen o se guardan en PDF).
+ * Reportes que se exportan a Excel (el historial, el estado de cuenta y el
+ * cierre de caja solo se imprimen o se guardan en PDF).
  */
 export const REPORTES_CON_EXCEL: readonly PeticionReporte['reporte'][] = [
   'inventario',

@@ -4,7 +4,7 @@ import { IconoInterfaz, type NombreIconoInterfaz } from './Icono';
 /**
  * Tipo de aviso: define color e ícono (ver docs/DISENO.md §6.6).
  */
-export type TipoAviso = 'error' | 'exito' | 'alerta';
+export type TipoAviso = 'error' | 'exito' | 'alerta' | 'info';
 
 /**
  * Ícono de cada tipo de aviso.
@@ -13,6 +13,7 @@ const ICONOS: Readonly<Record<TipoAviso, NombreIconoInterfaz>> = {
   error: 'error',
   exito: 'exito',
   alerta: 'alerta',
+  info: 'info',
 };
 
 /**
@@ -26,8 +27,9 @@ interface PropiedadesAviso {
 }
 
 /**
- * Recuadro de aviso dentro de un formulario: rojo (error), verde (éxito) o
- * ámbar (alerta: se puede continuar, pero conviene revisar).
+ * Recuadro de aviso dentro de un formulario: rojo (error), verde (éxito),
+ * ámbar (alerta: se puede continuar, pero conviene revisar) o gris
+ * (información que no exige hacer nada).
  *
  * @param props - Propiedades del componente.
  * @returns El aviso.

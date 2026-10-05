@@ -4,6 +4,7 @@ import { AbonoCliente, AbonoProveedor } from '../pantallas/Abono';
 import { AjustesInventario } from '../pantallas/AjustesInventario';
 import { CambiarContrasena } from '../pantallas/CambiarContrasena';
 import { Catalogos } from '../pantallas/Catalogos';
+import { CierreCaja } from '../pantallas/CierreCaja';
 import { CorreccionCliente } from '../pantallas/CorreccionCliente';
 import { CorreccionProveedor } from '../pantallas/CorreccionProveedor';
 import { CuentasPorCobrar, CuentasPorPagar } from '../pantallas/Cuentas';
@@ -50,6 +51,7 @@ const CONTENIDOS: Partial<Record<IdProceso, ComponentType>> = {
   kardex: Kardex,
   'historial-cambios': HistorialCambios,
   'estados-cuenta': EstadosCuenta,
+  'cierre-caja': CierreCaja,
 };
 
 /**

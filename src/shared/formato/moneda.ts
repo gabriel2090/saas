@@ -83,3 +83,32 @@ export function leerPesos(texto: string): number | null {
   const valor = Number(enteros);
   return Number.isSafeInteger(valor) ? valor : null;
 }
+
+/**
+ * Lee un valor en pesos que puede ser negativo (p. ej. una forma de pago
+ * con más salidas que entradas en el cierre de caja).
+ *
+ * @param texto - Texto escrito, con `-` o `−` adelante si es negativo.
+ * @returns Pesos enteros, o `null` si no es un valor válido.
+ *
+ * @example
+ * leerPesosConSigno('-2,500'); // -2500
+ * leerPesosConSigno('13,200'); // 13200
+ */
+export function leerPesosConSigno(texto: string): number | null {
+  const limpio = texto.trim();
+  const negativo = limpio.startsWith('-') || limpio.startsWith('−');
+  const valor = leerPesos(negativo ? limpio.slice(1) : limpio);
+  if (valor === null) return null;
+  return negativo ? -valor : valor;
+}
+
+/**
+ * Escribe pesos con separador de miles y el signo menos si es negativo.
+ *
+ * @param pesos - Valor en pesos enteros.
+ * @returns Texto como `-2,500` o `13,200`.
+ */
+export function pesosConSigno(pesos: number): string {
+  return `${pesos < 0 ? '-' : ''}${agruparMiles(Math.abs(pesos))}`;
+}

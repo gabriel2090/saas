@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { agruparMiles, comasDeMilesValidas, formatearPesos, leerPesos } from './moneda';
+import {
+  agruparMiles,
+  comasDeMilesValidas,
+  formatearPesos,
+  leerPesos,
+  leerPesosConSigno,
+  pesosConSigno,
+} from './moneda';
 
 describe('formatearPesos', () => {
   it('usa coma como separador de miles y no muestra decimales (D-02)', () => {
@@ -41,6 +48,18 @@ describe('leerPesos', () => {
     expect(leerPesos('-500')).toBeNull();
     expect(leerPesos('abc')).toBeNull();
     expect(leerPesos('')).toBeNull();
+  });
+});
+
+describe('leerPesosConSigno y pesosConSigno', () => {
+  it('lee y escribe valores negativos con guion o signo menos', () => {
+    expect(leerPesosConSigno('-2,500')).toBe(-2500);
+    expect(leerPesosConSigno(' −700 ')).toBe(-700);
+    expect(leerPesosConSigno('13,200')).toBe(13200);
+    expect(leerPesosConSigno('--5')).toBeNull();
+    expect(leerPesosConSigno('-')).toBeNull();
+    expect(pesosConSigno(-2500)).toBe('-2,500');
+    expect(pesosConSigno(312000)).toBe('312,000');
   });
 });
 

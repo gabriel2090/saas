@@ -166,6 +166,16 @@ describe('visor del historial', () => {
     expect(
       resumenRegistro(
         registro({
+          entidad: 'cierre_caja',
+          entidadId: '12',
+          despues: { contado: 1_305_300, diferencia: -2_000, observacion: 'Cambio mal dado' },
+        }),
+        NOMBRES,
+      ),
+    ).toBe('contado $ 1,305,300 · faltante $ 2,000 · Cambio mal dado');
+    expect(
+      resumenRegistro(
+        registro({
           accion: 'anular',
           antes: { estado: 'activa' },
           despues: { estado: 'anulada', total: 13_900 },

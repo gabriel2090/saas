@@ -176,6 +176,11 @@ export function leerPeticionReporte(valor: unknown): PeticionReporte {
       return { reporte, filtros: leerPeticionHistorial(d.filtros) };
     case 'estado-cuenta':
       return { reporte, filtros: leerPeticionEstadoCuenta(d.filtros) };
+    case 'cierre-caja':
+      return {
+        reporte,
+        filtros: { numero: exigirEntero(exigirObjeto(d.filtros).numero, 'cierre') },
+      };
   }
 }
 

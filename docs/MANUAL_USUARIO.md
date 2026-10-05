@@ -105,6 +105,26 @@ En el inventario valorizado, **Ctrl+D** («Ver kardex») abre el kardex del prod
 - Al cliente solo le aparecen las facturas a crédito (las de contado no afectan su cuenta). Al proveedor le aparecen todas las compras; las de contado, con su pago.
 - **Ctrl+P** lo imprime y **Ctrl+G** lo guarda en PDF con el nombre «Estado de cuenta {cliente o proveedor} {fecha}.pdf». Cada página repite el encabezado y lleva «Página N de M». **F5** lo vuelve a calcular. No se exporta a Excel.
 
+## Cierre de caja
+
+Ábralo con Ctrl+K y «cierre de caja». El cierre cubre **desde el cierre anterior vigente hasta el momento de guardarlo**: nada queda sin cerrar ni se cuenta dos veces. La tabla muestra, por forma de pago (Efectivo, Transferencia, Tarjeta…):
+
+- Ventas de contado, abonos recibidos de clientes y reintegros que recibe el negocio (suman); abonos pagados a proveedores, incluidas las compras de contado, y reintegros que entrega el negocio (restan); y **Anulaciones de días anteriores**: lo que se anuló hoy de un tramo ya cerrado, con su signo.
+- **Movimiento del tramo**, la **base inicial** (la que dejó el cierre anterior; en el primer cierre se digita), lo **esperado en caja**, lo **contado** y la **diferencia** («Faltan 2,000», «Sobran 500»).
+
+Con ↑/↓ en la tabla se cambia de concepto y a la derecha aparecen sus documentos; **Ctrl+D** muestra el documento elegido.
+
+Para cerrar:
+
+1. Cuente el efectivo y digítelo, o pulse **F8** para el contador de billetes y monedas: escriba cuántos hay de cada uno e Intro pasa el total al efectivo contado (Esc cierra el contador).
+2. Transferencia y tarjeta vienen con lo esperado; cámbielas solo si hay diferencia (con «-» adelante si salió más de lo que entró).
+3. Escriba la **base que queda en caja** (por defecto, la misma base inicial; no puede ser mayor que el efectivo contado). El recuadro verde dice cuánto efectivo se retira o se consigna.
+4. Si hay diferencia, puede escribir una observación. **Av. Pág** guarda el cierre; se puede guardar con diferencia y queda registrada.
+
+Los avisos explican lo que no es dinero (abonos pagados con saldo a favor), las anulaciones de días anteriores y los abonos cuya fecha es distinta del día en que se registraron (cuentan en el cierre del día en que se registraron).
+
+En **Ver** se eligen los cierres guardados. Un cierre guardado **no se edita**: **Ctrl+P** lo imprime o lo guarda en PDF y **Ctrl+X** lo anula, pero **solo el último**; el próximo cierre cubrirá su tramo. Si mientras tenía la ventana abierta alguien registró una venta o un abono, al guardar sale un aviso y el cierre se recalcula sin perder lo digitado.
+
 ## Historial de cambios
 
 Ábralo con Ctrl+K y «historial de cambios». Es de **solo lectura**: el historial no se puede editar ni borrar. Muestra los cambios de los **últimos 7 días**, del más reciente al más antiguo; cambie el periodo con **Desde** / **Hasta**, y filtre por **Tipo de documento**, **Acción** (crear, editar, anular, inactivar, reactivar, sistema) o **Número o texto** (número del documento, nombre del cliente, producto, motivo…). Si hay más de 500 cambios con esos filtros se muestran los 500 más recientes y un aviso para acotar la búsqueda.

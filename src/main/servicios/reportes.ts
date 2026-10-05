@@ -32,12 +32,14 @@ import { CODIGO_CONSUMIDOR_FINAL } from '../../shared/ventas';
 import {
   filtrosKardex,
   reporteCarteraHtml,
+  reporteCierreCajaHtml,
   reporteEstadoCuentaHtml,
   reporteHistorialHtml,
   reporteInventarioHtml,
   reporteKardexHtml,
   TITULOS_CARTERA,
 } from '../impresion/reportes';
+import { leerCierreGuardado } from './cierreCaja';
 import { carteraXlsx, inventarioXlsx, kardexXlsx } from './excel-reportes';
 import type { ServicioNegocio } from './negocio';
 import { crearServicioVisores, validarPeriodo, type ServicioVisores } from './visores';
@@ -266,6 +268,8 @@ export function crearServicioReportes(
         return 'Historial de cambios';
       case 'estado-cuenta':
         return 'Estado de cuenta';
+      case 'cierre-caja':
+        return `Cierre de caja ${peticion.filtros.numero}`;
     }
   };
 
@@ -301,6 +305,11 @@ export function crearServicioReportes(
           });
         case 'estado-cuenta':
           return reporteEstadoCuentaHtml({ negocio, reporte: estadoCuenta(peticion.filtros) });
+        case 'cierre-caja':
+          return reporteCierreCajaHtml({
+            negocio,
+            cierre: leerCierreGuardado(db, peticion.filtros.numero),
+          });
       }
     },
     excel(peticion) {
@@ -329,6 +338,10 @@ export function crearServicioReportes(
         const { tipo, terceroCodigo, hasta } = peticion.filtros;
         const nombre = obtenerTercero(db, tipo, terceroCodigo)?.nombre ?? String(terceroCodigo);
         return nombreArchivoEstadoCuenta(nombre, hasta);
+      }
+      if (peticion.reporte === 'cierre-caja') {
+        const cierre = leerCierreGuardado(db, peticion.filtros.numero);
+        return `${titulo(peticion)} ${diaDeIso(cierre.hasta)}.${extension}`;
       }
       return `${titulo(peticion)} ${diaDeIso(ahora())}.${extension}`;
     },

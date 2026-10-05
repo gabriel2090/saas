@@ -9,6 +9,13 @@ import type {
 } from '../abonos';
 import type { AjusteResumen, PeticionAjuste } from '../ajustes';
 import type {
+  CierreGuardado,
+  CierreResumen,
+  EstadoCierreNuevo,
+  PeticionAnularCierre,
+  PeticionGuardarCierre,
+} from '../cierreCaja';
+import type {
   CompraGuardada,
   ContextoCompra,
   ContextoCompraProveedor,
@@ -270,6 +277,12 @@ export interface ContratoIpc {
   'reportes:pdf': { peticion: PeticionReporte; respuesta: boolean };
   'reportes:excel': { peticion: PeticionReporte; respuesta: boolean };
 
+  'cierres:nuevo': { peticion: void; respuesta: EstadoCierreNuevo };
+  'cierres:listar': { peticion: void; respuesta: CierreResumen[] };
+  'cierres:obtener': { peticion: number; respuesta: CierreGuardado };
+  'cierres:guardar': { peticion: PeticionGuardarCierre; respuesta: CierreGuardado };
+  'cierres:anular': { peticion: PeticionAnularCierre; respuesta: CierreGuardado };
+
   'interfaz:preferencias': { peticion: void; respuesta: PreferenciasInterfaz };
   'interfaz:guardarBarra': { peticion: ModoBarra; respuesta: void };
   'interfaz:guardarVentana': { peticion: PeticionGuardarVentana; respuesta: void };
@@ -383,6 +396,11 @@ export const CANALES_IPC: readonly CanalIpc[] = [
   'reportes:imprimir',
   'reportes:pdf',
   'reportes:excel',
+  'cierres:nuevo',
+  'cierres:listar',
+  'cierres:obtener',
+  'cierres:guardar',
+  'cierres:anular',
   'interfaz:preferencias',
   'interfaz:guardarBarra',
   'interfaz:guardarVentana',

@@ -1,7 +1,9 @@
 import { sumarDias } from '../../domain/calendario';
+import { efectivoARetirar, textoDiferencia } from '../../domain/cierre-caja';
 import { textoSaldoNeto } from '../../domain/estado-cuenta';
 import { etiquetaAccion } from '../../domain/historial';
 import { textoDias } from '../../domain/reportes';
+import { NOMBRE_CONCEPTO, SIGNO_CONCEPTO, type CierreGuardado } from '../../shared/cierreCaja';
 import type { ReporteEstadoCuenta } from '../../shared/estadoCuenta';
 import { formatearCantidad } from '../../shared/formato/cantidades';
 import { formatearFecha, formatearFechaHora } from '../../shared/formato/fechas';
@@ -416,6 +418,124 @@ export function reporteHistorialHtml(datos: DatosImpresionHistorial): string {
     nota: reporte.truncado
       ? `Se muestran los ${agruparMiles(MAXIMO_REGISTROS_HISTORIAL)} cambios más recientes; acote el periodo o los filtros para ver el resto.`
       : 'El historial no se puede editar ni borrar.',
+  });
+}
+
+/**
+ * Datos para imprimir un cierre de caja.
+ */
+export interface DatosImpresionCierre {
+  /** Datos del negocio. */
+  negocio: DatosNegocio;
+  /** Cierre guardado. */
+  cierre: CierreGuardado;
+}
+
+/**
+ * Arma un cierre de caja guardado en hoja carta: conceptos por forma de
+ * pago, base, esperado, contado y diferencia (D-153 a D-155), y los
+ * documentos del tramo. Un cierre anulado sale marcado como ANULADO.
+ *
+ * @param datos - Negocio y cierre.
+ * @returns Documento HTML.
+ */
+export function reporteCierreCajaHtml(datos: DatosImpresionCierre): string {
+  const { cierre } = datos;
+  const { calculo, arqueo } = cierre;
+  const celdas = (valores: readonly (number | string)[]): string =>
+    valores
+      .map((v) =>
+        typeof v === 'string'
+          ? `<td class="num">${escaparHtml(v)}</td>`
+          : `<td class="num${v < 0 ? ' negativo' : ''}">${v < 0 ? '−' : ''}${agruparMiles(Math.abs(v))}</td>`,
+      )
+      .join('');
+  const suma = (valores: readonly number[]): number => valores.reduce((s, v) => s + v, 0);
+  const encabezado = `<tr><th></th><th>Concepto</th>${calculo.formas
+    .map((f) => `<th class="num">${escaparHtml(f.nombre)}</th>`)
+    .join('')}<th class="num">Total</th></tr>`;
+  const conceptos = calculo.filas
+    .map((f) => {
+      const signo =
+        f.concepto === 'anulacionesAnteriores' ? '±' : SIGNO_CONCEPTO[f.concepto] > 0 ? '+' : '−';
+      return `<tr><td>${signo}</td><td>${escaparHtml(NOMBRE_CONCEPTO[f.concepto])} (${f.cantidad})</td>${celdas([...f.valores, suma(f.valores)])}</tr>`;
+    })
+    .join('');
+  const base = calculo.formas.map((f) => (f.recibeBase ? cierre.baseInicial : 0));
+  const esperado = arqueo.map((a) => a.esperado);
+  const contado = arqueo.map((a) => a.contado);
+  const diferencia = arqueo.map((a) => a.diferencia);
+  const tabla = `<table><thead>${encabezado}</thead><tbody>${conceptos}
+    <tr class="subtotal"><td>=</td><td>Movimiento del tramo</td>${celdas([...calculo.movimiento, suma(calculo.movimiento)])}</tr>
+    <tr><td>+</td><td>Base inicial</td>${celdas([...base, suma(base)])}</tr>
+    <tr class="total"><td>=</td><td>Esperado en caja</td>${celdas([...esperado, suma(esperado)])}</tr>
+    <tr><td></td><td>Contado (arqueo)</td>${celdas([...contado, suma(contado)])}</tr>
+    <tr class="subtotal"><td></td><td>Diferencia</td>${celdas([...diferencia.map(textoDiferencia), textoDiferencia(suma(diferencia))])}</tr>
+    </tbody></table>`;
+  const documentos = calculo.filas
+    .filter((f) => f.cantidad > 0)
+    .map((f) => {
+      const filas = calculo.documentos
+        .filter((d) => d.concepto === f.concepto)
+        .map(
+          (d) => `<tr><td>${formatearFechaHora(d.momento)}</td><td>${escaparHtml(d.documento)}</td>
+            <td>${escaparHtml(d.tercero)}</td><td>${escaparHtml(d.formaPago)}</td>
+            <td>${escaparHtml(d.nota)}</td>${celdas([d.valor])}</tr>`,
+        )
+        .join('');
+      return `<tr class="grupo"><td colspan="6">${escaparHtml(NOMBRE_CONCEPTO[f.concepto])} (${f.cantidad})</td></tr>${filas}`;
+    })
+    .join('');
+  const tablaDocumentos = documentos
+    ? `<table style="margin-top: 12px"><thead><tr><th>Fecha y hora</th><th>Documento</th><th>Tercero</th>
+      <th>Forma</th><th>Nota</th><th class="num">Valor</th></tr></thead><tbody>${documentos}</tbody></table>`
+    : '';
+  const iBase = calculo.formas.findIndex((f) => f.recibeBase);
+  const contadoBase = arqueo[iBase]?.contado ?? 0;
+  const anterior =
+    cierre.anteriorNumero === null
+      ? 'Primer cierre: cubre todo lo anterior'
+      : `Tramo desde el cierre ${cierre.anteriorNumero} (${formatearFechaHora(cierre.desde ?? cierre.hasta)}${
+          cierre.anuladosEntre.length > 0
+            ? `; ${cierre.anuladosEntre.length === 1 ? 'el' : 'los'} ${cierre.anuladosEntre.join(', ')} anulado${cierre.anuladosEntre.length === 1 ? '' : 's'}`
+            : ''
+        })`;
+  const notas = [
+    cierre.estado === 'anulado'
+      ? `ANULADO (${formatearFechaHora(cierre.anuladoEn ?? cierre.hasta)}${cierre.motivoAnulacion ? `; motivo: ${cierre.motivoAnulacion}` : ''}).`
+      : '',
+    cierre.observacion ? `Observación: ${cierre.observacion}.` : '',
+    calculo.saldoFavor.length > 0
+      ? `No es dinero: ${formatearPesos(suma(calculo.saldoFavor.map((s) => s.valor)))} de saldo a favor aplicados (${calculo.saldoFavor.map((s) => `${s.documento} ${s.tercero}`).join(', ')}).`
+      : '',
+    calculo.otraFecha.length > 0
+      ? `Abonos con otra fecha: ${calculo.otraFecha.map((a) => `${a.documento} (${formatearFecha(a.dia)}, registrado ${formatearFechaHora(a.registradoEn)})`).join(', ')}.`
+      : '',
+    cierre.conteo
+      ? `Conteo de ${calculo.formas[iBase]?.nombre.toLowerCase() ?? 'efectivo'}: ${cierre.conteo.map((c) => `${c.cantidad} × ${agruparMiles(c.valor)}${c.tipo === 'moneda' ? ' (moneda)' : ''}`).join(', ')}.`
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  return documentoReporte({
+    negocio: datos.negocio,
+    titulo: `CIERRE DE CAJA No. ${cierre.numero}${cierre.estado === 'anulado' ? ' (ANULADO)' : ''}`,
+    corte: cierre.hasta,
+    filtros: `${anterior} hasta el ${formatearFechaHora(cierre.hasta)}`,
+    resumen: [
+      ['Esperado en caja', formatearPesos(suma(esperado))],
+      ['Contado', formatearPesos(suma(contado))],
+      ['Diferencia', textoDiferencia(suma(diferencia))],
+      ['Base que queda en caja', formatearPesos(cierre.baseQueda)],
+      [
+        'Efectivo a retirar o consignar',
+        formatearPesos(efectivoARetirar(contadoBase, cierre.baseQueda)),
+      ],
+    ],
+    tabla: `${tabla}${tablaDocumentos}`,
+    nota:
+      notas ||
+      'El cierre no se edita; si hubo un error se anula (solo el último) y se hace de nuevo.',
   });
 }
 

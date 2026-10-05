@@ -25,6 +25,7 @@ import type { IdProceso } from './procesos';
  * - `facturar`, `correccion`, `reimpresiones`: solo dentro de esas ventanas.
  * - `reporte`: ventanas de reportes (inventario valorizado, cuentas por cobrar
  *   y por pagar, kardex, historial de cambios y estados de cuenta).
+ * - `cierre`: ventana del cierre de caja.
  * - `organizar`: teclas del menú «Organizar» mientras está abierto (D-110).
  */
 export type AmbitoAtajo =
@@ -36,6 +37,7 @@ export type AmbitoAtajo =
   | 'correccion'
   | 'reimpresiones'
   | 'reporte'
+  | 'cierre'
   | 'organizar';
 
 /**
@@ -354,6 +356,38 @@ export const ATAJOS = {
       'Ver el documento de la fila (kardex e historial de cambios), el kardex del producto (inventario valorizado) o el estado de cuenta del tercero (cuentas por cobrar y por pagar)',
     ambito: 'reporte',
     permitirEnCampoTexto: true,
+  },
+
+  // --- Cierre de caja (Fase 5d) ---
+  guardarCierre: {
+    combinacion: 'PageDown',
+    descripcion: 'Guardar el cierre de caja',
+    ambito: 'cierre',
+    permitirEnCampoTexto: true,
+  },
+  contarBilletes: {
+    combinacion: 'F8',
+    descripcion: 'Abrir o cerrar el contador de billetes y monedas',
+    ambito: 'cierre',
+    permitirEnCampoTexto: true,
+  },
+  imprimirCierre: {
+    combinacion: 'Ctrl+P',
+    descripcion: 'Imprimir o guardar en PDF el cierre que se está viendo',
+    ambito: 'cierre',
+    permitirEnCampoTexto: true,
+  },
+  verDocumentoCierre: {
+    combinacion: 'Ctrl+D',
+    descripcion: 'Ver el documento seleccionado en el panel del concepto',
+    ambito: 'cierre',
+    permitirEnCampoTexto: true,
+  },
+  anularCierre: {
+    combinacion: 'Ctrl+X',
+    descripcion: 'Anular el cierre (solo el último vigente; pide confirmación)',
+    ambito: 'cierre',
+    permitirEnCampoTexto: false,
   },
 } as const satisfies Record<string, DefinicionAtajo>;
 

@@ -17,7 +17,8 @@ export type ClaveConsecutivo =
   | 'factura_cliente'
   | 'devolucion_venta'
   | 'devolucion_compra'
-  | 'reintegro';
+  | 'reintegro'
+  | 'cierre_caja';
 
 /**
  * Toma el siguiente número de un consecutivo y lo incrementa, de forma

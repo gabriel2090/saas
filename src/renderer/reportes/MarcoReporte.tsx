@@ -14,7 +14,7 @@ import { useVentana } from '../ventanas/ContextoVentana';
 /**
  * Nombre de cada documento en el título de «Ver documento».
  */
-const NOMBRE_DOCUMENTO: Record<TipoDocumentoImprimible, string> = {
+export const NOMBRE_DOCUMENTO: Readonly<Record<TipoDocumentoImprimible, string>> = {
   'factura-cliente': 'Factura de cliente',
   'factura-proveedor': 'Factura de proveedor',
   'abono-cliente': 'Abono de cliente',

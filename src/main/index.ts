@@ -13,6 +13,7 @@ import {
   listarImpresoras,
 } from './impresion/impresora';
 import { registrarIpcAutenticacion } from './ipc/autenticacion.ipc';
+import { registrarIpcCierres } from './ipc/cierres.ipc';
 import { registrarIpcCompras } from './ipc/compras.ipc';
 import { registrarIpcCorrecciones } from './ipc/correcciones.ipc';
 import { registrarIpcImportador } from './ipc/importador.ipc';
@@ -29,6 +30,7 @@ import { crearServicioAbonos } from './servicios/abonos';
 import { crearServicioAjustes } from './servicios/ajustes';
 import { crearServicioAutenticacion } from './servicios/autenticacion';
 import { crearServicioCatalogos } from './servicios/catalogos';
+import { crearServicioCierreCaja } from './servicios/cierreCaja';
 import { crearServicioCompras } from './servicios/compras';
 import { crearServicioCorrecciones } from './servicios/correcciones';
 import { crearServicioDevoluciones } from './servicios/devoluciones';
@@ -185,6 +187,7 @@ function iniciar(): void {
     guardarExcel: (nombreSugerido, contenido) =>
       guardarArchivoElegido(ventana, nombreSugerido, contenido, ARCHIVO_EXCEL_REPORTE),
   });
+  registrarIpcCierres(registrar, crearServicioCierreCaja(db, ejecutar));
   registrarIpcInterfaz(registrar, crearServicioInterfaz(db));
 
   recursos = { db, respaldos, ventana };

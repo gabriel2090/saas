@@ -47,7 +47,7 @@ export function Icono({ proceso }: PropiedadesIcono): ReactNode {
 /**
  * Íconos de interfaz (avisos y estados), del mismo set lineal que los de la barra.
  */
-export type NombreIconoInterfaz = 'alerta' | 'error' | 'exito';
+export type NombreIconoInterfaz = 'alerta' | 'error' | 'exito' | 'info';
 
 /**
  * Trazos SVG (lienzo de 24×24) de los íconos de interfaz.
@@ -56,6 +56,7 @@ const TRAZOS_INTERFAZ: Readonly<Record<NombreIconoInterfaz, string>> = {
   alerta: 'M12 3l10 18H2zM12 10v5M12 18v.01',
   error: 'M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0M9 9l6 6M15 9l-6 6',
   exito: 'M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0M8 12l3 3 5-6',
+  info: 'M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0M12 8v.01M12 11v5',
 };
 
 /**

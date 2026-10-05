@@ -158,6 +158,11 @@ textarea {
   color: var(--color-alerta);
 }
 
+.aviso--info {
+  background: #eef2f7;
+  color: var(--color-texto);
+}
+
 /* ---------- Pantalla de acceso ---------- */
 
 .acceso {
@@ -2352,4 +2357,207 @@ textarea {
 .previa-carta__vacia {
   align-self: center;
   color: #fff;
+}
+
+/* ---------- Cierre de caja (maqueta cierre-caja.html, Fase 5d) ---------- */
+
+.campo--en-linea {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  align-items: center;
+  margin-left: 6px;
+}
+
+.campo--en-linea select {
+  max-width: 260px;
+}
+
+.nota-cierre {
+  margin: 0;
+  color: var(--color-tenue);
+  font-size: 12px;
+}
+
+.cierre {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 10px;
+  min-height: 0;
+}
+
+.cierre__principal,
+.cierre__detalle {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.cierre__principal {
+  overflow-y: auto;
+}
+
+.tabla-contenedor.cierre__conceptos {
+  flex: none;
+  height: auto;
+}
+
+.tabla--cierre td,
+.tabla--cierre th {
+  padding: 3px 8px;
+  font-size: 13px;
+}
+
+.tabla--cierre td:nth-child(2) {
+  white-space: normal;
+}
+
+.tabla--cierre .signo {
+  width: 18px;
+  color: var(--color-tenue);
+  font-weight: 700;
+  text-align: center;
+}
+
+.tabla--cierre tr {
+  cursor: default;
+}
+
+.tabla--cierre tr.concepto--activo td {
+  background: #eaf1fb;
+  box-shadow:
+    inset 0 1px 0 var(--color-primario),
+    inset 0 -1px 0 var(--color-primario);
+}
+
+.tabla--cierre tr.neto td {
+  border-top: 1px solid var(--color-borde);
+  font-weight: 600;
+}
+
+.tabla--cierre tr.esperado td {
+  border-top: 2px solid var(--color-titulo);
+  background: #e9edf2;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.tabla--cierre tr.contado td {
+  background: #fff;
+  font-weight: 600;
+}
+
+.tabla--cierre input {
+  width: 96px;
+  padding: 2px 6px;
+  border: 1px solid var(--color-borde);
+  border-radius: 2px;
+  font-size: 14px;
+  text-align: right;
+}
+
+.tabla--cierre input.a-mano {
+  border: 2px solid var(--color-primario);
+  font-weight: 700;
+}
+
+.tabla--cierre input.precargado {
+  background: var(--color-solo-lectura);
+  color: var(--color-tenue);
+}
+
+.tabla--cierre input[readonly] {
+  background: var(--color-solo-lectura);
+  color: var(--color-texto);
+  font-weight: 600;
+}
+
+.tabla--cierre tr.diferencia td {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.cierre__base {
+  display: grid;
+  grid-template-columns: 1fr 160px 220px;
+  gap: 10px;
+  align-items: end;
+}
+
+.cierre__base .campo input {
+  font-weight: 600;
+  text-align: right;
+}
+
+.cierre__base .campo:first-child input {
+  font-weight: 400;
+  text-align: left;
+}
+
+.retiro {
+  padding: 4px 10px;
+  border: 1px solid var(--color-exito);
+  border-radius: 4px;
+  background: #e7f6ec;
+  color: var(--color-tenue);
+  font-size: 12px;
+}
+
+.retiro strong {
+  display: block;
+  color: var(--color-exito);
+  font-size: 17px;
+}
+
+.retiro--error {
+  border-color: var(--color-error);
+  background: #fdecea;
+}
+
+.retiro--error strong {
+  color: var(--color-error);
+}
+
+.cierre .aviso {
+  margin: 0;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.cierre__detalle h3 {
+  margin: 0;
+  color: var(--color-titulo);
+  font-size: 14px;
+}
+
+.cierre__detalle .tabla-contenedor {
+  flex: 1;
+}
+
+.cierre__detalle .tabla--seleccionable td,
+.cierre__detalle .tabla--seleccionable th {
+  padding: 3px 6px;
+  font-size: 12px;
+}
+
+/* El panel mide 340 px: el tercero se parte en dos renglones para que se vea el valor. */
+.cierre__detalle .tabla--seleccionable td:nth-child(2) {
+  white-space: normal;
+}
+
+.tabla--billetes input {
+  width: 56px;
+  padding: 2px 6px;
+  border: 1px solid var(--color-borde);
+  border-radius: 2px;
+  text-align: right;
+}
+
+.tabla--billetes tr.seccion td {
+  background: #e9edf2;
+  color: var(--color-titulo);
+  font-weight: 700;
 }

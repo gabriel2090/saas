@@ -80,6 +80,7 @@ const PREFIJOS_DOCUMENTO: Readonly<Record<string, string>> = {
   devolucion_compra: 'Devolución',
   reintegro: 'Reintegro',
   ajuste_inventario: 'Ajuste',
+  cierre_caja: 'Cierre',
 };
 
 /** Nombre de las claves de configuración, consecutivos y otros ids de texto. */
@@ -215,6 +216,13 @@ const CAMPOS: Readonly<Record<string, { etiqueta: string; formato: FormatoCampo 
   importadas: { etiqueta: 'Importadas', formato: 'texto' },
   omitidas: { etiqueta: 'Omitidas', formato: 'texto' },
   filasConAviso: { etiqueta: 'Filas con aviso', formato: 'texto' },
+  desde: { etiqueta: 'Desde', formato: 'fecha' },
+  hasta: { etiqueta: 'Hasta', formato: 'fecha' },
+  baseInicial: { etiqueta: 'Base inicial', formato: 'pesos' },
+  baseQueda: { etiqueta: 'Base que queda', formato: 'pesos' },
+  esperado: { etiqueta: 'Esperado', formato: 'pesos' },
+  contado: { etiqueta: 'Contado', formato: 'pesos' },
+  diferencia: { etiqueta: 'Diferencia', formato: 'pesos' },
 };
 
 /** Nombre de las listas: cada elemento sale como «Línea 2», «Aplicación 1»… */
@@ -706,6 +714,19 @@ export function resumenRegistro(
                 .trim()
             : undefined,
           motivo,
+        );
+      }
+      case 'cierre_caja': {
+        const contado = numero(d, 'contado');
+        const diferencia = numero(d, 'diferencia');
+        return unir(
+          contado !== undefined ? `contado ${formatearPesos(contado)}` : undefined,
+          diferencia === undefined
+            ? undefined
+            : diferencia === 0
+              ? 'sin diferencia'
+              : `${diferencia < 0 ? 'faltante' : 'sobrante'} ${formatearPesos(Math.abs(diferencia))}`,
+          texto(d, 'observacion'),
         );
       }
       case 'producto':

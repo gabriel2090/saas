@@ -507,6 +507,7 @@ export async function recorrerReportes(a, registrar, captura, dormir, entorno) {
   );
 
   await recorrerEstadosCuenta(a, registrar, foto, dormir, entorno, { CXC, iso, fijarValor });
+  await recorrerCierreCaja(a, registrar, foto, dormir, { fijarValor, vistaPrevia, verDocumento });
   registrar('Reportes recorridos.');
 }
 
@@ -690,4 +691,252 @@ async function recorrerEstadosCuenta(a, registrar, foto, dormir, entorno, ayudas
   registrar(
     `Estado de cuenta de Juan: ${juan.movimientos.length} movimientos; largo ${largo.movimientos.length} en ${paginas} páginas (${rutaPdf}).`,
   );
+}
+
+/**
+ * Valores del contador de billetes y monedas, en el orden de la pantalla.
+ */
+const DENOMINACIONES = [
+  100_000, 50_000, 20_000, 10_000, 5_000, 2_000, 1_000, 1_000, 500, 200, 100, 50,
+];
+
+/**
+ * Reparte un valor en billetes y monedas, de mayor a menor.
+ *
+ * @param {number} valor - Pesos.
+ * @returns {{ cantidades: number[], resto: number }} Cantidad por denominación y lo que no se pudo repartir.
+ */
+function repartir(valor) {
+  let resto = valor;
+  const cantidades = DENOMINACIONES.map((d) => {
+    const n = Math.floor(resto / d);
+    resto -= n * d;
+    return n;
+  });
+  return { cantidades, resto };
+}
+
+/**
+ * Recorre la Fase 5d: primer cierre con base digitada, contador de billetes
+ * y faltante; cierre guardado (vista previa, Ctrl+D, flechas); segundo
+ * cierre con base automática; «solo el último se anula» y la anulación.
+ *
+ * @param {Record<string, (...args: never[]) => unknown> & { errores: string[] }} a - Acciones de la prueba.
+ * @param {(texto: string) => void} registrar - Escribe una línea en el registro.
+ * @param {(nombre: string) => Promise<unknown>} foto - Guarda una captura (si se pidieron).
+ * @param {(ms: number) => Promise<void>} dormir - Espera.
+ * @param {{ fijarValor: (selector: string, valor: string) => Promise<void>, vistaPrevia: (titulo: string, foto: string) => Promise<void>, verDocumento: (esperado: string, nombre: string) => Promise<void> }} ayudas - Ayudas del recorrido.
+ * @returns {Promise<void>} Promesa que se cumple al terminar.
+ */
+async function recorrerCierreCaja(a, registrar, foto, dormir, ayudas) {
+  const { fijarValor, vistaPrevia, verDocumento } = ayudas;
+  const CC = 'section[aria-label="Cierre de caja"]';
+  const texto = (/** @type {number} */ v) => miles(v).replace('$ ', '');
+
+  /**
+   * Textos de un renglón de la tabla de conceptos.
+   *
+   * @param {string} clase - Clase del renglón (`neto`, `esperado`, `diferencia`…).
+   * @returns {Promise<string[]>} Texto de cada celda.
+   */
+  const renglon = (clase) =>
+    a.js(
+      `[...document.querySelector('${CC} .tabla--cierre tr.${clase}').cells].map(c => c.querySelector('input')?.value ?? c.textContent)`,
+    );
+
+  await a.abrir('cierre de caja', 'Cierre de caja');
+  await a.esperar(
+    `!!document.querySelector('${CC} .tabla--cierre input[aria-label="Base inicial"]')`,
+    10000,
+  );
+  const nuevo = await api(a, 'cierres:nuevo', undefined);
+  a.verificar(
+    'cierre: columnas por forma de pago (sin «Saldo a favor»)',
+    await a.js(
+      `[...document.querySelectorAll('${CC} .tabla--cierre thead th')].map(t => t.textContent)`,
+    ),
+    [
+      '',
+      'Concepto',
+      ...nuevo.calculo.formas.map((/** @type {{ nombre: string }} */ f) => f.nombre),
+      'Total',
+    ],
+  );
+  a.verificar(
+    'cierre: movimiento del tramo en pantalla',
+    (await renglon('neto')).slice(2, -1),
+    nuevo.calculo.movimiento.map(texto),
+  );
+  a.verificar(
+    'cierre: el foco empieza en el efectivo',
+    await a.js(`document.activeElement?.getAttribute('aria-label')`),
+    'Contado de Efectivo',
+  );
+  await foto('69-cierre-nuevo');
+
+  // Los datos de ejemplo pagan en efectivo más compras que ventas: la base cubre la diferencia.
+  const base = 100_000 - Math.min(0, nuevo.calculo.movimiento[0]);
+  await fijarValor(`${CC} input[aria-label="Base inicial"]`, texto(base));
+  const esperadoEfectivo = nuevo.calculo.movimiento[0] + base;
+  a.verificar(
+    'cierre: esperado con la base',
+    (await renglon('esperado'))[2],
+    texto(esperadoEfectivo),
+  );
+
+  // Contador: se cuentan 2,000 menos de lo esperado.
+  const { cantidades, resto } = repartir(esperadoEfectivo - 2_000);
+  a.verificar('cierre: el efectivo esperado se puede contar en billetes y monedas', resto, 0);
+  await a.tecla('F8');
+  await a.esperar(`!!document.querySelector('${CC} .tabla--billetes')`);
+  await a.js(`(() => {
+    const fijar = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    const valores = ${JSON.stringify(cantidades)};
+    [...document.querySelectorAll('${CC} .tabla--billetes input')].forEach((c, i) => {
+      fijar.call(c, valores[i] ? String(valores[i]) : '');
+      c.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  })()`);
+  await dormir(300);
+  await foto('70-cierre-contador');
+  a.verificar(
+    'cierre: total del contador',
+    await a.js(`document.querySelector('${CC} .tabla--billetes tr.total td.num').textContent`),
+    texto(esperadoEfectivo - 2_000),
+  );
+  await a.js(`document.querySelector('${CC} .tabla--billetes input').focus()`);
+  await a.tecla('Enter');
+  await a.esperar(`!document.querySelector('${CC} .tabla--billetes')`);
+  a.verificar(
+    'cierre: Enter pasa el total al efectivo contado',
+    (await renglon('contado'))[2],
+    texto(esperadoEfectivo - 2_000),
+  );
+  a.verificar(
+    'cierre: diferencia «Faltan 2,000»',
+    (await renglon('diferencia'))[2],
+    'Faltan 2,000',
+  );
+  a.verificar(
+    'cierre: transferencia precargada con lo esperado',
+    (await renglon('contado'))[3],
+    (await renglon('esperado'))[3],
+  );
+  await fijarValor(`${CC} .cierre__base .campo input`, 'Cambio mal dado');
+  await a.js(
+    `document.querySelectorAll('${CC} .cierre__base .campo input')[1].setAttribute('data-prueba', 'base-queda')`,
+  );
+  await fijarValor(`${CC} input[data-prueba="base-queda"]`, '50,000');
+  a.verificar(
+    'cierre: efectivo a retirar = contado − base que queda',
+    await a.js(`document.querySelector('${CC} .retiro strong').textContent`),
+    miles(esperadoEfectivo - 2_000 - 50_000),
+  );
+  await foto('71-cierre-faltante');
+
+  await a.tecla('PageDown');
+  await a.esperar(`document.querySelector('${CC} select')?.value === '1'`, 10000);
+  await dormir(400);
+  const c1 = await api(a, 'cierres:obtener', 1);
+  a.verificar(
+    'cierre 1: guardado con el faltante, el conteo y la observación',
+    [c1.arqueo[0].diferencia, c1.conteo !== null, c1.observacion, c1.baseQueda],
+    [-2_000, true, 'Cambio mal dado', 50_000],
+  );
+  a.verificar(
+    'cierre 1: aviso de guardado',
+    await a.js(`document.querySelector('${CC} .aviso--exito')?.textContent ?? ''`),
+    'Cierre 1 guardado.',
+  );
+  await foto('72-cierre-guardado');
+  await vistaPrevia('CIERRE DE CAJA No. 1', '73-cierre-vista-previa');
+
+  const venta = c1.calculo.documentos.find(
+    (/** @type {{ concepto: string }} */ d) => d.concepto === 'ventas',
+  );
+  if (venta?.ver) {
+    await verDocumento(venta.tercero, '74-cierre-ver-documento');
+  }
+  await a.js(`document.querySelector('${CC} .cierre__conceptos').focus()`);
+  await a.tecla('ArrowDown');
+  a.verificar(
+    'cierre: flecha abajo cambia de concepto y el panel sus documentos',
+    await a.js(`document.querySelector('${CC} .cierre__detalle h3').textContent`),
+    'Abonos recibidos de clientes del tramo',
+  );
+
+  // Segundo cierre: un abono en efectivo y la base automática del cierre 1.
+  const cxc = await api(a, 'reportes:cartera', {
+    tipo: 'cliente',
+    terceroCodigo: 10001,
+    soloVencidas: false,
+    incluirSoloFavor: true,
+  });
+  const factura = cxc.grupos[0].documentos[0];
+  const abono = await api(a, 'abonos:guardar', {
+    tipo: 'cliente',
+    terceroCodigo: 10001,
+    fecha: c1.hasta.slice(0, 10),
+    formaPagoId: 1,
+    valor: 5_000,
+    observacion: '',
+    aplicaciones: [{ facturaId: factura.id, valor: 5_000 }],
+  });
+  await fijarValor(`${CC} select`, 'nuevo');
+  await a.esperar(
+    `document.querySelector('${CC} .barra-herramientas__resumen').textContent.includes('tramo desde el cierre 1 vigente')`,
+    10000,
+  );
+  a.verificar(
+    'cierre 2: base inicial automática (la que dejó el cierre 1)',
+    [
+      await a.js(`!!document.querySelector('${CC} input[aria-label="Base inicial"]')`),
+      (await renglon('esperado'))[2],
+    ],
+    [false, texto(55_000)],
+  );
+  await fijarValor(`${CC} input[aria-label="Contado de Efectivo"]`, '55,000');
+  a.verificar('cierre 2: sin diferencia', (await renglon('diferencia'))[2], '0');
+  await a.tecla('PageDown');
+  await a.esperar(`document.querySelector('${CC} select')?.value === '2'`, 10000);
+  registrar(`Cierre 2 con el abono ${abono.numero} de $ 5,000 en efectivo.`);
+
+  // Solo el último vigente se anula.
+  await fijarValor(`${CC} select`, '1');
+  const botonAnular = `[...document.querySelectorAll('${CC} .barra-herramientas button')].find(b => b.textContent.startsWith('Anular cierre'))`;
+  await a.esperar(`!!${botonAnular}`);
+  a.verificar(
+    'cierre 1: «Anular» deshabilitado (gris) porque no es el último',
+    await a.js(
+      `[${botonAnular}.disabled, ${botonAnular}.classList.contains('boton--peligro'), ${botonAnular}.title]`,
+    ),
+    [true, false, 'Solo se puede anular el último cierre (el 2)'],
+  );
+  await foto('75-cierre-anterior');
+
+  await fijarValor(`${CC} select`, '2');
+  await a.esperar(
+    `document.querySelector('${CC} .barra-herramientas__resumen').textContent.includes('es el último')`,
+  );
+  await a.js(`document.querySelector('${CC} .cierre__conceptos').focus()`);
+  await a.tecla('X', { ctrl: true });
+  await a.esperar(`!!document.querySelector('.dialogo input')`);
+  await fijarValor('.dialogo input', 'Se contó mal');
+  await foto('76-cierre-anular');
+  await a.js(`document.querySelector('.dialogo .boton--peligro').click()`);
+  await a.esperar(`!document.querySelector('.dialogo')`, 10000);
+  a.verificar(
+    'cierre 2: anulado con su motivo',
+    await a.js(
+      `document.querySelector('${CC} .aviso--error')?.textContent.includes('Se contó mal')`,
+    ),
+    true,
+  );
+  await fijarValor(`${CC} select`, 'nuevo');
+  await a.esperar(
+    `document.querySelector('${CC} .barra-herramientas__resumen').textContent.includes('el 2 está anulado')`,
+    10000,
+  );
+  await foto('77-cierre-nuevo-tras-anular');
+  registrar('Cierre de caja recorrido: 2 cierres, el 2 anulado.');
 }
