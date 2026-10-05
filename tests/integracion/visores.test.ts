@@ -1,3 +1,4 @@
+import { read, utils } from 'xlsx';
 import { describe, expect, it } from 'vitest';
 import { stockEnBodega } from '../../src/data/repositorios/kardex.repo';
 import { crearEjecutorTransacciones } from '../../src/data/transaccion';
@@ -81,11 +82,12 @@ describe('kardex (Fase 5b)', () => {
     const r = reportes.kardex(kardex(231, PRINCIPAL));
     expect(r.bodega).toBe('Principal');
     expect(r.saldoFinal).toBe(175_000);
-    const correccion = r.filas.find((f) => f.movimiento === 'Corrección de venta');
+    const cajas = reportes.kardex(kardex(102, PRINCIPAL));
+    const correccion = cajas.filas.find((f) => f.movimiento === 'Corrección de venta');
     expect(correccion).toMatchObject({
       documento: 'Factura 84762 · versión 2',
       tercero: 'JUAN JJ FERTILIA',
-      entrada: 2000,
+      entrada: 1000,
       ver: { tipo: 'factura-cliente', numero: 84762 },
     });
     const compra = r.filas.find((f) => f.documento === 'Compra 6 · FE-5698 · versión 2');
@@ -144,19 +146,60 @@ describe('kardex (Fase 5b)', () => {
     ).toThrow(/no es válida/);
   });
 
-  it('se imprime en carta y no se exporta a Excel', () => {
+  it('se imprime en carta y se exporta a Excel con las cifras como números', () => {
     const { reportes } = crear();
     const peticion = leerPeticionReporte({ reporte: 'kardex', filtros: kardex(231, null) });
     const html = reportes.html(peticion);
     expect(html).toContain('KARDEX');
     expect(html).toContain('<th>Bodega</th>');
-    expect(html).toContain('Factura 84762 · versión 2');
+    expect(html).toContain('Compra 6 · FE-5698 · versión 2');
     expect(html).toContain('Saldo anterior al 01/01/2026');
     expect(reportes.html({ reporte: 'kardex', filtros: kardex(231, PRINCIPAL) })).not.toContain(
       '<th>Bodega</th>',
     );
-    expect(() => reportes.excel(peticion)).toThrow(ErrorDeNegocio);
     expect(reportes.nombreArchivo(peticion, 'pdf')).toBe(`Kardex 231 ${HOY}.pdf`);
+    expect(reportes.nombreArchivo(peticion, 'xlsx')).toBe(`Kardex 231 ${HOY}.xlsx`);
+
+    const kardexTodas = reportes.kardex(kardex(231, null));
+    const libro = read(reportes.excel(peticion), { type: 'array' });
+    expect(libro.SheetNames).toEqual(['Kardex']);
+    const filas = utils.sheet_to_json<unknown[]>(libro.Sheets.Kardex ?? {}, {
+      header: 1,
+      raw: true,
+    });
+    expect(filas[0]).toEqual(['Kardex']);
+    expect(filas[2]?.[0]).toContain('Producto 231 - PAPA FRANCESA AGRINA PREMIUM *2.5 KG');
+    expect(filas[4]).toEqual([
+      'Fecha',
+      'Hora',
+      'Movimiento',
+      'Documento',
+      'Tercero',
+      'Bodega',
+      'Entrada',
+      'Salida',
+      'Saldo',
+      'Costo unitario',
+    ]);
+    expect(filas[5]?.[2]).toBe('Saldo anterior al 01/01/2026');
+    expect(filas).toHaveLength(5 + 1 + kardexTodas.filas.length + 1);
+    const primera = filas[6] ?? [];
+    expect(typeof primera[0]).toBe('number');
+    expect(primera[8]).toBe((kardexTodas.filas[0]?.saldo ?? 0) / 1000);
+    const total = filas.at(-1) ?? [];
+    expect(total[0]).toBe(`Totales del periodo · ${kardexTodas.filas.length} movimientos`);
+    expect(total[8]).toBe(kardexTodas.saldoFinal / 1000);
+
+    const principal = read(reportes.excel({ reporte: 'kardex', filtros: kardex(231, PRINCIPAL) }), {
+      type: 'array',
+    });
+    const encabezado = utils.sheet_to_json<unknown[]>(principal.Sheets.Kardex ?? {}, {
+      header: 1,
+    })[4];
+    expect(encabezado).not.toContain('Bodega');
+    expect(() => reportes.excel({ reporte: 'historial', filtros: historial() })).toThrow(
+      ErrorDeNegocio,
+    );
   });
 });
 
@@ -215,9 +258,9 @@ describe('visor del historial de cambios (Fase 5b)', () => {
       'Motivo',
     ]);
     expect(d.campos).toContainEqual({
-      campo: 'Línea 1 · 231 PAPA FRANCESA AGRINA PREMIUM *2.5 KG · cantidad',
-      antes: '4',
-      despues: '2',
+      campo: 'Línea 2 · 102 CAJA PIZZA 30*30 FD · cantidad',
+      antes: '5',
+      despues: '4',
     });
     expect(d.campos.every((c) => c.antes !== c.despues)).toBe(true);
     expect(() => reportes.detalleHistorial(999_999)).toThrow(ErrorDeNegocio);

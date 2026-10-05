@@ -1,7 +1,8 @@
 import { utils, write, type CellObject, type WorkSheet } from 'xlsx';
 import { diasEntre } from '../../domain/calendario';
 import { MILESIMAS_POR_UNIDAD } from '../../shared/formato/cantidades';
-import { formatearFechaHora } from '../../shared/formato/fechas';
+import { formatearFecha, formatearFechaHora, formatearHora } from '../../shared/formato/fechas';
+import type { ReporteKardex } from '../../shared/kardex';
 import type { ReporteCartera, ReporteInventario } from '../../shared/reportes';
 
 /**
@@ -176,6 +177,81 @@ export function inventarioXlsx(reporte: ReporteInventario, filtros: string): Uin
       'Inventario',
       armarHoja('Inventario valorizado', reporte.corte, filtros, encabezados, filas, anchos),
     ],
+  ]);
+}
+
+/**
+ * Exporta el kardex a Excel: la fila del saldo anterior, un movimiento por
+ * fila con su saldo corrido y la fila de totales. Fecha como fecha de Excel,
+ * cantidades y costos como números. La columna «Bodega» solo va cuando el
+ * kardex junta todas las bodegas, como en pantalla.
+ *
+ * @param reporte - Kardex calculado.
+ * @param filtros - Producto, bodega y periodo en palabras.
+ * @returns Contenido del archivo XLSX.
+ */
+export function kardexXlsx(reporte: ReporteKardex, filtros: string): Uint8Array {
+  const { unidad } = reporte.producto;
+  const todas = reporte.bodega === null;
+  /**
+   * Cantidad como número; vacía si es cero (entradas y salidas).
+   *
+   * @param milesimas - Cantidad.
+   * @param vaciaSiCero - Si el cero se deja en blanco.
+   * @returns Celda.
+   */
+  const cantidad = (milesimas: number, vaciaSiCero = false): Celda =>
+    vaciaSiCero && milesimas === 0
+      ? ''
+      : { n: milesimas / MILESIMAS_POR_UNIDAD, z: unidad === 'KG' ? FORMATO_KG : FORMATO_PESOS };
+  const enBlanco = todas ? ['', '', '', '', ''] : ['', '', '', ''];
+  const filas: Celda[][] = [
+    [
+      { fecha: reporte.desde },
+      '',
+      `Saldo anterior al ${formatearFecha(reporte.desde)}`,
+      ...enBlanco.slice(2),
+      '',
+      '',
+      cantidad(reporte.saldoAnterior),
+      '',
+    ],
+    ...reporte.filas.map((f): Celda[] => [
+      { fecha: f.fecha.slice(0, 10) },
+      formatearHora(f.fecha),
+      f.movimiento,
+      f.marca ? `${f.documento} ${f.marca}` : f.documento,
+      f.tercero,
+      ...(todas ? [f.bodega] : []),
+      cantidad(f.entrada, true),
+      cantidad(f.salida, true),
+      cantidad(f.saldo),
+      pesos(f.costoUnitario),
+    ]),
+    [
+      `Totales del periodo · ${reporte.filas.length} movimientos`,
+      ...enBlanco,
+      cantidad(reporte.entradas),
+      cantidad(reporte.salidas),
+      cantidad(reporte.saldoFinal),
+      '',
+    ],
+  ];
+  const encabezados = [
+    'Fecha',
+    'Hora',
+    'Movimiento',
+    'Documento',
+    'Tercero',
+    ...(todas ? ['Bodega'] : []),
+    'Entrada',
+    'Salida',
+    'Saldo',
+    'Costo unitario',
+  ];
+  const anchos = [11, 11, 24, 34, 30, ...(todas ? [16] : []), 12, 12, 12, 13];
+  return libroXlsx([
+    ['Kardex', armarHoja('Kardex', reporte.corte, filtros, encabezados, filas, anchos)],
   ]);
 }
 

@@ -90,9 +90,8 @@ describe('datos de ejemplo', () => {
     }
 
     expect(saldoFavorDe(db, 'cliente', codigo(db, 'clientes', 'JUAN JJ FERTILIA'))).toBe(5_500);
-    expect(saldoFavorDe(db, 'cliente', codigo(db, 'clientes', 'RESTAURANTE EL FOGON'))).toBe(
-      23_000,
-    );
+    // FOGON usó hoy todo su saldo a favor en un abono.
+    expect(saldoFavorDe(db, 'cliente', codigo(db, 'clientes', 'RESTAURANTE EL FOGON'))).toBe(0);
     expect(
       saldoFavorDe(db, 'proveedor', codigo(db, 'proveedores', 'EMPAQUES DEL CARIBE S.A.S.')),
     ).toBe(13_600);
@@ -101,7 +100,7 @@ describe('datos de ejemplo', () => {
       .prepare(`SELECT estado, COUNT(*) AS n FROM facturas_cliente GROUP BY estado ORDER BY estado`)
       .all();
     expect(estados).toEqual([
-      { estado: 'activa', n: 13 },
+      { estado: 'activa', n: 14 },
       { estado: 'anulada', n: 1 },
     ]);
 

@@ -1,5 +1,8 @@
+import { sumarDias } from '../../domain/calendario';
+import { textoSaldoNeto } from '../../domain/estado-cuenta';
 import { etiquetaAccion } from '../../domain/historial';
 import { textoDias } from '../../domain/reportes';
+import type { ReporteEstadoCuenta } from '../../shared/estadoCuenta';
 import { formatearCantidad } from '../../shared/formato/cantidades';
 import { formatearFecha, formatearFechaHora } from '../../shared/formato/fechas';
 import { agruparMiles, formatearPesos } from '../../shared/formato/moneda';
@@ -292,6 +295,19 @@ export interface DatosImpresionKardex {
 }
 
 /**
+ * Describe en palabras el producto, la bodega y el periodo de un kardex (va
+ * en el reporte impreso y en Excel).
+ *
+ * @param reporte - Kardex calculado.
+ * @returns Texto de los filtros.
+ */
+export function filtrosKardex(reporte: ReporteKardex): string {
+  const p = reporte.producto;
+  const bodega = reporte.bodega === null ? 'Todas las bodegas' : `Bodega ${reporte.bodega}`;
+  return `Producto ${p.codigo} - ${p.nombre} (${p.unidad}) · ${bodega} · del ${formatearFecha(reporte.desde)} al ${formatearFecha(reporte.hasta)}`;
+}
+
+/**
  * Arma el kardex de un producto en hoja carta: saldo anterior, movimientos
  * con saldo corrido y totales del periodo. La columna «Bodega» solo aparece
  * cuando el kardex junta todas las bodegas.
@@ -346,7 +362,7 @@ export function reporteKardexHtml(datos: DatosImpresionKardex): string {
     negocio: datos.negocio,
     titulo: 'KARDEX',
     corte: reporte.corte,
-    filtros: `Producto ${p.codigo} - ${p.nombre} (${p.unidad}) · ${reporte.bodega === null ? 'Todas las bodegas' : `Bodega ${reporte.bodega}`} · del ${formatearFecha(reporte.desde)} al ${formatearFecha(reporte.hasta)}`,
+    filtros: filtrosKardex(reporte),
     resumen: [
       ['Saldo anterior', formatearCantidad(reporte.saldoAnterior, unidad)],
       ['Entradas', formatearCantidad(reporte.entradas, unidad)],
@@ -401,4 +417,186 @@ export function reporteHistorialHtml(datos: DatosImpresionHistorial): string {
       ? `Se muestran los ${agruparMiles(MAXIMO_REGISTROS_HISTORIAL)} cambios más recientes; acote el periodo o los filtros para ver el resto.`
       : 'El historial no se puede editar ni borrar.',
   });
+}
+
+/**
+ * Datos para imprimir el estado de cuenta.
+ */
+export interface DatosImpresionEstadoCuenta {
+  /** Datos del negocio. */
+  negocio: DatosNegocio;
+  /** Estado de cuenta ya calculado. */
+  reporte: ReporteEstadoCuenta;
+}
+
+/**
+ * Estilo del estado de cuenta (maqueta docs/maquetas/estado-cuenta.html).
+ * El encabezado va en el `thead` de una tabla que envuelve toda la hoja:
+ * Chromium repite el `thead` en cada página al imprimir y al guardar el PDF.
+ *
+ * @param pie - Texto del pie de cada hoja.
+ * @returns Hoja de estilo.
+ */
+function estiloEstadoCuenta(pie: string): string {
+  // Se quitan comillas, barras y «<» para que el texto no cierre la cadena CSS ni la etiqueta.
+  const pieCss = pie.replace(/["\\<>]/g, '');
+  return `
+  @page {
+    size: letter;
+    margin: 12mm 12mm 16mm;
+    @bottom-left { content: "${pieCss}"; font: 8pt Arial, Helvetica, sans-serif; color: #444; }
+    @bottom-right { content: "Página " counter(page) " de " counter(pages); font: 8pt Arial, Helvetica, sans-serif; color: #444; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 8.5pt; color: #000; }
+  @media screen { body { padding: 12mm; } }
+  table { width: 100%; border-collapse: collapse; }
+  thead { display: table-header-group; }
+  .hoja > thead > tr > td, .hoja > tbody > tr > td { padding: 0; border: none; }
+  .hoja > thead > tr > td { padding-bottom: 4px; }
+  .encabezado { display: flex; justify-content: space-between; gap: 16px; padding-bottom: 6px; border-bottom: 2px solid #000; }
+  .encabezado__negocio { line-height: 1.35; }
+  .encabezado__negocio strong { display: block; font-size: 12pt; }
+  .encabezado__titulo { text-align: right; line-height: 1.35; }
+  .encabezado__titulo strong { display: block; font-size: 13pt; letter-spacing: 1px; }
+  .tercero { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px 16px; margin-top: 8px; padding: 5px 8px; border: 1px solid #000; }
+  h3 { margin: 0; font-size: 9.5pt; text-transform: uppercase; }
+  .tabla tr { break-inside: avoid; }
+  .tabla tr.titulo th { padding: 12px 0 4px; border: none; }
+  .tabla th { padding: 3px 4px; border-top: 1px solid #000; border-bottom: 1px solid #000; text-align: left; }
+  .tabla td { padding: 2px 4px; border-bottom: 1px dotted #999; vertical-align: top; }
+  .tabla .total td { border-top: 1px solid #000; border-bottom: none; font-weight: bold; }
+  .num { text-align: right; white-space: nowrap; }
+  .vencida .dias { font-weight: bold; }
+  .resumen { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; break-inside: avoid; }
+  .resumen div { padding: 4px 8px; border: 1px solid #000; }
+  .resumen strong { display: block; font-size: 10.5pt; }
+  .nota { margin-top: 14px; padding-top: 5px; border-top: 1px solid #000; color: #444; font-size: 8pt; }
+`;
+}
+
+/**
+ * Arma el estado de cuenta en hoja carta (D-149, maqueta
+ * docs/maquetas/estado-cuenta.html): encabezado del negocio y del tercero en
+ * cada página, movimientos del periodo con saldo anterior y saldo corrido,
+ * documentos pendientes al último día con sus días, el recuadro final y
+ * «Página N de M» en el pie.
+ *
+ * @param datos - Negocio y estado de cuenta.
+ * @returns Documento HTML.
+ */
+export function reporteEstadoCuentaHtml(datos: DatosImpresionEstadoCuenta): string {
+  const { negocio, reporte } = datos;
+  const cliente = reporte.tipo === 'cliente';
+  const t = reporte.tercero;
+  const titulo = `Estado de cuenta ${t.nombre}`;
+  const lineaNegocio = [negocio.nit ? `NIT ${negocio.nit}` : '', negocio.regimen]
+    .filter(Boolean)
+    .map(escaparHtml)
+    .join(' · ');
+  const lineaContacto = [negocio.direccion, negocio.telefono ? `Tel. ${negocio.telefono}` : '']
+    .filter(Boolean)
+    .map(escaparHtml)
+    .join(' · ');
+  const tercero = cliente
+    ? `<span><b>Cliente:</b> ${t.codigo} - ${escaparHtml(t.nombre)}</span>
+       <span><b>${escaparHtml(t.tipoIdentificacion)}:</b> ${escaparHtml(t.numeroIdentificacion)}</span>
+       <span><b>Cel.:</b> ${escaparHtml(t.celular)}</span>
+       <span><b>Dirección:</b> ${escaparHtml(t.direccion)}</span>
+       <span><b>Tope de crédito:</b> ${t.tope === null ? 'Sin tope' : formatearPesos(t.tope)}</span><span></span>`
+    : `<span><b>Proveedor:</b> ${t.codigo} - ${escaparHtml(t.nombre)}</span>
+       <span><b>${escaparHtml(t.tipoIdentificacion)}:</b> ${escaparHtml(t.numeroIdentificacion)}</span>
+       <span><b>Cel.:</b> ${escaparHtml(t.celular)}</span>
+       <span><b>Dirección:</b> ${escaparHtml(t.direccion)}</span><span></span><span></span>`;
+  const encabezado = `<div class="encabezado">
+    <div class="encabezado__negocio"><strong>${escaparHtml(negocio.nombre || 'NOMBRE DEL NEGOCIO SIN CONFIGURAR')}</strong>${lineaNegocio}${lineaContacto ? `<br />${lineaContacto}` : ''}</div>
+    <div class="encabezado__titulo"><strong>ESTADO DE CUENTA</strong>${cliente ? 'CLIENTE' : 'PROVEEDOR'}<br />Periodo ${formatearFecha(reporte.desde)} a ${formatearFecha(reporte.hasta)}<br />Generado ${formatearFechaHora(reporte.corte)}</div>
+  </div>
+  <div class="tercero">${tercero}</div>`;
+
+  /**
+   * Celda de un valor; vacía si es cero.
+   *
+   * @param valor - Pesos.
+   * @returns HTML de la celda.
+   */
+  const celda = (valor: number): string =>
+    `<td class="num">${valor === 0 ? '' : agruparMiles(valor)}</td>`;
+  const movimientos = reporte.movimientos
+    .map((m) => {
+      const marca = m.marca ? ` <strong>${escaparHtml(m.marca)}</strong>` : '';
+      return `<tr><td>${formatearFecha(m.fecha)}</td><td>${escaparHtml(m.documento)}${marca}</td>
+        <td>${escaparHtml(m.detalle)}</td>${celda(m.cargo)}${celda(m.abono)}
+        <td class="num">${textoSaldoNeto(m.saldo)}</td></tr>`;
+    })
+    .join('');
+  // El título va en el thead para que no quede solo al pie de una hoja y se repita en la siguiente.
+  const tablaMovimientos = `<table class="tabla"><thead>
+    <tr class="titulo"><th colspan="6"><h3>Movimientos del periodo</h3></th></tr><tr><th>Fecha</th><th>Documento</th><th>Detalle</th>
+    <th class="num">Cargos</th><th class="num">Abonos</th><th class="num">Saldo</th></tr></thead><tbody>
+    <tr><td>${formatearFecha(sumarDias(reporte.desde, -1))}</td><td></td><td>Saldo anterior</td><td></td><td></td>
+    <td class="num">${textoSaldoNeto(reporte.saldoAnterior)}</td></tr>${movimientos}
+    <tr class="total"><td colspan="3">Totales del periodo</td><td class="num">${agruparMiles(reporte.cargos)}</td>
+    <td class="num">${agruparMiles(reporte.abonos)}</td><td class="num">${textoSaldoNeto(reporte.saldoFinal)}</td></tr>
+    </tbody></table>`;
+
+  const pendientes = reporte.pendientes
+    .map(
+      (p) => `<tr class="${p.vencida ? 'vencida' : ''}"><td>${escaparHtml(p.documento)}</td>
+        <td>${formatearFecha(p.fecha)}</td><td>${formatearFecha(p.vence)}</td>
+        <td class="num dias">${textoDias(p)}</td><td class="num">${agruparMiles(p.total)}</td>
+        <td class="num">${agruparMiles(p.abonado)}</td><td class="num">${agruparMiles(p.devuelto)}</td>
+        <td class="num">${agruparMiles(p.saldo)}</td></tr>`,
+    )
+    .join('');
+  const sinPendientes =
+    reporte.pendientes.length === 0
+      ? `<tr><td colspan="8">No tiene ${cliente ? 'facturas' : 'compras'} con saldo a esta fecha.</td></tr>`
+      : '';
+  const tablaPendientes = `<table class="tabla"><thead>
+    <tr class="titulo"><th colspan="8"><h3>${cliente ? 'Facturas pendientes' : 'Compras pendientes'} al ${formatearFecha(reporte.hasta)}</h3></th></tr>
+    <tr><th>Documento</th><th>Fecha</th><th>Vence</th>
+    <th class="num">Días</th><th class="num">Total</th><th class="num">Abonado</th>
+    <th class="num">Devuelto / corregido</th><th class="num">Saldo</th></tr></thead><tbody>${pendientes}${sinPendientes}
+    <tr class="total"><td colspan="7">Total pendiente</td><td class="num">${agruparMiles(reporte.resumen.pendiente)}</td></tr>
+    </tbody></table>`;
+
+  const r = reporte.resumen;
+  const resumen = [
+    ['Saldo pendiente', formatearPesos(r.pendiente)],
+    ['Vencido', formatearPesos(r.vencido)],
+    [
+      cliente ? 'Saldo a favor del cliente' : 'Saldo a favor del negocio',
+      formatearPesos(r.saldoFavor),
+    ],
+    [r.neto < 0 ? 'Neto a favor' : 'Neto a pagar', formatearPesos(Math.abs(r.neto))],
+  ]
+    .map(([etiqueta, valor]) => `<div>${etiqueta}<strong>${valor}</strong></div>`)
+    .join('');
+  const nota = `La columna Saldo es lo que se debe menos el saldo a favor. ${
+    cliente
+      ? 'Las ventas de contado no aparecen porque no afectan la cuenta.'
+      : 'Las compras pagadas de contado aparecen con su abono automático.'
+  }`;
+  const pie = `${titulo} · generado ${formatearFechaHora(reporte.corte)}`;
+  return `<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'" />
+<title>${escaparHtml(titulo)}</title>
+<style>${estiloEstadoCuenta(pie)}</style>
+</head>
+<body>
+<table class="hoja">
+<thead><tr><td>${encabezado}</td></tr></thead>
+<tbody><tr><td>
+${tablaMovimientos}
+${tablaPendientes}
+<div class="resumen">${resumen}</div>
+<p class="nota">${nota}</p>
+</td></tr></tbody>
+</table>
+</body>
+</html>`;
 }

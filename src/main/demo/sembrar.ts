@@ -522,12 +522,12 @@ export function sembrarDatosDemo(
   // --- Ventas, abonos y correcciones, en orden de fechas -------------------
   el(30, '11:20');
   ventas.guardar(venta(clientes.pollo, [linea(231, 10), linea(233, 6)], { plazo: 8 }));
+  // JUAN JJ FERTILIA sigue la maqueta del estado de cuenta (docs/maquetas/estado-cuenta.html).
   el(25, '16:05');
-  const v2 = ventas.guardar(
-    venta(clientes.juan, [linea(231, 4), linea(101, 5, 'mayor')], { plazo: 8 }),
-  );
+  const v2 = ventas.guardar(venta(clientes.juan, [linea(231, 2), linea(102, 5)], { plazo: 8 }));
+  el(22, '09:30');
+  abonar('cliente', clientes.juan, v2.id, v2.total, EFECTIVO);
   el(20, '09:30');
-  abonar('cliente', clientes.juan, v2.id, 70_000, EFECTIVO);
   abonar('proveedor', proveedores.campina, c2.id, c2.total, TRANSFERENCIA, 'Pago total FV-0883');
   el(20, '15:10');
   const v3 = ventas.guardar(
@@ -542,6 +542,17 @@ export function sembrarDatosDemo(
       { plazo: 15 },
     ),
   );
+  el(19, '10:10');
+  // Ya estaba pagada: la rebaja de 5,500 queda a favor del cliente.
+  correcciones.corregirVenta({
+    facturaId: v2.id,
+    version: 1,
+    cambios: [
+      { renglon: 1, cantidad: 2_000, precio: 16_000 },
+      { renglon: 2, cantidad: 4_000, precio: 1_750 },
+    ],
+    motivo: 'Papa a precio de mayorista y devolvió una caja',
+  });
   el(15, '12:45');
   ventas.guardar(
     venta(clientes.maria, [linea(231, 2), linea(305, 0.5)], { forma: EFECTIVO, recibido: 60_000 }),
@@ -613,15 +624,6 @@ export function sembrarDatosDemo(
     motivo: 'Vasos rotos',
   });
   el(2, '10:30');
-  correcciones.corregirVenta({
-    facturaId: v2.id,
-    version: 1,
-    cambios: [
-      { renglon: 1, cantidad: 2_000, precio: 17_500 },
-      { renglon: 2, cantidad: 5_000, precio: 1_900 },
-    ],
-    motivo: 'Devolvió 2 papas y se le dejó la caja a 1,900',
-  });
   correcciones.corregirCompra({
     facturaId: c4.id,
     version: 1,
@@ -658,11 +660,22 @@ export function sembrarDatosDemo(
     observacion: 'Parte en efectivo',
     disponibleEsperado: v6Devuelta.movimientoFavor,
   });
+  el(1, '16:02');
   const v9 = ventas.guardar(venta(clientes.juan, [linea(231, 3)], { plazo: 8 }));
+  el(1, '17:00');
+  abonar('cliente', clientes.juan, v9.id, 20_000, TRANSFERENCIA);
 
   // --- Hoy -----------------------------------------------------------------
   el(0, '09:10');
-  abonar('cliente', clientes.juan, v9.id, 20_000, abonos.contexto('cliente').formaSaldoFavor.id);
+  // RESTAURANTE EL FOGON usa su saldo a favor (devolución menos reintegro) en una venta nueva.
+  const v10 = ventas.guardar(venta(clientes.fogon, [linea(232, 2)], { plazo: 8 }));
+  abonar(
+    'cliente',
+    clientes.fogon,
+    v10.id,
+    v6Devuelta.movimientoFavor - 10_000,
+    abonos.contexto('cliente').formaSaldoFavor.id,
+  );
   ventas.guardar(
     venta(CONSUMIDOR_FINAL, [linea(233, 1), linea(101, 1)], { forma: EFECTIVO, recibido: 20_000 }),
   );

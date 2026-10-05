@@ -77,6 +77,7 @@ const TODOS_LOS_CANALES = {
   'reportes:cartera': true,
   'reportes:kardex': true,
   'reportes:historial': true,
+  'reportes:estadoCuenta': true,
   'reportes:detalleHistorial': true,
   'reportes:html': true,
   'reportes:imprimir': true,

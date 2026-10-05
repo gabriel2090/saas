@@ -4,6 +4,7 @@ import {
   diaDeIso,
   diasEntre,
   esFechaValida,
+  primerDiaMesAnterior,
   sumarDias,
   textoVencimiento,
   validarFechaDocumento,
@@ -22,6 +23,13 @@ describe('calendario de documentos', () => {
   it('toma el día local de una fecha ISO con desfase', () => {
     expect(diaDeIso('2026-10-01T23:30:00.000-05:00')).toBe('2026-10-01');
     expect(() => diaDeIso('ayer')).toThrow(RangeError);
+  });
+
+  it('el periodo por defecto empieza el primer día del mes anterior', () => {
+    expect(primerDiaMesAnterior('2026-10-04')).toBe('2026-09-01');
+    expect(primerDiaMesAnterior('2026-03-31')).toBe('2026-02-01');
+    expect(primerDiaMesAnterior('2026-01-01')).toBe('2025-12-01');
+    expect(() => primerDiaMesAnterior('2026-13-01')).toThrow(RangeError);
   });
 
   it('suma días y calcula el vencimiento cruzando meses y años', () => {

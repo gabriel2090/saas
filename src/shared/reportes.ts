@@ -1,3 +1,4 @@
+import type { PeticionEstadoCuenta } from './estadoCuenta';
 import type { UnidadMedida } from './formato/cantidades';
 import type { PeticionHistorial } from './historial';
 import type { PeticionKardex } from './kardex';
@@ -216,7 +217,8 @@ export type PeticionReporte =
   | { reporte: 'inventario'; filtros: PeticionInventario }
   | { reporte: 'cartera'; filtros: PeticionCartera }
   | { reporte: 'kardex'; filtros: PeticionKardex }
-  | { reporte: 'historial'; filtros: PeticionHistorial };
+  | { reporte: 'historial'; filtros: PeticionHistorial }
+  | { reporte: 'estado-cuenta'; filtros: PeticionEstadoCuenta };
 
 /**
  * Reportes aceptados, para validar peticiones.
@@ -226,10 +228,15 @@ export const REPORTES: readonly PeticionReporte['reporte'][] = [
   'cartera',
   'kardex',
   'historial',
+  'estado-cuenta',
 ];
 
 /**
- * Reportes que se exportan a Excel (el kardex y el historial solo se
- * imprimen o se guardan en PDF, como en sus maquetas).
+ * Reportes que se exportan a Excel (el historial y el estado de cuenta
+ * solo se imprimen o se guardan en PDF).
  */
-export const REPORTES_CON_EXCEL: readonly PeticionReporte['reporte'][] = ['inventario', 'cartera'];
+export const REPORTES_CON_EXCEL: readonly PeticionReporte['reporte'][] = [
+  'inventario',
+  'cartera',
+  'kardex',
+];

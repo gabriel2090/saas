@@ -102,6 +102,22 @@ export function sumarDias(fecha: string, dias: number): string {
 }
 
 /**
+ * Primer día del mes anterior a una fecha: inicio del periodo por defecto
+ * del kardex y del estado de cuenta.
+ *
+ * @param hoy - Fecha `AAAA-MM-DD`.
+ * @returns `AAAA-MM-01` del mes anterior.
+ * @throws {RangeError} Si la fecha no es válida.
+ *
+ * @example
+ * primerDiaMesAnterior('2026-10-04'); // '2026-09-01'
+ * primerDiaMesAnterior('2026-01-31'); // '2025-12-01'
+ */
+export function primerDiaMesAnterior(hoy: string): string {
+  return `${sumarDias(`${hoy.slice(0, 8)}01`, -1).slice(0, 8)}01`;
+}
+
+/**
  * Días que van de una fecha a otra (positivo si `hasta` es posterior).
  *
  * @param desde - Fecha inicial.

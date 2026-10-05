@@ -1,4 +1,6 @@
 import type { BaseDeDatos } from '../../data/conexion';
+import { documentosCuenta } from '../../data/repositorios/estadoCuenta.repo';
+import { obtenerTercero } from '../../data/repositorios/terceros.repo';
 import {
   bodegasDeInventario,
   documentosPendientes,
@@ -9,8 +11,14 @@ import {
 } from '../../data/repositorios/reportes.repo';
 import { diaDeIso } from '../../domain/calendario';
 import { ErrorDeNegocio } from '../../domain/errores';
+import { armarEstadoCuenta } from '../../domain/estado-cuenta';
 import { etiquetaAccion } from '../../domain/historial';
 import { armarCartera, armarInventario } from '../../domain/reportes';
+import {
+  nombreArchivoEstadoCuenta,
+  type PeticionEstadoCuenta,
+  type ReporteEstadoCuenta,
+} from '../../shared/estadoCuenta';
 import { aIsoLocal, formatearFecha } from '../../shared/formato/fechas';
 import { TIPOS_DOCUMENTO_HISTORIAL, type PeticionHistorial } from '../../shared/historial';
 import type {
@@ -20,16 +28,19 @@ import type {
   ReporteCartera,
   ReporteInventario,
 } from '../../shared/reportes';
+import { CODIGO_CONSUMIDOR_FINAL } from '../../shared/ventas';
 import {
+  filtrosKardex,
   reporteCarteraHtml,
+  reporteEstadoCuentaHtml,
   reporteHistorialHtml,
   reporteInventarioHtml,
   reporteKardexHtml,
   TITULOS_CARTERA,
 } from '../impresion/reportes';
-import { carteraXlsx, inventarioXlsx } from './excel-reportes';
+import { carteraXlsx, inventarioXlsx, kardexXlsx } from './excel-reportes';
 import type { ServicioNegocio } from './negocio';
-import { crearServicioVisores, type ServicioVisores } from './visores';
+import { crearServicioVisores, validarPeriodo, type ServicioVisores } from './visores';
 
 /**
  * Servicio de los reportes de la Fase 5: inventario valorizado y cuentas
@@ -51,6 +62,14 @@ export interface ServicioReportes extends ServicioVisores {
    * @returns Reporte con el corte de este momento.
    */
   cartera(peticion: PeticionCartera): ReporteCartera;
+  /**
+   * Calcula el estado de cuenta de un cliente o de un proveedor (D-149).
+   *
+   * @param peticion - Tercero y periodo.
+   * @returns Saldo anterior, movimientos, pendientes al último día y resumen.
+   * @throws {ErrorDeNegocio} Si el tercero no existe, es «Consumidor final» o el periodo no es válido.
+   */
+  estadoCuenta(peticion: PeticionEstadoCuenta): ReporteEstadoCuenta;
   /**
    * Arma el reporte en hoja carta para la vista previa, imprimir o el PDF.
    *
@@ -120,6 +139,46 @@ export function crearServicioReportes(
       filtros,
     });
     return { tipo, corte, ...armado };
+  };
+
+  const estadoCuenta = (p: PeticionEstadoCuenta): ReporteEstadoCuenta => {
+    validarPeriodo(p.desde, p.hasta);
+    const cliente = p.tipo === 'cliente';
+    const tercero = obtenerTercero(db, p.tipo, p.terceroCodigo);
+    if (!tercero) {
+      throw new ErrorDeNegocio(
+        'NO_ENCONTRADO',
+        `No existe el ${cliente ? 'cliente' : 'proveedor'} ${p.terceroCodigo}. Búsquelo por código o nombre.`,
+      );
+    }
+    if (cliente && tercero.codigo === CODIGO_CONSUMIDOR_FINAL) {
+      throw new ErrorDeNegocio(
+        'VALIDACION',
+        '«Consumidor final» no tiene estado de cuenta: sus ventas son de contado.',
+      );
+    }
+    const armado = armarEstadoCuenta({
+      tipo: p.tipo,
+      desde: p.desde,
+      hasta: p.hasta,
+      ...documentosCuenta(db, p.tipo, tercero.codigo),
+    });
+    return {
+      tipo: p.tipo,
+      corte: ahora(),
+      tercero: {
+        codigo: tercero.codigo,
+        nombre: tercero.nombre,
+        tipoIdentificacion: tercero.tipoIdentificacion,
+        numeroIdentificacion: tercero.numeroIdentificacion,
+        celular: tercero.celular,
+        direccion: [tercero.direccion, tercero.barrio].filter(Boolean).join(' '),
+        tope: cliente ? tercero.topeCredito : null,
+      },
+      desde: p.desde,
+      hasta: p.hasta,
+      ...armado,
+    };
   };
 
   /**
@@ -205,6 +264,8 @@ export function crearServicioReportes(
         return `Kardex ${peticion.filtros.productoCodigo}`;
       case 'historial':
         return 'Historial de cambios';
+      case 'estado-cuenta':
+        return 'Estado de cuenta';
     }
   };
 
@@ -214,6 +275,7 @@ export function crearServicioReportes(
     ...visores,
     inventario,
     cartera,
+    estadoCuenta,
     html(peticion) {
       const negocio = dependencias.negocio.obtener();
       switch (peticion.reporte) {
@@ -237,6 +299,8 @@ export function crearServicioReportes(
             reporte: visores.historial(peticion.filtros),
             filtros: filtrosHistorial(peticion.filtros),
           });
+        case 'estado-cuenta':
+          return reporteEstadoCuentaHtml({ negocio, reporte: estadoCuenta(peticion.filtros) });
       }
     },
     excel(peticion) {
@@ -249,6 +313,10 @@ export function crearServicioReportes(
             titulo(peticion),
             filtrosCartera(peticion.filtros),
           );
+        case 'kardex': {
+          const kardex = visores.kardex(peticion.filtros);
+          return kardexXlsx(kardex, filtrosKardex(kardex));
+        }
         default:
           throw new ErrorDeNegocio(
             'VALIDACION',
@@ -257,6 +325,11 @@ export function crearServicioReportes(
       }
     },
     nombreArchivo(peticion, extension) {
+      if (peticion.reporte === 'estado-cuenta') {
+        const { tipo, terceroCodigo, hasta } = peticion.filtros;
+        const nombre = obtenerTercero(db, tipo, terceroCodigo)?.nombre ?? String(terceroCodigo);
+        return nombreArchivoEstadoCuenta(nombre, hasta);
+      }
       return `${titulo(peticion)} ${diaDeIso(ahora())}.${extension}`;
     },
   };

@@ -34,6 +34,7 @@ import type {
   SaldoFavorTercero,
   TipoDevolucion,
 } from '../correcciones';
+import type { PeticionEstadoCuenta, ReporteEstadoCuenta } from '../estadoCuenta';
 import type { DetalleCambio, PeticionHistorial, ReporteHistorial } from '../historial';
 import type { DocumentoImprimible } from '../impresion';
 import type { PeticionKardex, ReporteKardex } from '../kardex';
@@ -262,6 +263,7 @@ export interface ContratoIpc {
   'reportes:cartera': { peticion: PeticionCartera; respuesta: ReporteCartera };
   'reportes:kardex': { peticion: PeticionKardex; respuesta: ReporteKardex };
   'reportes:historial': { peticion: PeticionHistorial; respuesta: ReporteHistorial };
+  'reportes:estadoCuenta': { peticion: PeticionEstadoCuenta; respuesta: ReporteEstadoCuenta };
   'reportes:detalleHistorial': { peticion: number; respuesta: DetalleCambio };
   'reportes:html': { peticion: PeticionReporte; respuesta: string };
   'reportes:imprimir': { peticion: PeticionReporte; respuesta: boolean };
@@ -375,6 +377,7 @@ export const CANALES_IPC: readonly CanalIpc[] = [
   'reportes:cartera',
   'reportes:kardex',
   'reportes:historial',
+  'reportes:estadoCuenta',
   'reportes:detalleHistorial',
   'reportes:html',
   'reportes:imprimir',

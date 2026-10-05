@@ -3,6 +3,7 @@ import {
   TIPOS_DOCUMENTO_HISTORIAL,
   type PeticionHistorial,
 } from '../../shared/historial';
+import type { PeticionEstadoCuenta } from '../../shared/estadoCuenta';
 import type { PeticionKardex } from '../../shared/kardex';
 import {
   REPORTES,
@@ -138,6 +139,23 @@ export function leerPeticionHistorial(valor: unknown): PeticionHistorial {
 }
 
 /**
+ * Lee y verifica los filtros del estado de cuenta.
+ *
+ * @param valor - Dato recibido.
+ * @returns Filtros.
+ * @throws {ErrorDeNegocio} Si la forma no es la esperada.
+ */
+export function leerPeticionEstadoCuenta(valor: unknown): PeticionEstadoCuenta {
+  const d = exigirObjeto(valor);
+  return {
+    tipo: exigirOpcion(d.tipo, TIPOS_CARTERA, 'tipo de tercero'),
+    terceroCodigo: exigirEntero(d.terceroCodigo, 'tercero'),
+    desde: exigirTexto(d.desde, 'desde'),
+    hasta: exigirTexto(d.hasta, 'hasta'),
+  };
+}
+
+/**
  * Lee y verifica la petición de un reporte para imprimir o exportar.
  *
  * @param valor - Dato recibido.
@@ -156,6 +174,8 @@ export function leerPeticionReporte(valor: unknown): PeticionReporte {
       return { reporte, filtros: leerPeticionKardex(d.filtros) };
     case 'historial':
       return { reporte, filtros: leerPeticionHistorial(d.filtros) };
+    case 'estado-cuenta':
+      return { reporte, filtros: leerPeticionEstadoCuenta(d.filtros) };
   }
 }
 
@@ -178,6 +198,9 @@ export function registrarIpcReportes(
   registrar('reportes:kardex', (peticion) => servicio.kardex(leerPeticionKardex(peticion)));
   registrar('reportes:historial', (peticion) =>
     servicio.historial(leerPeticionHistorial(peticion)),
+  );
+  registrar('reportes:estadoCuenta', (peticion) =>
+    servicio.estadoCuenta(leerPeticionEstadoCuenta(peticion)),
   );
   registrar('reportes:detalleHistorial', (id) =>
     servicio.detalleHistorial(exigirEntero(id, 'registro')),

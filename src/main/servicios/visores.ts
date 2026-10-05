@@ -60,7 +60,7 @@ export interface ServicioVisores {
  * @param hasta - Último día.
  * @throws {ErrorDeNegocio} Si una fecha no existe o el rango está al revés.
  */
-function validarPeriodo(desde: string, hasta: string): void {
+export function validarPeriodo(desde: string, hasta: string): void {
   for (const [fecha, campo] of [
     [desde, 'Desde'],
     [hasta, 'Hasta'],
