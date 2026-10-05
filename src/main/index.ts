@@ -333,9 +333,10 @@ if (!app.isPackaged) {
 }
 
 /**
- * Parámetro que carga (`--datos-demo`) o borra (`--datos-demo=borrar`) los
- * datos de ejemplo de la carpeta de desarrollo y termina sin abrir ventanas
- * (D-142). Solo se acepta sin empaquetar.
+ * Parámetro que carga (`--datos-demo`), carga con el volumen grande
+ * (`--datos-demo=grande`) o borra (`--datos-demo=borrar`) los datos de
+ * ejemplo de la carpeta de desarrollo y termina sin abrir ventanas (D-142).
+ * Solo se acepta sin empaquetar.
  */
 const PARAMETRO_DATOS_DEMO = 'datos-demo';
 
@@ -369,7 +370,7 @@ function ejecutarDatosDemo(accion: AccionDatosDemo): void {
     app.exit(resultado.ok ? 0 : 1);
   } catch (error) {
     process.stderr.write(
-      `No se pudieron ${accion === 'cargar' ? 'cargar' : 'borrar'} los datos de ejemplo: ` +
+      `No se pudieron ${accion === 'borrar' ? 'borrar' : 'cargar'} los datos de ejemplo: ` +
         `${error instanceof Error ? error.message : String(error)}\n`,
     );
     app.exit(1);
@@ -379,9 +380,8 @@ function ejecutarDatosDemo(accion: AccionDatosDemo): void {
 if (carpetaRechazada) {
   // Ya se pidió salir: no se toma el bloqueo de instancia ni se abre la base.
 } else if (!app.isPackaged && app.commandLine.hasSwitch(PARAMETRO_DATOS_DEMO)) {
-  ejecutarDatosDemo(
-    app.commandLine.getSwitchValue(PARAMETRO_DATOS_DEMO) === 'borrar' ? 'borrar' : 'cargar',
-  );
+  const valor = app.commandLine.getSwitchValue(PARAMETRO_DATOS_DEMO);
+  ejecutarDatosDemo(valor === 'borrar' || valor === 'grande' ? valor : 'cargar');
 } else if (!app.requestSingleInstanceLock()) {
   // Una sola instancia: dos procesos escribiendo la misma base SQLite causarían bloqueos.
   app.quit();

@@ -5,13 +5,15 @@ import { migracionesDelProyecto } from '../../data/migraciones';
 import { aplicarMigraciones } from '../../data/migrador';
 import { obtenerConfiguracion } from '../../data/repositorios/configuracion.repo';
 import { ARCHIVO_BASE_DATOS, CARPETA_DATOS } from '../rutas';
+import { sembrarDatosGrandes } from './grande';
 import { CLAVE_MARCA_DEMO, CONTRASENA_DEMO, sembrarDatosDemo } from './sembrar';
 
 /**
  * Qué hacer con los datos de ejemplo: cargarlos (reemplazando la base de
- * desarrollo) o borrarlos.
+ * desarrollo), cargarlos con el volumen grande para medir tiempos, o
+ * borrarlos.
  */
-export type AccionDatosDemo = 'cargar' | 'borrar';
+export type AccionDatosDemo = 'cargar' | 'grande' | 'borrar';
 
 /**
  * Resultado de preparar la carpeta: líneas para la consola y si terminó bien.
@@ -99,7 +101,7 @@ function sello(fecha: Date): string {
  * se pida con `--carpeta-datos`.
  *
  * @param carpetaUsuario - Carpeta de la app de desarrollo (contiene `datos`).
- * @param accion - Cargar o borrar.
+ * @param accion - Cargar (normal o con el volumen grande) o borrar.
  * @param carpetaReal - Carpeta de datos de la app instalada (la del negocio).
  * @param ahora - Momento actual (para el sello de la carpeta guardada aparte).
  * @returns Si se hizo y los mensajes para la terminal.
@@ -163,9 +165,11 @@ export function prepararDatosDemo(
   try {
     aplicarMigraciones(db, migracionesDelProyecto());
     const { claveRecuperacion, resumen } = sembrarDatosDemo(db, { impresora });
+    const grandes = accion === 'grande' ? sembrarDatosGrandes(db) : [];
     lineas.push(
       `Datos de ejemplo cargados en ${carpetaDatos}:`,
       ...resumen.map((r) => `  - ${r}`),
+      ...(grandes.length > 0 ? ['Volumen grande:', ...grandes.map((r) => `  - ${r}`)] : []),
       impresora ? `Se conservó la impresora «${impresora}».` : 'Sin impresora configurada.',
       '',
       `Contraseña: ${CONTRASENA_DEMO}`,
