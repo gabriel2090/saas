@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Maqueta: recuperación al iniciar (Fase 6a)</title>
+    <link rel="stylesheet" href="../../src/renderer/estilos/global.css" />
+    <style>
+      /* Variantes: (ninguna) copia recomendada · #sin-copias · #confirmar */
+      body:not(.ver-sin-copias) .solo-sin-copias,
+      body:not(.ver-confirmar) .solo-confirmar,
+      .ver-sin-copias .solo-con-copias,
+      .ver-confirmar .solo-con-copias {
+        display: none;
+      }
+      html,
+      body,
+      #raiz {
+        height: 100%;
+        margin: 0;
+      }
+      .recuperacion {
+        display: grid;
+        place-items: center;
+        height: 100%;
+        background: #c5cdd8;
+      }
+      .recuperacion__tarjeta {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        width: min(640px, calc(100% - 32px));
+        max-height: calc(100% - 32px);
+        padding: 24px 28px;
+        border: 1px solid var(--color-borde);
+        border-radius: 4px;
+        background: var(--color-panel);
+        box-shadow: 0 8px 32px rgb(0 0 0 / 22%);
+        overflow: auto;
+      }
+      .recuperacion__tarjeta h1 {
+        margin: 0;
+        font-size: 20px;
+        color: var(--color-titulo);
+      }
+      .recuperacion__lista {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        border: 1px solid var(--color-borde);
+        border-radius: 3px;
+        max-height: 200px;
+        overflow: auto;
+      }
+      .recuperacion__lista li {
+        display: grid;
+        grid-template-columns: 24px 1fr auto;
+        gap: 8px;
+        align-items: center;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--color-borde);
+        font-size: 13px;
+      }
+      .recuperacion__lista li:last-child {
+        border-bottom: none;
+      }
+      .recuperacion__lista li.recomendada {
+        background: #eaf1fb;
+        box-shadow: inset 3px 0 0 var(--color-primario);
+      }
+      .recuperacion__lista li.invalida {
+        color: var(--color-tenue);
+        text-decoration: line-through;
+      }
+      .etiqueta-recomendada {
+        padding: 0 6px;
+        border-radius: 9px;
+        background: var(--color-primario);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .recuperacion__botones {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      .recuperacion__botones .boton--primario {
+        flex: 1 1 100%;
+      }
+      .recuperacion__pie {
+        margin: 0;
+        color: var(--color-tenue);
+        font-size: 11px;
+        line-height: 1.4;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="raiz" class="recuperacion">
+      <div class="recuperacion__tarjeta solo-con-copias">
+        <h1>No se puede abrir la base de datos</h1>
+        <p class="aviso aviso--error">
+          <svg
+            class="aviso__icono"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0M9 9l6 6M15 9l-6 6"
+            />
+          </svg>
+          <span
+            >La verificación de integridad encontró daños. No se puede pedir la contraseña porque está guardada en la
+            misma base.</span
+          >
+        </p>
+        <p style="margin: 0; font-size: 13px">
+          Se revisaron las copias, de la más reciente a la más antigua. Puede restaurar la
+          <strong>última copia válida</strong> o elegir otra.
+        </p>
+        <ul class="recuperacion__lista">
+          <li class="invalida">
+            <span>✗</span>
+            <span>04/10/2026 3:10 p. m. · respaldo-20261004-151000-412.db</span>
+            <span class="texto-tenue">Dañada</span>
+          </li>
+          <li class="recomendada">
+            <span>✓</span>
+            <span><strong>04/10/2026 11:38 a. m.</strong> · respaldo-20261004-113800-089.db · 4,1 MB</span>
+            <span class="etiqueta-recomendada">Recomendada</span>
+          </li>
+          <li>
+            <span>✓</span>
+            <span>04/10/2026 8:00 a. m. · Previa a migración · 4,0 MB</span>
+            <span></span>
+          </li>
+          <li>
+            <span>✓</span>
+            <span>03/10/2026 7:05 p. m. · Automática · 3,9 MB</span>
+            <span></span>
+          </li>
+        </ul>
+        <p class="aviso aviso--alerta">
+          <svg
+            class="aviso__icono"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 3l10 18H2zM12 10v5M12 18v.01" />
+          </svg>
+          <span
+            >Al restaurar la copia recomendada perderá los movimientos registrados
+            <strong>después de las 11:38 a. m. de hoy</strong> (incluido el cierre de caja guardado a las 3:10 p.
+            m.).</span
+          >
+        </p>
+        <p class="texto-tenue" style="margin: 0; font-size: 12px">
+          La base dañada no se borra: quedará renombrada como
+          <code>datos-20261004-151530-danada.db</code> por si soporte la necesita.
+        </p>
+        <div class="recuperacion__botones">
+          <button type="button" class="boton boton--primario">Restaurar la copia recomendada y reiniciar</button>
+          <button type="button" class="boton">Elegir otra copia…</button>
+          <button type="button" class="boton">Restaurar desde archivo…</button>
+          <button type="button" class="boton">Abrir carpeta de respaldos</button>
+          <button type="button" class="boton">Copiar datos para soporte</button>
+          <button type="button" class="boton">Salir</button>
+        </div>
+        <p class="recuperacion__pie">
+          Carpeta de respaldos: C:\Users\Negocio\AppData\Roaming\Inventario y Facturación\respaldos
+        </p>
+      </div>
+
+      <div class="recuperacion__tarjeta solo-sin-copias">
+        <h1>No se puede abrir la base de datos</h1>
+        <p class="aviso aviso--error">
+          <svg
+            class="aviso__icono"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0M9 9l6 6M15 9l-6 6"
+            />
+          </svg>
+          <span>La base está dañada y <strong>no hay ninguna copia utilizable</strong> en la carpeta de respaldos.</span>
+        </p>
+        <p style="margin: 0; font-size: 13px">
+          Revise si tiene una copia en otra unidad (USB, OneDrive…) con «Restaurar desde archivo…», o contacte a
+          soporte con los datos técnicos.
+        </p>
+        <p class="aviso aviso--info">
+          <svg
+            class="aviso__icono"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M12 8v5M12 16v.01" />
+          </svg>
+          <span
+            >Carpeta:
+            <strong>C:\Users\Negocio\AppData\Roaming\Inventario y Facturación\respaldos</strong></span
+          >
+        </p>
+        <div class="recuperacion__botones">
+          <button type="button" class="boton boton--primario">Restaurar desde archivo…</button>
+          <button type="button" class="boton">Abrir carpeta de respaldos</button>
+          <button type="button" class="boton">Copiar datos para soporte</button>
+          <button type="button" class="boton">Salir</button>
+        </div>
+      </div>
+
+      <div class="recuperacion__tarjeta solo-confirmar">
+        <h1>Confirmar restauración</h1>
+        <p style="margin: 0; font-size: 13px">
+          Copia: <strong>04/10/2026 11:38 a. m.</strong> (respaldo-20261004-113800-089.db)
+        </p>
+        <p class="aviso aviso--alerta">
+          <svg
+            class="aviso__icono"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 3l10 18H2zM12 10v5M12 18v.01" />
+          </svg>
+          <span>Se perderán los movimientos posteriores a las 11:38 a. m. de hoy.</span>
+        </p>
+        <p class="texto-tenue" style="margin: 0; font-size: 12px">
+          No pide contraseña aquí: la copia traerá la que tenía guardada. Solo confirme que acepta perder lo posterior.
+        </p>
+        <div class="recuperacion__botones">
+          <button type="button" class="boton">Volver</button>
+          <button type="button" class="boton boton--peligro">Restaurar y reiniciar</button>
+        </div>
+      </div>
+    </div>
+    <script>
+      const v = location.hash.slice(1);
+      if (v) document.body.classList.add(`ver-${v}`);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Maqueta: respaldos (Fase 6a)</title>
+    <link rel="stylesheet" href="../../src/renderer/estilos/global.css" />
+    <style>
+      /* Variantes: (ninguna) · #restaurar diálogo de restauración */
+      body:not(.ver-restaurar) .solo-restaurar {
+        display: none;
+      }
+      .respaldos {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        gap: 8px;
+        min-height: 0;
+      }
+      .respaldos .tabla-contenedor {
+        flex: 1;
+      }
+      .respaldos .tabla td:nth-child(4) {
+        font-family: Consolas, 'Courier New', monospace;
+        font-size: 12px;
+      }
+      .tipo-copia {
+        display: inline-block;
+        padding: 0 6px;
+        border-radius: 9px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .tipo-copia--auto {
+        background: #eaf1fb;
+        color: #2f5d9e;
+      }
+      .tipo-copia--manual {
+        background: #e7f6ec;
+        color: var(--color-exito);
+      }
+      .tipo-copia--migracion {
+        background: var(--color-alerta-fondo);
+        color: var(--color-alerta);
+      }
+      .tipo-copia--restauracion {
+        background: #fdecea;
+        color: var(--color-error);
+      }
+      .respaldos__ruta {
+        margin: 0;
+        color: var(--color-tenue);
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="raiz">
+      <div class="aplicacion">
+        <nav data-marco></nav>
+        <main class="escritorio">
+          <section
+            class="ventana ventana--activa ventana--con-tamano"
+            style="left: 12px; top: 6px; width: 980px; height: 620px"
+          >
+            <div class="ventana__titulo">
+              <span class="ventana__nombre">Respaldos</span>
+              <span class="ventana__botones"
+                ><button class="ventana__maximizar">□</button><button class="ventana__cerrar">×</button></span
+              >
+            </div>
+            <div class="ventana__contenido reporte respaldos">
+              <div class="barra-herramientas">
+                <button type="button" class="boton boton--primario">Respaldar ahora</button>
+                <button type="button" class="boton">Cambiar carpeta…</button>
+                <button type="button" class="boton">Abrir carpeta</button>
+                <button type="button" class="boton boton--peligro">Restaurar esta copia…</button>
+                <button type="button" class="boton">Restaurar desde archivo…</button>
+                <span class="barra-herramientas__separador"></span>
+                <span class="barra-herramientas__resumen"
+                  >Política D-07: últimas 20 · una por hora (48 h) · una diaria (30 días)</span
+                >
+              </div>
+              <p class="respaldos__ruta">
+                Carpeta:
+                <strong>C:\Users\Negocio\AppData\Roaming\Inventario y Facturación\respaldos</strong>
+                · última copia automática: hoy 3:10 p. m.
+              </p>
+              <p class="respaldos__ruta">
+                Copia externa (diaria):
+                <strong>E:\Respaldos Inventario</strong>
+                · <span class="texto-exito">al día (hoy 8:00 a. m.)</span>
+                · <button type="button" class="boton" style="padding: 1px 8px; font-size: 12px">Cambiar…</button>
+                · <button type="button" class="boton" style="padding: 1px 8px; font-size: 12px">Quitar</button>
+              </p>
+              <p class="aviso aviso--info">
+                <svg
+                  class="aviso__icono"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M12 8v5M12 16v.01" />
+                </svg>
+                <span
+                  >Tras cada operación confirmada la app copia la base en unos segundos. Restaurar reemplaza todos los
+                  datos y reinicia el programa; pide la contraseña otra vez y vuelve la que tenía esa copia
+                  (D-174).</span
+                >
+              </p>
+              <div class="tabla-contenedor" tabindex="0">
+                <table class="tabla tabla--seleccionable">
+                  <thead>
+                    <tr>
+                      <th>Fecha y hora</th>
+                      <th>Tipo</th>
+                      <th class="num">Tamaño</th>
+                      <th>Archivo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="fila--seleccionada">
+                      <td>04/10/2026 3:10 p. m.</td>
+                      <td><span class="tipo-copia tipo-copia--auto">Automática</span></td>
+                      <td class="num">4,2 MB</td>
+                      <td>respaldo-20261004-151000-412.db</td>
+                    </tr>
+                    <tr>
+                      <td>04/10/2026 11:38 a. m.</td>
+                      <td><span class="tipo-copia tipo-copia--manual">Manual</span></td>
+                      <td class="num">4,1 MB</td>
+                      <td>respaldo-20261004-113800-089.db</td>
+                    </tr>
+                    <tr>
+                      <td>04/10/2026 8:00 a. m.</td>
+                      <td><span class="tipo-copia tipo-copia--migracion">Previa a migración</span></td>
+                      <td class="num">4,0 MB</td>
+                      <td>respaldo-20261004-080001-001.db</td>
+                    </tr>
+                    <tr>
+                      <td>03/10/2026 7:05 p. m.</td>
+                      <td><span class="tipo-copia tipo-copia--auto">Automática</span></td>
+                      <td class="num">3,9 MB</td>
+                      <td>respaldo-20261003-190502-221.db</td>
+                    </tr>
+                    <tr>
+                      <td>02/10/2026 2:15 p. m.</td>
+                      <td><span class="tipo-copia tipo-copia--restauracion">Previa a restauración</span></td>
+                      <td class="num">3,8 MB</td>
+                      <td>respaldo-20261002-141530-004.db</td>
+                    </tr>
+                    <tr>
+                      <td>01/10/2026 6:00 p. m.</td>
+                      <td><span class="tipo-copia tipo-copia--auto">Automática</span></td>
+                      <td class="num">3,7 MB</td>
+                      <td>respaldo-20261001-180000-112.db</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="texto-tenue" style="margin: 0; font-size: 12px">
+                ↑/↓ elige la copia. «Restaurar esta copia…» usa la fila seleccionada.
+              </p>
+            </div>
+          </section>
+        </main>
+        <footer
+          data-atajos="F5 actualizar lista · Esc cerrar ventana"
+        ></footer>
+      </div>
+    </div>
+
+    <div class="capa-modal solo-restaurar" role="presentation">
+      <form class="dialogo dialogo--formulario" role="alertdialog" aria-modal="true">
+        <div class="dialogo__titulo">¿Restaurar la copia del 04/10/2026 3:10 p. m.?</div>
+        <div class="dialogo__cuerpo">
+          <p class="dialogo__mensaje">
+            Se reemplazarán <strong>todos</strong> los datos actuales por los de esa copia. La app hará antes una copia
+            «previa a restauración», reiniciará y pedirá la contraseña otra vez.
+          </p>
+          <p class="aviso aviso--alerta">
+            <svg
+              class="aviso__icono"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 3l10 18H2zM12 10v5M12 18v.01" />
+            </svg>
+            <span
+              >Se perderían <strong>12 documentos</strong> (facturas de cliente 84796 a 84807, 3 abonos, 1 cierre de
+              caja). Vuelve la <strong>contraseña que tenía esa copia</strong>.</span
+            >
+          </p>
+          <p style="margin: 0">
+            <button type="button" class="boton">Guardar lista en PDF</button>
+          </p>
+          <label class="campo">
+            <span>Contraseña</span>
+            <input type="password" value="••••••" autocomplete="off" />
+          </label>
+          <p class="texto-tenue" style="margin: 0; font-size: 12px">
+            <a href="#">Olvidé la contraseña: usar clave de recuperación</a>
+          </p>
+        </div>
+        <div class="dialogo__botones">
+          <button type="button" class="boton">Cancelar</button>
+          <button type="submit" class="boton boton--peligro">Restaurar y reiniciar</button>
+        </div>
+      </form>
+    </div>
+
+    <script src="marco-fase5.js"></script>
+  </body>
+</html>
