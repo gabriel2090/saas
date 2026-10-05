@@ -39,6 +39,13 @@ import type { ModoBarra, PeticionGuardarVentana, PreferenciasInterfaz } from '..
 import type { IdProceso } from '../procesos';
 import type { PeticionBuscarReimpresion, ResultadoBuscarReimpresion } from '../reimpresiones';
 import type {
+  PeticionCartera,
+  PeticionInventario,
+  PeticionReporte,
+  ReporteCartera,
+  ReporteInventario,
+} from '../reportes';
+import type {
   PeticionGuardarReporte,
   PeticionImportacion,
   ResultadoImportacion,
@@ -249,6 +256,13 @@ export interface ContratoIpc {
     respuesta: ResultadoBuscarReimpresion;
   };
 
+  'reportes:inventario': { peticion: PeticionInventario; respuesta: ReporteInventario };
+  'reportes:cartera': { peticion: PeticionCartera; respuesta: ReporteCartera };
+  'reportes:html': { peticion: PeticionReporte; respuesta: string };
+  'reportes:imprimir': { peticion: PeticionReporte; respuesta: boolean };
+  'reportes:pdf': { peticion: PeticionReporte; respuesta: boolean };
+  'reportes:excel': { peticion: PeticionReporte; respuesta: boolean };
+
   'interfaz:preferencias': { peticion: void; respuesta: PreferenciasInterfaz };
   'interfaz:guardarBarra': { peticion: ModoBarra; respuesta: void };
   'interfaz:guardarVentana': { peticion: PeticionGuardarVentana; respuesta: void };
@@ -352,6 +366,12 @@ export const CANALES_IPC: readonly CanalIpc[] = [
   'impresion:imprimir',
   'impresion:pdf',
   'reimpresiones:buscar',
+  'reportes:inventario',
+  'reportes:cartera',
+  'reportes:html',
+  'reportes:imprimir',
+  'reportes:pdf',
+  'reportes:excel',
   'interfaz:preferencias',
   'interfaz:guardarBarra',
   'interfaz:guardarVentana',

@@ -19,6 +19,7 @@ import { registrarIpcImportador } from './ipc/importador.ipc';
 import { registrarIpcImpresion } from './ipc/impresion.ipc';
 import { registrarIpcInterfaz } from './ipc/interfaz.ipc';
 import { registrarIpcReimpresiones } from './ipc/reimpresiones.ipc';
+import { registrarIpcReportes } from './ipc/reportes.ipc';
 import { registrarIpcMaestros } from './ipc/maestros.ipc';
 import { crearRegistradorIpc } from './ipc/registrar';
 import { registrarIpcSistema } from './ipc/sistema.ipc';
@@ -35,6 +36,7 @@ import { crearServicioImportador } from './servicios/importador';
 import { crearServicioImpresion } from './servicios/impresion';
 import { crearServicioInterfaz } from './servicios/interfaz';
 import { crearServicioReimpresiones } from './servicios/reimpresiones';
+import { crearServicioReportes } from './servicios/reportes';
 import { crearServicioNegocio } from './servicios/negocio';
 import { crearServicioProductos } from './servicios/productos';
 import { crearServicioTerceros } from './servicios/terceros';
@@ -175,6 +177,14 @@ function iniciar(): void {
       guardarArchivoElegido(ventana, nombreSugerido, await generarPdf(html), ARCHIVO_PDF),
   });
   registrarIpcReimpresiones(registrar, crearServicioReimpresiones(db));
+  registrarIpcReportes(registrar, {
+    servicio: crearServicioReportes(db, { negocio }),
+    imprimir: (html) => imprimirDocumento(html),
+    guardarPdf: async (html, nombreSugerido) =>
+      guardarArchivoElegido(ventana, nombreSugerido, await generarPdf(html), ARCHIVO_PDF),
+    guardarExcel: (nombreSugerido, contenido) =>
+      guardarArchivoElegido(ventana, nombreSugerido, contenido, ARCHIVO_EXCEL_REPORTE),
+  });
   registrarIpcInterfaz(registrar, crearServicioInterfaz(db));
 
   recursos = { db, respaldos, ventana };
@@ -197,6 +207,15 @@ interface TipoArchivo {
  */
 const ARCHIVO_EXCEL: TipoArchivo = {
   titulo: 'Guardar reporte de errores',
+  nombre: 'Libro de Excel',
+  extension: 'xlsx',
+};
+
+/**
+ * Reporte exportado a Excel (D-145).
+ */
+const ARCHIVO_EXCEL_REPORTE: TipoArchivo = {
+  titulo: 'Exportar a Excel',
   nombre: 'Libro de Excel',
   extension: 'xlsx',
 };
