@@ -43,6 +43,11 @@ export function BarraEstado(): ReactNode {
         Último respaldo:{' '}
         {info?.ultimoRespaldo ? formatearFechaHora(info.ultimoRespaldo) : 'sin cambios aún'}
       </span>
+      {info?.avisoCopiaExterna && (
+        <span className="texto-alerta" title={info.avisoCopiaExterna}>
+          {info.avisoCopiaExterna}
+        </span>
+      )}
       <span className="barra-estado__atajos">
         {textoCombinacion(ATAJOS.buscarProceso.combinacion)} buscar ·{' '}
         {textoCombinacion(ATAJOS.siguienteVentana.combinacion)} cambiar ventana ·{' '}

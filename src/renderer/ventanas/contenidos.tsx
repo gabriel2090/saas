@@ -20,6 +20,7 @@ import { Kardex } from '../pantallas/Kardex';
 import { PendienteFase } from '../pantallas/PendienteFase';
 import { Productos } from '../pantallas/Productos';
 import { Reimpresiones } from '../pantallas/Reimpresiones';
+import { Respaldos } from '../pantallas/Respaldos';
 import { Terceros } from '../pantallas/Terceros';
 
 /**
@@ -52,6 +53,7 @@ const CONTENIDOS: Partial<Record<IdProceso, ComponentType>> = {
   'historial-cambios': HistorialCambios,
   'estados-cuenta': EstadosCuenta,
   'cierre-caja': CierreCaja,
+  respaldos: Respaldos,
 };
 
 /**

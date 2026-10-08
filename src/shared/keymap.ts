@@ -26,6 +26,7 @@ import type { IdProceso } from './procesos';
  * - `reporte`: ventanas de reportes (inventario valorizado, cuentas por cobrar
  *   y por pagar, kardex, historial de cambios y estados de cuenta).
  * - `cierre`: ventana del cierre de caja.
+ * - `respaldos`: ventana de copias y restauración.
  * - `organizar`: teclas del menú «Organizar» mientras está abierto (D-110).
  */
 export type AmbitoAtajo =
@@ -38,6 +39,7 @@ export type AmbitoAtajo =
   | 'reimpresiones'
   | 'reporte'
   | 'cierre'
+  | 'respaldos'
   | 'organizar';
 
 /**
@@ -388,6 +390,14 @@ export const ATAJOS = {
     descripcion: 'Anular el cierre (solo el último vigente; pide confirmación)',
     ambito: 'cierre',
     permitirEnCampoTexto: false,
+  },
+
+  // --- Respaldos (Fase 6a) ---
+  actualizarRespaldos: {
+    combinacion: 'F5',
+    descripcion: 'Actualizar la lista de respaldos',
+    ambito: 'respaldos',
+    permitirEnCampoTexto: true,
   },
 } as const satisfies Record<string, DefinicionAtajo>;
 
