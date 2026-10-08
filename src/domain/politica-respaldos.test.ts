@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
+  avisoBarraCopiaExterna,
   diasEntre,
+  documentosQueSePierden,
   estadoCopiaExterna,
   resumirPerdida,
   seleccionarRespaldosAEliminar,
+  textoDialogoPerdida,
   textoPerdidaAlRestaurar,
   yaHayCopiaExternaHoy,
   type ArchivoRespaldo,
+  type DocumentoPerdido,
   type TipoRespaldo,
 } from './politica-respaldos';
 
@@ -45,7 +49,13 @@ describe('seleccionarRespaldosAEliminar', () => {
     const archivos = Array.from({ length: 25 }, (_, i) => respaldo(i + 1));
     const eliminados = seleccionarRespaldosAEliminar(archivos, AHORA);
     expect(eliminados.sort()).toEqual(
-      ['r-automatica-21', 'r-automatica-22', 'r-automatica-23', 'r-automatica-24', 'r-automatica-25'].sort(),
+      [
+        'r-automatica-21',
+        'r-automatica-22',
+        'r-automatica-23',
+        'r-automatica-24',
+        'r-automatica-25',
+      ].sort(),
     );
   });
 
@@ -127,18 +137,16 @@ describe('textoPerdidaAlRestaurar y resumirPerdida', () => {
     expect(p.facturaDesde).toBe(84796);
     expect(p.facturaHasta).toBe(84807);
     expect(textoPerdidaAlRestaurar(p)).toBe('3 documentos (facturas de cliente 84796 a 84807)');
-    expect(textoPerdidaAlRestaurar({ total: 0, facturaDesde: null, facturaHasta: null, documentos: [] })).toBe(
-      'ningún documento posterior a esa copia',
-    );
+    expect(
+      textoPerdidaAlRestaurar({ total: 0, facturaDesde: null, facturaHasta: null, documentos: [] }),
+    ).toBe('ningún documento posterior a esa copia');
   });
 });
 
 describe('estadoCopiaExterna', () => {
   it('distingue sin configurar, al día, atrasada y no disponible', () => {
     expect(estadoCopiaExterna(null, null, false, '', AHORA)).toEqual({ estado: 'sin_configurar' });
-    expect(
-      estadoCopiaExterna('E:\\r', '2026-10-01T08:00:00-05:00', true, '', AHORA),
-    ).toEqual({
+    expect(estadoCopiaExterna('E:\\r', '2026-10-01T08:00:00-05:00', true, '', AHORA)).toEqual({
       estado: 'ok',
       carpeta: 'E:\\r',
       ultimaCopia: '2026-10-01T08:00:00-05:00',
@@ -158,5 +166,94 @@ describe('estadoCopiaExterna', () => {
     expect(yaHayCopiaExternaHoy('2026-10-01T08:00:00-05:00', AHORA)).toBe(true);
     expect(yaHayCopiaExternaHoy('2026-09-30T23:00:00-05:00', AHORA)).toBe(false);
     expect(diasEntre(new Date(2026, 8, 28), AHORA)).toBe(3);
+  });
+});
+
+/**
+ * Documento ficticio para comparar copias.
+ *
+ * @param tipo - Tipo legible.
+ * @param documentoNumero - Número.
+ * @returns Documento perdido.
+ */
+function documento(tipo: string, documentoNumero: string): DocumentoPerdido {
+  return { tipo, documento: documentoNumero, momento: '', resumen: '' };
+}
+
+describe('documentosQueSePierden', () => {
+  it('deja fuera lo que ya está en la copia, aunque el resumen sea distinto', () => {
+    const actuales = [
+      documento('Factura de cliente', '10'),
+      { ...documento('Factura de cliente', '11'), resumen: 'corregida' },
+    ];
+    const enLaCopia = [{ ...documento('Factura de cliente', '10'), resumen: 'original' }];
+    expect(documentosQueSePierden(actuales, enLaCopia)).toEqual([actuales[1]]);
+  });
+});
+
+describe('textoDialogoPerdida', () => {
+  it('agrupa facturas y el resto de documentos', () => {
+    const texto = textoDialogoPerdida({
+      total: 4,
+      facturaDesde: 10,
+      facturaHasta: 12,
+      documentos: [
+        documento('Factura de cliente', '10'),
+        documento('Factura de cliente', '12'),
+        documento('Abono de cliente', '1'),
+        documento('Cierre de caja', '4'),
+      ],
+    });
+    expect(texto).toBe('4 documentos (facturas de cliente 10 a 12, 1 abono, 1 cierre de caja)');
+  });
+
+  it('dice que no se pierde nada', () => {
+    expect(
+      textoDialogoPerdida({ total: 0, facturaDesde: null, facturaHasta: null, documentos: [] }),
+    ).toBe('ningún documento posterior a esa copia');
+  });
+});
+
+describe('avisoBarraCopiaExterna', () => {
+  it('no avisa si no hay carpeta o la copia está al día', () => {
+    expect(avisoBarraCopiaExterna({ estado: 'sin_configurar' })).toBeNull();
+    expect(
+      avisoBarraCopiaExterna({ estado: 'ok', carpeta: 'E:\\r', ultimaCopia: '2026-10-01' }),
+    ).toBeNull();
+  });
+
+  it('avisa si la unidad no está o la copia se atrasó', () => {
+    expect(
+      avisoBarraCopiaExterna({
+        estado: 'no_disponible',
+        carpeta: 'E:\\r',
+        ultimaCopia: null,
+        motivo: 'desconectada',
+      }),
+    ).toBe('La copia externa no está disponible. Los respaldos locales siguen guardándose.');
+    expect(
+      avisoBarraCopiaExterna({
+        estado: 'atrasada',
+        carpeta: 'E:\\r',
+        ultimaCopia: '',
+        diasSinEscribir: 2,
+      }),
+    ).toBe('Todavía no hay una copia en la carpeta externa.');
+    expect(
+      avisoBarraCopiaExterna({
+        estado: 'atrasada',
+        carpeta: 'E:\\r',
+        ultimaCopia: '2026-09-30',
+        diasSinEscribir: 1,
+      }),
+    ).toBe('La copia externa lleva 1 día sin actualizarse.');
+    expect(
+      avisoBarraCopiaExterna({
+        estado: 'atrasada',
+        carpeta: 'E:\\r',
+        ultimaCopia: '2026-09-28',
+        diasSinEscribir: 3,
+      }),
+    ).toBe('La copia externa lleva 3 días sin actualizarse.');
   });
 });

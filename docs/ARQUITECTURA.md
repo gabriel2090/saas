@@ -71,6 +71,26 @@ sequenceDiagram
 
 Si algo falla antes del `COMMIT`, se revierte todo: ni el cambio ni su historial quedan guardados, y no se programa respaldo.
 
+## Respaldos y restauración (Fase 6a)
+
+La copia automática sigue siendo `VACUUM INTO` a un `.tmp` que luego se renombra (`respaldo-AAAAMMDD-HHMMSS-mmm.db`). Los otros tipos llevan infijo: `manual`, `migracion`, `restauracion` (D-179). La rotación no borra antes de 30 días las copias manuales, previas a migración ni previas a restauración.
+
+**Restaurar con la app abierta** (`respaldos:restaurar`), en este orden:
+
+1. Validar la copia en solo lectura: integridad, que sea de esta app (migración 1 llamada `base` y checksums conocidos) y que el esquema no sea más nuevo (D-182).
+2. Pedir la contraseña actual o la clave de recuperación. La clave autoriza, pero no se consume (D-174, D-186).
+3. Hacer la copia «previa a restauración».
+4. Cerrar la conexión, borrar el `-wal` y el `-shm` viejos y **renombrar** (no copiar encima): la base en uso pasa a `.apartada` y la copia entra en su lugar.
+5. Anotar el historial en la base ya restaurada y reiniciar (D-183). Los documentos que se perderían son los que están en la base actual y no en la copia, por tipo y número (D-184).
+
+Si algo falla antes del reemplazo, la base actual no se toca. Si falla durante el reemplazo, se intenta devolverla y el mensaje dice dónde quedó la copia previa.
+
+**Copia externa** (D-175, D-181): después de una copia automática o manual se escribe `respaldo-diaria-AAAAMMDD.db` en la carpeta configurada. La app no borra las copias viejas de esa carpeta. Si la carpeta o el USB no están, la copia local sigue y `sistema:info` trae `avisoCopiaExterna` para la barra de estado. Cambiar la carpeta local no mueve los archivos viejos; la copia inmediata es manual (D-185).
+
+Canales (con sesión, salvo la recuperación): `respaldos:estado`, `respaldos:ahora`, `respaldos:cambiarCarpeta`, `respaldos:abrirCarpeta`, `respaldos:cambiarExterna`, `respaldos:quitarExterna`, `respaldos:elegirArchivo`, `respaldos:previsualizar`, `respaldos:pdf`, `respaldos:restaurar`. La ventana es el proceso `respaldos` (F5 actualiza la lista, ámbito `respaldos`).
+
+**Recuperación al arrancar** (D-173, D-180): si `integrity_check` falla o el archivo no se puede abrir, se cierra la conexión y **no** se pide contraseña ni se migran datos. `arranque:modo` responde `recuperacion`. La pantalla (`recuperacion:estado`, `recuperacion:restaurar`, `recuperacion:elegirArchivo`, `recuperacion:abrirCarpeta`, `recuperacion:datosSoporte`, sin sesión) propone la copia válida más reciente. Al aceptar, la base dañada se renombra a `inventario-AAAAMMDD-HHMMSS-danada.db` (con su `-wal` y `-shm`) y no se borra. «Copiar datos para soporte» lleva versión, rutas y el resultado del chequeo, sin datos del negocio.
+
 ## Interfaz: ventanas internas y atajos
 
 - **Gestor de ventanas** (`renderer/ventanas/gestor.ts`): reductor puro. El orden del arreglo es el orden de apilado; la última ventana es la activa. Un proceso abre una sola ventana (D-04). Cada ventana guarda su geometría normal (`x`, `y`, `tamano`) y encima `maximizada` y `encaje` (zona relativa al escritorio, en diezmilésimas, para que siga su zona al cambiar de pantalla); `rectDeVentana` da lo que se pinta. El DOM pinta las ventanas en orden fijo (por id) y el apilado va en el `z-index`: si React moviera el nodo al traerla al frente, el navegador soltaría la captura del puntero a mitad del arrastre.
@@ -440,7 +460,7 @@ erDiagram
 
 1. Bloqueo de instancia única (dos procesos sobre la misma base causarían bloqueos).
 2. Log en `logs/sistema.log`.
-3. Apertura de la base y `PRAGMA integrity_check`; si falla, la app no continúa (D-18).
+3. Apertura de la base y `PRAGMA integrity_check`. Si falla, se cierra la conexión y se abre la pantalla de recuperación **antes** de la contraseña (D-173); la app no entra al escritorio con esa base.
 4. Si la base ya existía, copia previa (D-19); luego se aplican las migraciones pendientes, verificando que las ya aplicadas no hayan cambiado.
 5. Servicios, IPC y ventana.
 6. Al salir: se hace la copia pendiente y se cierra la base.

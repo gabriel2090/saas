@@ -8,13 +8,22 @@
  * frente al de la página; eventos de captura del puntero).
  *
  * Uso: `npm run test:e2e -- [--veces=N] [--salida=carpeta] [--capturas] [--sin-compilar]
- * [--escenario=correcciones|reimpresiones|reportes]`. El escenario `correcciones` recorre
+ * [--escenario=correcciones|reimpresiones|reportes|respaldos]`. El escenario `correcciones` recorre
  * las ventanas de la Fase 4a (ver `escenarioCorrecciones.mjs`); `reimpresiones`,
  * la de la Fase 4b sobre los datos de ejemplo (ver `escenarioReimpresiones.mjs`);
- * `reportes`, las de la Fase 5a (ver `escenarioReportes.mjs`).
+ * `reportes`, las de la Fase 5a (ver `escenarioReportes.mjs`); `respaldos`, la
+ * ventana Respaldos, el diálogo de restaurar y la pantalla de recuperación.
  */
 import { spawn, spawnSync } from 'node:child_process';
-import { appendFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  closeSync,
+  mkdirSync,
+  mkdtempSync,
+  openSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -563,6 +572,9 @@ async function recorrer(a, registrar, captura) {
  * @returns {Promise<number>} Cantidad de verificaciones fallidas (1 si la corrida se cayó).
  */
 async function correrUnaVez(vez, op, registrar) {
+  if (op.escenario === 'respaldos') {
+    return correrRespaldos(vez, op, registrar);
+  }
   const puerto = 9400 + vez;
   const datos = mkdtempSync(join(tmpdir(), 'saas-e2e-datos-'));
   const electron = /** @type {string} */ (createRequire(import.meta.url)('electron'));
@@ -631,6 +643,183 @@ async function correrUnaVez(vez, op, registrar) {
   } finally {
     a?.cerrar();
     app.kill();
+    await dormir(800);
+    rmSync(datos, { recursive: true, force: true });
+  }
+  return fallos;
+}
+
+/**
+ * Argumentos con los que se abre Electron en una carpeta temporal.
+ *
+ * @param {string} datos - Carpeta de datos de la corrida.
+ * @param {number} puerto - Puerto de depuración.
+ * @returns {string[]} Argumentos.
+ */
+function argumentosApp(datos, puerto) {
+  return [
+    '.',
+    `--carpeta-datos=${datos}`,
+    `--remote-debugging-port=${puerto}`,
+    '--disable-renderer-backgrounding',
+    '--disable-backgrounding-occluded-windows',
+    '--disable-background-timer-throttling',
+  ];
+}
+
+/**
+ * Espera a que Windows suelte el archivo de la base.
+ *
+ * @param {string} ruta - Archivo.
+ * @returns {Promise<void>} Promesa que se cumple cuando se puede escribir.
+ */
+async function esperarArchivoLibre(ruta) {
+  for (let i = 0; i < 40; i++) {
+    try {
+      closeSync(openSync(ruta, 'r+'));
+      return;
+    } catch {
+      await dormir(250);
+    }
+  }
+  throw new Error(`La base siguió bloqueada: ${ruta}`);
+}
+
+/**
+ * Borra un archivo reintentando si Windows todavía lo tiene abierto.
+ *
+ * @param {string} ruta - Archivo.
+ * @returns {Promise<void>} Promesa que se cumple al borrarlo o si ya no está.
+ */
+async function borrarSiSePuede(ruta) {
+  for (let i = 0; i < 40; i++) {
+    try {
+      rmSync(ruta, { force: true });
+      return;
+    } catch (error) {
+      const codigo = error && typeof error === 'object' && 'code' in error ? error.code : '';
+      if (codigo !== 'EBUSY' && codigo !== 'EPERM') {
+        throw error;
+      }
+      await dormir(250);
+    }
+  }
+  throw new Error(`No se pudo borrar ${ruta}`);
+}
+
+/**
+ * Recorre la ventana Respaldos y, con la app cerrada, la pantalla de
+ * recuperación. La carpeta es temporal: no toca los datos del negocio.
+ *
+ * @param {number} vez - Número de corrida.
+ * @param {{ salida: string, capturas: boolean }} op - Salida y capturas.
+ * @param {(texto: string) => void} registrar - Escribe una línea en el registro.
+ * @returns {Promise<number>} Verificaciones fallidas.
+ */
+async function correrRespaldos(vez, op, registrar) {
+  const puerto = 9400 + vez;
+  const datos = mkdtempSync(join(tmpdir(), 'saas-e2e-datos-'));
+  const electron = /** @type {string} */ (createRequire(import.meta.url)('electron'));
+  const carpeta = join(op.salida, `corrida-${vez}`);
+  /**
+   * @param {Acciones} acciones - Acciones de la página.
+   * @returns {(nombre: string) => Promise<void>} Guardado de capturas.
+   */
+  const fotoDe = (acciones) =>
+    op.capturas
+      ? async (nombre) => {
+          mkdirSync(carpeta, { recursive: true });
+          await dormir(250);
+          const { data } = await acciones.send('Page.captureScreenshot', { format: 'png' });
+          writeFileSync(join(carpeta, `${nombre}.png`), Buffer.from(data, 'base64'));
+        }
+      : async () => undefined;
+
+  let fallos = 0;
+  /** @type {ReturnType<typeof spawn> | null} */
+  let app = null;
+  /** @type {Acciones | null} */
+  let a = null;
+  try {
+    app = spawn(electron, argumentosApp(datos, puerto), { cwd: RAIZ, stdio: 'ignore' });
+    a = await conectar(puerto, registrar);
+    const foto = fotoDe(a);
+    await a.pantalla(1366, 690);
+    await primerArranque(a);
+    await a.abrir('respaldos', 'Respaldos');
+    await a.js(
+      `[...document.querySelectorAll('button')].find((b) => b.textContent.includes('Respaldar ahora')).click()`,
+    );
+    await a.esperar(`document.querySelectorAll('.respaldos tbody tr').length >= 1`, 20000);
+    await foto('01-ventana-respaldos');
+    await a.js(
+      `[...document.querySelectorAll('button')].find((b) => b.textContent.includes('Restaurar esta copia')).click()`,
+    );
+    await a.esperar(`!!document.getElementById('restaurar-credencial')`);
+    a.verificar(
+      'el diálogo advierte que vuelve la contraseña de la copia',
+      await a.js(`document.body.innerText.includes('contraseña que tenía esa copia')`),
+      true,
+    );
+    await foto('02-dialogo-restaurar');
+    fallos += a.fallos() + a.errores.length;
+  } catch (error) {
+    registrar(`CORRIDA CAÍDA (ventana): ${error instanceof Error ? error.message : String(error)}`);
+    fallos = Math.max(1, fallos);
+  } finally {
+    const pid = app?.pid;
+    a?.cerrar();
+    if (pid) {
+      spawnSync('taskkill', ['/pid', String(pid), '/t', '/f'], { stdio: 'ignore' });
+    }
+    app = null;
+    a = null;
+  }
+
+  try {
+    const base = join(datos, 'datos', 'inventario.db');
+    await esperarArchivoLibre(base);
+    await borrarSiSePuede(`${base}-wal`);
+    await borrarSiSePuede(`${base}-shm`);
+    writeFileSync(base, 'dañada');
+    await dormir(500);
+    app = spawn(electron, argumentosApp(datos, puerto), { cwd: RAIZ, stdio: 'ignore' });
+    a = await conectar(puerto, registrar);
+    const foto = fotoDe(a);
+    await a.esperar(
+      `document.querySelector('h1')?.textContent === 'No se puede abrir la base de datos'`,
+      20000,
+    );
+    a.verificar(
+      'la recuperación no pide contraseña',
+      await a.js(`document.querySelectorAll('input[type=password]').length`),
+      0,
+    );
+    a.verificar(
+      'explica que la base dañada no se borra',
+      await a.js(`document.body.innerText.includes('no se borra')`),
+      true,
+    );
+    await foto('03-recuperacion');
+    fallos += a.fallos() + a.errores.length;
+    registrar(
+      a.errores.length
+        ? `ERRORES EN LA PÁGINA:\n${a.errores.join('\n')}`
+        : 'Sin errores en la página.',
+    );
+  } catch (error) {
+    registrar(
+      `CORRIDA CAÍDA (recuperación): ${error instanceof Error ? error.message : String(error)}`,
+    );
+    if (a && op.capturas) {
+      const { data } = await a.send('Page.captureScreenshot', { format: 'png' });
+      mkdirSync(carpeta, { recursive: true });
+      writeFileSync(join(carpeta, 'caida.png'), Buffer.from(data, 'base64'));
+    }
+    fallos = Math.max(1, fallos);
+  } finally {
+    a?.cerrar();
+    app?.kill();
     await dormir(800);
     rmSync(datos, { recursive: true, force: true });
   }

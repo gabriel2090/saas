@@ -1,6 +1,6 @@
 # Manual de usuario
 
-Guía de uso diario de Inventario y Facturación. Se completa fase a fase; por ahora cubre las ventanas y cómo organizarlas, la configuración de la facturación, la ventana Facturar, las reimpresiones, el abono de cliente y la importación de saldos iniciales.
+Guía de uso diario de Inventario y Facturación. Se completa fase a fase; por ahora cubre las ventanas y cómo organizarlas, la configuración de la facturación, la ventana Facturar, las reimpresiones, los reportes, el cierre de caja, el abono de cliente, la importación de saldos iniciales y los respaldos.
 
 ## Ventanas y «Organizar»
 
@@ -161,3 +161,37 @@ El archivo (CSV o Excel) lleva **una fila por factura pendiente**:
 - Si un número de factura de cliente alcanza la «Próxima factura No.», la fila lleva un aviso: al importar, la próxima factura queda después del número más alto importado.
 - Cada fila entra como una factura «Saldo inicial»: no mueve inventario, se abona y cuenta en el crédito del cliente como cualquier otra (una vencida bloquea el crédito si el cliente tiene tope).
 - Un saldo importado no se puede editar ni borrar; si quedó mal, se podrá anular cuando llegue la anulación de facturas.
+
+## Respaldos
+
+Abra **Respaldos** (Ctrl+K y «respaldos»). Ahí ve las copias de esta instalación, de la más reciente a la más antigua, con su tipo: automática, manual, previa a migración o previa a restauración.
+
+- **Respaldar ahora** guarda una copia en el momento.
+- **Cambiar carpeta** pide otra carpeta, comprueba que se pueda escribir y deja ahí una copia manual. Las copias que ya estaban en la carpeta anterior se quedan donde estaban.
+- **Abrir carpeta** abre esa carpeta en el explorador de Windows.
+- **F5** vuelve a leer la lista.
+
+### Restaurar una copia
+
+1. Elija la fila con las flechas o el clic y pulse **Restaurar esta copia…**. También puede usar **Restaurar desde archivo…** si la copia está en otra carpeta o en un USB.
+2. Lea qué documentos se perderían (los que están hoy y no vienen en esa copia) y, si quiere, **Guardar lista en PDF**.
+3. Escriba la **contraseña de ahora**. Si la olvidó y tiene la clave de recuperación, puede usar esa clave: sirve para autorizar, pero no se gasta. Al restaurar **vuelve la contraseña que tenía esa copia**, que puede ser distinta de la actual.
+4. La aplicación hace primero una copia «previa a restauración», cierra la base y la reemplaza. Luego se reinicia sola.
+
+Si algo falla antes de reemplazar el archivo, la base con la que estaba trabajando sigue igual. Si falla a mitad del reemplazo, el mensaje dice dónde quedó la copia previa: no siga trabajando y use esa copia o la que estaba restaurando.
+
+### Si al abrir sale «No se puede abrir la base de datos»
+
+Esa pantalla aparece **antes** de pedir la contraseña, porque la contraseña está dentro de la base y la base no pasó la verificación. No se puede entrar al sistema con una base dañada.
+
+- La aplicación propone la **última copia válida**. El aviso dice solo a partir de qué hora se perderían los movimientos.
+- **Restaurar la copia recomendada y reiniciar** la deja en su lugar. La base dañada **no se borra**: queda en la carpeta de datos con un nombre como `inventario-20261004-151530-danada.db`, por si soporte la necesita.
+- **Elegir otra copia…** pasa a la siguiente copia válida de la lista. **Restaurar desde archivo…** usa una copia que tenga guardada en otra unidad.
+- **Copiar datos para soporte** copia la versión del programa, las rutas y el resultado del chequeo. No copia facturas, nombres ni valores.
+- **Salir** cierra el programa sin cambiar nada.
+
+### Copia externa
+
+En la misma ventana puede indicar una **carpeta de copia externa**: un USB, otra unidad o una carpeta que se sincronice (OneDrive, por ejemplo). Cada día se guarda ahí un archivo `respaldo-diaria-AAAAMMDD.db`. El programa no borra las copias anteriores de esa carpeta.
+
+Si el USB no está conectado o la carpeta no se puede escribir, **el trabajo no se detiene**: la copia de este equipo se sigue guardando y la barra de estado, abajo, avisa que la copia externa no está disponible. Cuando vuelva a conectar la unidad, la siguiente copia diaria se escribirá ahí. **Quitar** deja de usar esa carpeta; no borra los archivos que ya se copiaron.
