@@ -4,6 +4,7 @@ import { ProveedorAtajos } from './atajos/ProveedorAtajos';
 import { ProveedorDialogos, useConfirmar } from './componentes/Dialogos';
 import { LimiteErrores } from './componentes/LimiteErrores';
 import { PantallaAcceso } from './pantallas/PantallaAcceso';
+import { PantallaRecuperacion } from './pantallas/PantallaRecuperacion';
 import { invocar } from './servicios/api';
 import { Escritorio } from './ventanas/Escritorio';
 import { ventanasConCambios } from './ventanas/gestor';
@@ -63,12 +64,42 @@ function CierreConSesion(): ReactNode {
 }
 
 /**
- * Componente raíz: pantalla de acceso y, tras ingresar, el escritorio.
+ * Componente raíz: recuperación si la base está dañada; si no, pantalla de
+ * acceso y, tras ingresar, el escritorio.
  *
  * @returns La aplicación.
  */
 export function App(): ReactNode {
+  const [arranque, setArranque] = useState<'cargando' | 'acceso' | 'recuperacion'>('cargando');
   const [conSesion, setConSesion] = useState(false);
+
+  useEffect(() => {
+    void invocar('arranque:modo', undefined).then((resultado) => {
+      setArranque(
+        resultado.ok && resultado.datos.modo === 'recuperacion' ? 'recuperacion' : 'acceso',
+      );
+    });
+  }, []);
+
+  if (arranque === 'cargando') {
+    return (
+      <LimiteErrores>
+        <p className="recuperacion__espera">Cargando…</p>
+      </LimiteErrores>
+    );
+  }
+
+  if (arranque === 'recuperacion') {
+    return (
+      <LimiteErrores>
+        <ProveedorAtajos>
+          <CierreSinSesion />
+          <PantallaRecuperacion />
+        </ProveedorAtajos>
+      </LimiteErrores>
+    );
+  }
+
   return (
     <LimiteErrores>
       <ProveedorAtajos>

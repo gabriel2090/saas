@@ -48,6 +48,7 @@ import type { PeticionKardex, ReporteKardex } from '../kardex';
 import type { ModoBarra, PeticionGuardarVentana, PreferenciasInterfaz } from '../interfaz';
 import type { IdProceso } from '../procesos';
 import type { PeticionBuscarReimpresion, ResultadoBuscarReimpresion } from '../reimpresiones';
+import type { ArchivoParaRecuperar, EstadoArranque, EstadoRecuperacion } from '../recuperacion';
 import type {
   EstadoRespaldos,
   OrigenRestauracion,
@@ -189,6 +190,13 @@ export interface ContratoIpc {
   'sistema:registrarError': { peticion: PeticionRegistrarError; respuesta: void };
   'sistema:copiarTexto': { peticion: string; respuesta: void };
   'app:confirmarCierre': { peticion: void; respuesta: void };
+  'arranque:modo': { peticion: void; respuesta: EstadoArranque };
+
+  'recuperacion:estado': { peticion: void; respuesta: EstadoRecuperacion };
+  'recuperacion:datosSoporte': { peticion: void; respuesta: string };
+  'recuperacion:abrirCarpeta': { peticion: void; respuesta: void };
+  'recuperacion:elegirArchivo': { peticion: void; respuesta: ArchivoParaRecuperar | null };
+  'recuperacion:restaurar': { peticion: OrigenRestauracion; respuesta: void };
 
   'negocio:obtener': { peticion: void; respuesta: DatosNegocio };
   'negocio:guardar': { peticion: DatosNegocio; respuesta: DatosNegocio };
@@ -352,6 +360,12 @@ export const CANALES_IPC: readonly CanalIpc[] = [
   'sistema:registrarError',
   'sistema:copiarTexto',
   'app:confirmarCierre',
+  'arranque:modo',
+  'recuperacion:estado',
+  'recuperacion:datosSoporte',
+  'recuperacion:abrirCarpeta',
+  'recuperacion:elegirArchivo',
+  'recuperacion:restaurar',
   'negocio:obtener',
   'negocio:guardar',
   'productos:listar',

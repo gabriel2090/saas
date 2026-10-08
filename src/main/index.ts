@@ -22,6 +22,7 @@ import { registrarIpcInterfaz } from './ipc/interfaz.ipc';
 import { registrarIpcReimpresiones } from './ipc/reimpresiones.ipc';
 import { registrarIpcReportes } from './ipc/reportes.ipc';
 import { registrarIpcRespaldos } from './ipc/respaldos.ipc';
+import { registrarIpcRecuperacion } from './ipc/recuperacion.ipc';
 import { registrarIpcMaestros } from './ipc/maestros.ipc';
 import { crearRegistradorIpc } from './ipc/registrar';
 import { registrarIpcSistema } from './ipc/sistema.ipc';
@@ -44,6 +45,7 @@ import { crearServicioNegocio } from './servicios/negocio';
 import { crearServicioProductos } from './servicios/productos';
 import { crearServicioTerceros } from './servicios/terceros';
 import { crearServicioRespaldos, type ServicioRespaldos } from './servicios/respaldos';
+import { crearServicioRecuperacion } from './servicios/recuperacion';
 import { crearServicioSaldoFavor } from './servicios/saldoFavor';
 import { crearServicioVentas } from './servicios/ventas';
 import { crearVentanaPrincipal, type VentanaPrincipal } from './ventana-principal';
@@ -52,12 +54,14 @@ import { ARCHIVO_BASE_DATOS, CARPETA_DATOS } from './rutas';
 
 /**
  * Recursos abiertos que hay que liberar al salir.
+ * En la pantalla de recuperación no hay base ni servicio de respaldos:
+ * la base dañada ya se cerró antes de mostrar la ventana.
  */
 interface Recursos {
-  /** Conexión a la base de datos. */
-  db: BaseDeDatos;
-  /** Servicio de respaldos (para vaciar la copia pendiente). */
-  respaldos: ServicioRespaldos;
+  /** Conexión a la base de datos, o `null` si no se pudo abrir. */
+  db: BaseDeDatos | null;
+  /** Servicio de respaldos, o `null` en la pantalla de recuperación. */
+  respaldos: ServicioRespaldos | null;
   /** Ventana principal. */
   ventana: VentanaPrincipal;
 }
@@ -80,9 +84,10 @@ function asegurarCarpeta(ruta: string): string {
 
 /**
  * Arranca la aplicación: log, base de datos (integridad, respaldo previo y
- * migraciones), servicios, IPC y ventana.
+ * migraciones), servicios, IPC y ventana. Si la base que ya existía no pasa
+ * el chequeo, abre la pantalla de recuperación y no pide la contraseña.
  *
- * @throws {Error} Si falla la apertura o la migración de la base de datos.
+ * @throws {Error} Si falla la creación o la migración de una base nueva.
  */
 function iniciar(): void {
   const carpetaUsuario = app.getPath('userData');
@@ -93,20 +98,34 @@ function iniciar(): void {
   const carpetaDatos = asegurarCarpeta(join(carpetaUsuario, CARPETA_DATOS));
   const rutaBaseDatos = join(carpetaDatos, ARCHIVO_BASE_DATOS);
   const existiaBase = existsSync(rutaBaseDatos);
-  const db = abrirBaseDeDatos(rutaBaseDatos);
-  const carpetaRespaldos = obtenerConfiguracionSegura(db) ?? join(carpetaUsuario, 'respaldos');
+  let db: BaseDeDatos;
+  try {
+    db = abrirBaseDeDatos(rutaBaseDatos);
+  } catch (error) {
+    if (!existiaBase) {
+      throw error;
+    }
+    registrarError('arranque:integridad', error);
+    iniciarRecuperacion({
+      carpetaDatos,
+      rutaBaseDatos,
+      carpetaRespaldos: join(carpetaUsuario, 'respaldos'),
+      detalle: error instanceof Error ? error.message : String(error),
+    });
+    return;
+  }
 
+  const carpetaRespaldos = obtenerConfiguracionSegura(db) ?? join(carpetaUsuario, 'respaldos');
   const integridad = verificarIntegridad(db);
   if (!integridad.ok) {
-    registrarError('arranque:integridad', new Error(integridad.detalle.join('\n')));
-    dialog.showErrorBox(
-      'Base de datos dañada',
-      'La verificación de integridad encontró daños en la base de datos y la aplicación no puede continuar.\n\n' +
-        `Los respaldos automáticos están en: ${carpetaRespaldos}\n` +
-        'Comuníquese con soporte para restaurar la última copia.',
-    );
-    db.close();
-    app.exit(1);
+    const detalle = integridad.detalle.join('\n');
+    registrarError('arranque:integridad', new Error(detalle));
+    try {
+      db.close();
+    } catch (error) {
+      registrarError('arranque:cierre', error);
+    }
+    iniciarRecuperacion({ carpetaDatos, rutaBaseDatos, carpetaRespaldos, detalle });
     return;
   }
 
@@ -149,6 +168,7 @@ function iniciar(): void {
     }),
     confirmarCierre: () => ventana.cerrarConfirmado(),
   });
+  registrar('arranque:modo', () => ({ modo: 'acceso' as const }), { requiereSesion: false });
   const negocio = crearServicioNegocio(db, ejecutor);
   registrarIpcMaestros(registrar, {
     negocio,
@@ -301,6 +321,56 @@ function reiniciarTrasRestauracion(): void {
 }
 
 /**
+ * Datos para abrir la pantalla de recuperación sin tocar la base dañada.
+ */
+interface ContextoRecuperacion {
+  /** Carpeta de datos. */
+  carpetaDatos: string;
+  /** Archivo de la base que no se pudo usar. */
+  rutaBaseDatos: string;
+  /** Carpeta de respaldos a revisar. */
+  carpetaRespaldos: string;
+  /** Detalle técnico del chequeo, sin datos del negocio. */
+  detalle: string;
+}
+
+/**
+ * Muestra la pantalla de recuperación. La conexión, si llegó a abrirse, ya
+ * está cerrada: así Windows no deja el archivo bloqueado al renombrarlo.
+ *
+ * @param contexto - Rutas y detalle del chequeo.
+ */
+function iniciarRecuperacion(contexto: ContextoRecuperacion): void {
+  const servicio = crearServicioRecuperacion({
+    rutaBaseDatos: contexto.rutaBaseDatos,
+    carpetaRespaldos: contexto.carpetaRespaldos,
+    carpetaDatos: contexto.carpetaDatos,
+    version: app.getVersion(),
+    detalleIntegridad: contexto.detalle,
+    migraciones: migracionesDelProyecto(),
+    reiniciar: reiniciarTrasRestauracion,
+    alFallar: (error) => registrarError('recuperacion', error),
+  });
+  const ventana = crearVentanaPrincipal();
+  const registrar = crearRegistradorIpc(() => false, ventana.esRemitenteValido);
+  registrar('arranque:modo', () => ({ modo: 'recuperacion' as const }), { requiereSesion: false });
+  registrarIpcRecuperacion(registrar, { servicio, ventana: ventana.ventana });
+  registrarIpcSistema(registrar, {
+    obtenerInfo: () => ({
+      version: app.getVersion(),
+      carpetaDatos: contexto.carpetaDatos,
+      carpetaRespaldos: servicio.carpeta(),
+      ultimoRespaldo: null,
+      avisoCopiaExterna: null,
+      desarrollo: !app.isPackaged,
+    }),
+    confirmarCierre: () => ventana.cerrarConfirmado(),
+  });
+  recursos = { db: null, respaldos: null, ventana };
+  registrarInfo('La base no pasó el chequeo de integridad: se abre la recuperación.');
+}
+
+/**
  * Libera los recursos: hace la copia pendiente y cierra la base de datos.
  */
 function liberarRecursos(): void {
@@ -308,11 +378,11 @@ function liberarRecursos(): void {
     return;
   }
   try {
-    recursos.respaldos.vaciarPendiente();
+    recursos.respaldos?.vaciarPendiente();
   } catch (error) {
     registrarError('cierre:respaldo', error);
   }
-  recursos.db.close();
+  recursos.db?.close();
   recursos = null;
 }
 

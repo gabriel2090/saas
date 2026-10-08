@@ -2622,3 +2622,119 @@ textarea {
   background: #fdecea;
   color: var(--color-error);
 }
+
+/* ---------- Recuperación al arrancar (Fase 6a) ---------- */
+
+.recuperacion {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  background: #c5cdd8;
+}
+
+.recuperacion__espera {
+  margin: 0;
+  color: var(--color-titulo);
+  font-size: 14px;
+}
+
+.recuperacion__tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(640px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  padding: 24px 28px;
+  border: 1px solid var(--color-borde);
+  border-radius: 4px;
+  background: var(--color-panel);
+  box-shadow: 0 8px 32px rgb(0 0 0 / 22%);
+  overflow: auto;
+}
+
+.recuperacion__tarjeta h1 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--color-titulo);
+}
+
+.recuperacion__tarjeta p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.recuperacion__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--color-borde);
+  border-radius: 3px;
+  max-height: 200px;
+  overflow: auto;
+}
+
+.recuperacion__lista li {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-borde);
+  font-size: 13px;
+}
+
+.recuperacion__lista li:last-child {
+  border-bottom: none;
+}
+
+.recuperacion__lista li.seleccionada {
+  background: #eaf1fb;
+  box-shadow: inset 3px 0 0 var(--color-primario);
+}
+
+.recuperacion__lista li.invalida {
+  color: var(--color-tenue);
+  text-decoration: line-through;
+}
+
+.recuperacion__elegir {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.etiqueta-recomendada {
+  padding: 0 6px;
+  border-radius: 9px;
+  background: var(--color-primario);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.recuperacion__botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.recuperacion__botones .boton--primario {
+  flex: 1 1 100%;
+}
+
+.recuperacion__nota {
+  font-size: 12px;
+}
+
+.recuperacion__pie {
+  margin: 0;
+  color: var(--color-tenue);
+  font-size: 11px;
+  line-height: 1.4;
+}
