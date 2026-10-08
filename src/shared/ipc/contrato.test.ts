@@ -92,6 +92,16 @@ const TODOS_LOS_CANALES = {
   'interfaz:guardarBarra': true,
   'interfaz:guardarVentana': true,
   'interfaz:restablecerVentanas': true,
+  'respaldos:estado': true,
+  'respaldos:ahora': true,
+  'respaldos:cambiarCarpeta': true,
+  'respaldos:abrirCarpeta': true,
+  'respaldos:cambiarExterna': true,
+  'respaldos:quitarExterna': true,
+  'respaldos:elegirArchivo': true,
+  'respaldos:previsualizar': true,
+  'respaldos:pdf': true,
+  'respaldos:restaurar': true,
 } as const satisfies Record<CanalIpc, true>;
 
 describe('lista blanca de canales IPC', () => {

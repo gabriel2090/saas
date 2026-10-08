@@ -49,6 +49,13 @@ import type { ModoBarra, PeticionGuardarVentana, PreferenciasInterfaz } from '..
 import type { IdProceso } from '../procesos';
 import type { PeticionBuscarReimpresion, ResultadoBuscarReimpresion } from '../reimpresiones';
 import type {
+  EstadoRespaldos,
+  OrigenRestauracion,
+  PeticionRestaurar,
+  PrevisualizacionRestauracion,
+  ResultadoCarpetaRespaldo,
+} from '../respaldos';
+import type {
   PeticionCartera,
   PeticionInventario,
   PeticionReporte,
@@ -133,6 +140,8 @@ export interface InfoSistema {
   carpetaRespaldos: string;
   /** Fecha ISO del último respaldo hecho, o `null` si aún no hay. */
   ultimoRespaldo: string | null;
+  /** Aviso de la copia externa para la barra de estado, o `null` si no hay. */
+  avisoCopiaExterna: string | null;
   /** Si la app corre sin empaquetar, con la carpeta de datos de desarrollo (D-21). */
   desarrollo: boolean;
 }
@@ -287,6 +296,20 @@ export interface ContratoIpc {
   'interfaz:guardarBarra': { peticion: ModoBarra; respuesta: void };
   'interfaz:guardarVentana': { peticion: PeticionGuardarVentana; respuesta: void };
   'interfaz:restablecerVentanas': { peticion: IdProceso | null; respuesta: void };
+
+  'respaldos:estado': { peticion: void; respuesta: EstadoRespaldos };
+  'respaldos:ahora': { peticion: void; respuesta: EstadoRespaldos };
+  'respaldos:cambiarCarpeta': { peticion: void; respuesta: ResultadoCarpetaRespaldo };
+  'respaldos:abrirCarpeta': { peticion: void; respuesta: void };
+  'respaldos:cambiarExterna': { peticion: void; respuesta: ResultadoCarpetaRespaldo };
+  'respaldos:quitarExterna': { peticion: void; respuesta: EstadoRespaldos };
+  'respaldos:elegirArchivo': { peticion: void; respuesta: string | null };
+  'respaldos:previsualizar': {
+    peticion: OrigenRestauracion;
+    respuesta: PrevisualizacionRestauracion;
+  };
+  'respaldos:pdf': { peticion: OrigenRestauracion; respuesta: boolean };
+  'respaldos:restaurar': { peticion: PeticionRestaurar; respuesta: void };
 }
 
 /**
@@ -405,6 +428,16 @@ export const CANALES_IPC: readonly CanalIpc[] = [
   'interfaz:guardarBarra',
   'interfaz:guardarVentana',
   'interfaz:restablecerVentanas',
+  'respaldos:estado',
+  'respaldos:ahora',
+  'respaldos:cambiarCarpeta',
+  'respaldos:abrirCarpeta',
+  'respaldos:cambiarExterna',
+  'respaldos:quitarExterna',
+  'respaldos:elegirArchivo',
+  'respaldos:previsualizar',
+  'respaldos:pdf',
+  'respaldos:restaurar',
 ];
 
 /**

@@ -5,7 +5,7 @@ import { abrirBaseDeDatos, verificarIntegridad, type BaseDeDatos } from '../data
 import { migracionesDelProyecto } from '../data/migraciones';
 import { aplicarMigraciones } from '../data/migrador';
 import { obtenerConfiguracion } from '../data/repositorios/configuracion.repo';
-import { crearEjecutorTransacciones } from '../data/transaccion';
+import { crearEjecutorTransacciones, type EjecutorTransacciones } from '../data/transaccion';
 import {
   generarPdf,
   imprimirDocumento,
@@ -21,6 +21,7 @@ import { registrarIpcImpresion } from './ipc/impresion.ipc';
 import { registrarIpcInterfaz } from './ipc/interfaz.ipc';
 import { registrarIpcReimpresiones } from './ipc/reimpresiones.ipc';
 import { registrarIpcReportes } from './ipc/reportes.ipc';
+import { registrarIpcRespaldos } from './ipc/respaldos.ipc';
 import { registrarIpcMaestros } from './ipc/maestros.ipc';
 import { crearRegistradorIpc } from './ipc/registrar';
 import { registrarIpcSistema } from './ipc/sistema.ipc';
@@ -109,23 +110,30 @@ function iniciar(): void {
     return;
   }
 
+  const migraciones = migracionesDelProyecto();
+  let ejecutor: EjecutorTransacciones | null = null;
   const respaldos = crearServicioRespaldos({
     db,
     carpeta: asegurarCarpeta(carpetaRespaldos),
     alFallar: (error) => registrarError('respaldos', error),
+    rutaBaseDatos,
+    migraciones,
+    obtenerEjecutor: () => ejecutor,
+    reiniciar: reiniciarTrasRestauracion,
+    rutaProhibida: (ruta) => !app.isPackaged && esCarpetaProtegida(ruta, CARPETA_REAL),
   });
 
   // Copia previa a las migraciones: si una migración falla, hay desde dónde volver.
   if (existiaBase) {
-    respaldos.respaldarAhora();
+    respaldos.respaldarAhora('migracion');
   }
-  const aplicadas = aplicarMigraciones(db, migracionesDelProyecto());
+  const aplicadas = aplicarMigraciones(db, migraciones);
   if (aplicadas.length > 0) {
     registrarInfo(`Migraciones aplicadas: ${aplicadas.join(', ')}`);
   }
 
-  const ejecutar = crearEjecutorTransacciones(db, { alConfirmar: () => respaldos.programar() });
-  const autenticacion = crearServicioAutenticacion(db, ejecutar);
+  ejecutor = crearEjecutorTransacciones(db, { alConfirmar: () => respaldos.programar() });
+  const autenticacion = crearServicioAutenticacion(db, ejecutor);
   const ventana = crearVentanaPrincipal();
   const registrar = crearRegistradorIpc(() => autenticacion.haySesion(), ventana.esRemitenteValido);
 
@@ -136,35 +144,36 @@ function iniciar(): void {
       carpetaDatos,
       carpetaRespaldos: respaldos.carpeta(),
       ultimoRespaldo: respaldos.ultimoRespaldo(),
+      avisoCopiaExterna: respaldos.avisoExterna(),
       desarrollo: !app.isPackaged,
     }),
     confirmarCierre: () => ventana.cerrarConfirmado(),
   });
-  const negocio = crearServicioNegocio(db, ejecutar);
+  const negocio = crearServicioNegocio(db, ejecutor);
   registrarIpcMaestros(registrar, {
     negocio,
-    productos: crearServicioProductos(db, ejecutar),
-    terceros: crearServicioTerceros(db, ejecutar),
-    catalogos: crearServicioCatalogos(db, ejecutar),
+    productos: crearServicioProductos(db, ejecutor),
+    terceros: crearServicioTerceros(db, ejecutor),
+    catalogos: crearServicioCatalogos(db, ejecutor),
   });
   registrarIpcImportador(registrar, {
-    servicio: crearServicioImportador(db, ejecutar),
+    servicio: crearServicioImportador(db, ejecutor),
     guardarArchivo: (nombreSugerido, contenido) =>
       guardarArchivoElegido(ventana, nombreSugerido, contenido, ARCHIVO_EXCEL),
   });
-  const abonos = crearServicioAbonos(db, ejecutar);
+  const abonos = crearServicioAbonos(db, ejecutor);
   registrarIpcCompras(registrar, {
-    compras: crearServicioCompras(db, ejecutar),
+    compras: crearServicioCompras(db, ejecutor),
     abonos,
-    ajustes: crearServicioAjustes(db, ejecutar),
+    ajustes: crearServicioAjustes(db, ejecutor),
   });
-  const correcciones = crearServicioCorrecciones(db, ejecutar);
+  const correcciones = crearServicioCorrecciones(db, ejecutor);
   registrarIpcCorrecciones(registrar, {
     correcciones,
-    devoluciones: crearServicioDevoluciones(db, ejecutar),
-    saldoFavor: crearServicioSaldoFavor(db, ejecutar),
+    devoluciones: crearServicioDevoluciones(db, ejecutor),
+    saldoFavor: crearServicioSaldoFavor(db, ejecutor),
   });
-  const ventas = crearServicioVentas(db, ejecutar);
+  const ventas = crearServicioVentas(db, ejecutor);
   registrarIpcVentas(registrar, {
     ventas,
     impresoras: () => listarImpresoras(ventana.ventana.webContents),
@@ -187,8 +196,14 @@ function iniciar(): void {
     guardarExcel: (nombreSugerido, contenido) =>
       guardarArchivoElegido(ventana, nombreSugerido, contenido, ARCHIVO_EXCEL_REPORTE),
   });
-  registrarIpcCierres(registrar, crearServicioCierreCaja(db, ejecutar));
+  registrarIpcCierres(registrar, crearServicioCierreCaja(db, ejecutor));
   registrarIpcInterfaz(registrar, crearServicioInterfaz(db));
+  registrarIpcRespaldos(registrar, {
+    servicio: respaldos,
+    ventana: ventana.ventana,
+    guardarPdf: async (html, nombreSugerido) =>
+      guardarArchivoElegido(ventana, nombreSugerido, await generarPdf(html), ARCHIVO_PDF),
+  });
 
   recursos = { db, respaldos, ventana };
 }
@@ -273,6 +288,16 @@ function obtenerConfiguracionSegura(db: BaseDeDatos): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Reinicia la aplicación después de restaurar. La conexión ya está cerrada:
+ * se sueltan los recursos para que el cierre no intente usarla otra vez.
+ */
+function reiniciarTrasRestauracion(): void {
+  recursos = null;
+  app.relaunch();
+  app.exit(0);
 }
 
 /**

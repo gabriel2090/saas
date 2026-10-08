@@ -291,7 +291,10 @@ export function diasEntre(desde: Date, hasta: Date): number {
  * @param ahora - Momento actual.
  * @returns `true` si la última copia es de hoy.
  */
-export function yaHayCopiaExternaHoy(ultimaCopia: string | null, ahora: Date = new Date()): boolean {
+export function yaHayCopiaExternaHoy(
+  ultimaCopia: string | null,
+  ahora: Date = new Date(),
+): boolean {
   if (ultimaCopia === null) return false;
   return diasEntre(new Date(ultimaCopia), ahora) === 0;
 }
@@ -313,4 +316,126 @@ export function resumirPerdida(documentos: readonly DocumentoPerdido[]): Perdida
     facturaHasta: facturas.length > 0 ? Math.max(...facturas) : null,
     documentos: [...documentos],
   };
+}
+
+/**
+ * Clave con la que se compara un documento entre la base actual y una copia.
+ *
+ * @param documento - Documento.
+ * @returns Tipo y número unidos.
+ */
+function claveDocumento(documento: DocumentoPerdido): string {
+  return `${documento.tipo}\0${documento.documento}`;
+}
+
+/**
+ * Documentos de la base actual que no están en la copia (D-184): al restaurar
+ * desaparecen. Una corrección de un documento que ya estaba en la copia no se
+ * cuenta aparte, porque el número sigue existiendo.
+ *
+ * @param actuales - Documentos de la base en uso.
+ * @param enLaCopia - Documentos que trae la copia.
+ * @returns Los que se perderían, en el orden recibido.
+ *
+ * @example
+ * documentosQueSePierden(
+ *   [{ tipo: 'Factura de cliente', documento: '10', momento: '', resumen: '' }],
+ *   [],
+ * ); // la factura 10
+ */
+export function documentosQueSePierden(
+  actuales: readonly DocumentoPerdido[],
+  enLaCopia: readonly DocumentoPerdido[],
+): DocumentoPerdido[] {
+  const claves = new Set(enLaCopia.map(claveDocumento));
+  return actuales.filter((d) => !claves.has(claveDocumento(d)));
+}
+
+/**
+ * Cómo se nombra un grupo de documentos en el diálogo de restaurar.
+ */
+const GRUPOS_PERDIDA: readonly { tipos: readonly string[]; uno: string; varios: string }[] = [
+  { tipos: ['Compra'], uno: 'compra', varios: 'compras' },
+  { tipos: ['Abono de cliente', 'Abono a proveedor'], uno: 'abono', varios: 'abonos' },
+  {
+    tipos: ['Devolución de venta', 'Devolución de compra'],
+    uno: 'devolución',
+    varios: 'devoluciones',
+  },
+  { tipos: ['Ajuste de inventario'], uno: 'ajuste de inventario', varios: 'ajustes de inventario' },
+  { tipos: ['Reintegro'], uno: 'reintegro', varios: 'reintegros' },
+  { tipos: ['Cierre de caja'], uno: 'cierre de caja', varios: 'cierres de caja' },
+];
+
+/**
+ * Texto del diálogo de restaurar, con el rango de facturas y el resto de
+ * documentos agrupados.
+ *
+ * @param p - Resumen de la pérdida.
+ * @returns Texto como «15 documentos (facturas de cliente 10 a 12, 3 abonos)».
+ *
+ * @example
+ * textoDialogoPerdida({
+ *   total: 2,
+ *   facturaDesde: null,
+ *   facturaHasta: null,
+ *   documentos: [
+ *     { tipo: 'Abono de cliente', documento: '1', momento: '', resumen: '' },
+ *     { tipo: 'Cierre de caja', documento: '4', momento: '', resumen: '' },
+ *   ],
+ * }); // '2 documentos (1 abono, 1 cierre de caja)'
+ */
+export function textoDialogoPerdida(p: PerdidaAlRestaurar): string {
+  if (p.total === 0) {
+    return textoPerdidaAlRestaurar(p);
+  }
+  const partes: string[] = [];
+  if (p.facturaDesde !== null && p.facturaHasta !== null) {
+    partes.push(
+      p.facturaDesde === p.facturaHasta
+        ? `factura de cliente ${p.facturaDesde}`
+        : `facturas de cliente ${p.facturaDesde} a ${p.facturaHasta}`,
+    );
+  }
+  for (const grupo of GRUPOS_PERDIDA) {
+    const cantidad = p.documentos.filter((d) => grupo.tipos.includes(d.tipo)).length;
+    if (cantidad === 1) {
+      partes.push(`1 ${grupo.uno}`);
+    } else if (cantidad > 1) {
+      partes.push(`${cantidad} ${grupo.varios}`);
+    }
+  }
+  const n = `${p.total} documento${p.total === 1 ? '' : 's'}`;
+  return partes.length > 0 ? `${n} (${partes.join(', ')})` : n;
+}
+
+/**
+ * Aviso corto de la copia externa para la barra de estado. `null` si no hay
+ * nada que advertir (sin configurar o al día).
+ *
+ * @param estado - Estado calculado de la carpeta externa.
+ * @returns Texto del aviso, o `null`.
+ *
+ * @example
+ * avisoBarraCopiaExterna({
+ *   estado: 'no_disponible',
+ *   carpeta: 'E:\\Respaldos',
+ *   ultimaCopia: null,
+ *   motivo: 'desconectada',
+ * }); // 'La copia externa no está disponible. Los respaldos locales siguen guardándose.'
+ */
+export function avisoBarraCopiaExterna(estado: EstadoCopiaExterna): string | null {
+  if (estado.estado === 'sin_configurar' || estado.estado === 'ok') {
+    return null;
+  }
+  if (estado.estado === 'no_disponible') {
+    return 'La copia externa no está disponible. Los respaldos locales siguen guardándose.';
+  }
+  if (estado.ultimaCopia === '') {
+    return 'Todavía no hay una copia en la carpeta externa.';
+  }
+  if (estado.diasSinEscribir === 1) {
+    return 'La copia externa lleva 1 día sin actualizarse.';
+  }
+  return `La copia externa lleva ${estado.diasSinEscribir} días sin actualizarse.`;
 }

@@ -13,6 +13,10 @@ export interface EsquemaConfiguracion {
   'auth.hash_clave_recuperacion': string;
   /** Carpeta donde se guardan los respaldos automáticos. */
   'respaldos.carpeta': string;
+  /** Carpeta opcional de la copia diaria externa (USB o sincronizada), o `null` si no hay (D-175). */
+  'respaldos.externa': string | null;
+  /** Fecha ISO de la última copia externa que se pudo escribir. */
+  'respaldos.externa_ultima': string;
   /** Datos del negocio para el encabezado de la factura (D-12). */
   'negocio.datos': DatosNegocio;
   /** Impresora térmica de Windows para las facturas, o `null` para el diálogo de impresión (D-88). */
