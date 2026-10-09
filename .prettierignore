@@ -7,3 +7,7 @@ package-lock.json
 *.sql
 docs/
 .cursor/
+build/*.ico
+build/*.png
+build/*.svg
+build/*.nsh

@@ -57,7 +57,7 @@ export default tseslint.config(
   },
   {
     // Pruebas de punta a punta en JavaScript (fuera del proyecto de TypeScript).
-    files: ['tests/e2e/**/*.mjs'],
+    files: ['tests/e2e/**/*.mjs', 'scripts/**/*.mjs'],
     ...tseslint.configs.disableTypeChecked,
     languageOptions: {
       ...tseslint.configs.disableTypeChecked.languageOptions,
@@ -66,7 +66,7 @@ export default tseslint.config(
   },
   jsdoc.configs['flat/recommended-typescript-error'],
   {
-    files: ['tests/e2e/**/*.mjs'],
+    files: ['tests/e2e/**/*.mjs', 'scripts/**/*.mjs'],
     ...jsdoc.configs['flat/recommended-typescript-flavor-error'],
   },
   {

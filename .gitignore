@@ -5,6 +5,10 @@ node_modules/
 out/
 dist/
 release/
+*.exe
+
+# Vistas del ícono (el SVG y el .ico sí se versionan)
+build/*.png
 *.tsbuildinfo
 coverage/
 

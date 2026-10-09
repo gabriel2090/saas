@@ -1,4 +1,4 @@
-# Configuración del instalador de Windows (se completa en la Fase 6).
+# Instalador de Windows (Fase 6b: D-176, D-177, D-178, D-187, D-189, D-190).
 appId: co.negocio.inventario-facturacion
 productName: Inventario y Facturación
 directories:
@@ -12,11 +12,20 @@ npmRebuild: false
 asarUnpack:
   - node_modules/better-sqlite3/**/*
 win:
+  icon: build/icon.ico
   target:
     - target: nsis
       arch: [x64]
 nsis:
   oneClick: false
-  allowToChangeInstallationDirectory: true
+  perMachine: false
+  allowElevation: false
+  allowToChangeInstallationDirectory: false
   createDesktopShortcut: true
+  createStartMenuShortcut: true
   shortcutName: Inventario y Facturación
+  installerLanguages:
+    - es_ES
+  include: instalador.nsh
+  unicode: true
+  warningsAsErrors: true

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>Inventario y Facturación</title>
+  <rect width="256" height="256" rx="48" fill="#2563a8"/>
+  <path d="M36 132 L104 96 L172 132 L104 168 Z" fill="#d5e2f2"/>
+  <path d="M36 132 L36 196 L104 232 L104 168 Z" fill="#2f4a6d"/>
+  <path d="M104 168 L104 232 L172 196 L172 132 Z" fill="#1b4d85"/>
+  <rect x="108" y="28" width="116" height="156" rx="12" fill="#ffffff"/>
+  <rect x="124" y="46" width="84" height="16" rx="4" fill="#2563a8"/>
+  <rect x="124" y="78" width="84" height="10" rx="3" fill="#c5d0de"/>
+  <rect x="124" y="100" width="68" height="10" rx="3" fill="#c5d0de"/>
+  <rect x="124" y="122" width="76" height="10" rx="3" fill="#c5d0de"/>
+  <rect x="124" y="148" width="44" height="18" rx="4" fill="#2f4a6d"/>
+</svg>

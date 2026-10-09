@@ -1,7 +1,7 @@
 {
   "name": "inventario-facturacion",
   "productName": "Inventario y Facturación",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Sistema de escritorio de inventario, facturación, cuentas por cobrar y por pagar (100 % offline).",
   "private": true,
   "main": "./out/main/index.js",
