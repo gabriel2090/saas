@@ -89,6 +89,18 @@ Si algo falla antes del reemplazo, la base actual no se toca. Si falla durante e
 
 Canales (con sesión, salvo la recuperación): `respaldos:estado`, `respaldos:ahora`, `respaldos:cambiarCarpeta`, `respaldos:abrirCarpeta`, `respaldos:cambiarExterna`, `respaldos:quitarExterna`, `respaldos:elegirArchivo`, `respaldos:previsualizar`, `respaldos:pdf`, `respaldos:restaurar`. La ventana es el proceso `respaldos` (F5 actualiza la lista, ámbito `respaldos`).
 
+## Instalador de Windows (Fase 6b)
+
+`npm run empaquetar` compila y genera con electron-builder un instalador NSIS de 64 bits, versión de producto 1.0.0 (`electron-builder.yml`). No hay firma de código (D-187).
+
+- Instalación **por usuario**, sin administrador: el asistente no ofrece «todos los usuarios» ni pide carpeta. El programa queda en `%LOCALAPPDATA%\Programs` (D-176, D-189).
+- Idioma español, accesos en el escritorio y en el menú Inicio, y casilla «Abrir al terminar».
+- El ícono sale de `build/icono.svg` (`node scripts/exportar-icono.mjs` escribe `build/icon.ico`, 16 a 256 px).
+- `build/instalador.nsh` pregunta al desinstalar. Por defecto (y en silencio, y al actualizar) **conserva** `%APPDATA%\Inventario y Facturación`. Solo un Sí borra esa carpeta. La copia externa no se toca (D-177, D-190).
+- `better-sqlite3` viaja descomprimido (`asarUnpack`); no se recompila (D-10).
+
+La app empaquetada no honra `--carpeta-datos` y abre la carpeta real de datos (D-15). Por eso la prueba automática del instalador no ejecuta el `.exe` del programa.
+
 **Recuperación al arrancar** (D-173, D-180): si `integrity_check` falla o el archivo no se puede abrir, se cierra la conexión y **no** se pide contraseña ni se migran datos. `arranque:modo` responde `recuperacion`. La pantalla (`recuperacion:estado`, `recuperacion:restaurar`, `recuperacion:elegirArchivo`, `recuperacion:abrirCarpeta`, `recuperacion:datosSoporte`, sin sesión) propone la copia válida más reciente. Al aceptar, la base dañada se renombra a `inventario-AAAAMMDD-HHMMSS-danada.db` (con su `-wal` y `-shm`) y no se borra. «Copiar datos para soporte» lleva versión, rutas y el resultado del chequeo, sin datos del negocio.
 
 ## Interfaz: ventanas internas y atajos

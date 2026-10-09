@@ -1,6 +1,6 @@
 # Manual de usuario
 
-Guía de uso diario de Inventario y Facturación. Se completa fase a fase; por ahora cubre las ventanas y cómo organizarlas, la configuración de la facturación, la ventana Facturar, las reimpresiones, los reportes, el cierre de caja, el abono de cliente, la importación de saldos iniciales y los respaldos.
+Guía de uso diario de Inventario y Facturación. Se completa fase a fase; por ahora cubre las ventanas y cómo organizarlas, la configuración de la facturación, la ventana Facturar, las reimpresiones, los reportes, el cierre de caja, el abono de cliente, la importación de saldos iniciales, los respaldos y la instalación.
 
 ## Ventanas y «Organizar»
 
@@ -195,3 +195,35 @@ Esa pantalla aparece **antes** de pedir la contraseña, porque la contraseña es
 En la misma ventana puede indicar una **carpeta de copia externa**: un USB, otra unidad o una carpeta que se sincronice (OneDrive, por ejemplo). Cada día se guarda ahí un archivo `respaldo-diaria-AAAAMMDD.db`. El programa no borra las copias anteriores de esa carpeta.
 
 Si el USB no está conectado o la carpeta no se puede escribir, **el trabajo no se detiene**: la copia de este equipo se sigue guardando y la barra de estado, abajo, avisa que la copia externa no está disponible. Cuando vuelva a conectar la unidad, la siguiente copia diaria se escribirá ahí. **Quitar** deja de usar esa carpeta; no borra los archivos que ya se copiaron.
+
+## Instalar, actualizar y desinstalar
+
+El instalador es un archivo `Inventario y Facturación Setup 1.0.0.exe`. Se instala **solo para el usuario de Windows que lo ejecuta** y no pide administrador. Crea accesos en el escritorio y en el menú Inicio. Al terminar, la casilla **«Abrir al terminar»** abre el programa.
+
+Si en el equipo entran varias cuentas de Windows, cada una tiene su propia base de datos.
+
+### Aviso de Windows (SmartScreen)
+
+El instalador no está firmado con un certificado. La primera vez Windows puede mostrar **«Windows protegió su PC»**. No es un fallo del programa:
+
+1. Pulse **Más información**.
+2. Pulse **Ejecutar de todas formas**.
+
+El mismo aviso puede volver a salir si más adelante se entrega un instalador nuevo.
+
+### Actualizar
+
+Ejecute el instalador nuevo encima de la instalación anterior. El programa se reemplaza; la base y los respaldos se quedan.
+
+### Desinstalar
+
+En Configuración de Windows, Aplicaciones, elija **Inventario y Facturación** y desinstálelo. También puede usar el acceso «Desinstalar» de la carpeta de instalación.
+
+Por defecto **se conservan** la base de datos y los respaldos de este equipo. El desinstalador pregunta:
+
+> ¿Borrar también la base de datos y los respaldos de este usuario?
+
+- **No** (la opción marcada): los datos siguen en `%APPDATA%\Inventario y Facturación`. Al instalar de nuevo se encuentran solos.
+- **Sí**: borra esa carpeta. No se puede deshacer.
+
+La carpeta de copia externa (USB u otra unidad) **no se modifica** ni con Sí ni con No.

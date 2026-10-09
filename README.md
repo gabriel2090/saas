@@ -66,7 +66,7 @@ npx electron . --carpeta-datos="C:\ruta\temporal"
 | `npm run test:integracion`      | Pruebas de migraciones, repositorios y servicios contra SQLite en memoria.                                                                                                                      |
 | `npm run test:todo`             | Ambas suites.                                                                                                                                                                                   |
 | `npm run test:e2e`              | Prueba de punta a punta de las ventanas en la app real, con carpeta temporal. `-- --veces=8` la repite para detectar fallas intermitentes; el registro queda en `%TEMP%\saas-e2e\registro.log`. |
-| `npm run empaquetar`            | Genera el instalador `.exe` en `release/` (se completa en la Fase 6).                                                                                                                           |
+| `npm run empaquetar`            | Genera `release/Inventario y Facturación Setup 1.0.0.exe` (NSIS, 64 bits, por usuario, sin firma). El ícono se regenera con `node scripts/exportar-icono.mjs`.                                  |
 
 ## Dónde quedan los datos
 
@@ -76,7 +76,7 @@ En la app instalada, todo vive en `%APPDATA%\Inventario y Facturación`:
 - `respaldos\`: copias automáticas tras cada cambio (rotación: últimas 20, una por hora de 48 h y una diaria de 30 días).
 - `logs\sistema.log`: registro técnico de errores.
 
-Para volver a la pantalla de «primer inicio» en un equipo de pruebas, cierre la app y borre esa carpeta.
+Desinstalar conserva esta carpeta, salvo que se responda Sí a la pregunta del desinstalador. La carpeta de copia externa no se borra. Para volver a la pantalla de «primer inicio» en un equipo de pruebas, cierre la app y borre esa carpeta.
 
 ## Importar datos del sistema anterior
 
